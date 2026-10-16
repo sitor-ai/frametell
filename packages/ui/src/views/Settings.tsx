@@ -74,7 +74,7 @@ const SECTIONS: Section[] = [
   },
   { id: 'general', icon: SlidersHorizontal, label: 'settings.nav.general', detail: (c) => <General c={c} /> },
   { id: 'network', icon: Globe, label: 'settings.nav.network', detail: (c) => <Network c={c} /> },
-  { id: 'machine', icon: Monitor, label: 'settings.nav.machine', detail: () => <Machine /> },
+  { id: 'machine', icon: Monitor, label: 'settings.nav.machine', detail: (c) => <Machine c={c} /> },
 ];
 
 function Page({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
@@ -257,8 +257,8 @@ function Network({ c }: { c: Ctx }) {
   );
 }
 
-function Machine() {
-  const env = useLoad(() => client.env(), []);
+function Machine({ c }: { c: Ctx }) {
+  const env = useLoad(() => client.env(), [c.s.ffmpegPath]);
   return (
     <Page title={t('settings.env.title')}>
       <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
@@ -267,13 +267,50 @@ function Machine() {
             {x.ok ? <Check size={15} className="mt-0.5 shrink-0 text-jade" aria-label={t('settings.env.ok')} /> : <CircleAlert size={15} className="mt-0.5 shrink-0 text-seal" aria-label={t('settings.env.fix')} />}
             <span className="min-w-0">
               <span className="block text-[13px] font-medium text-ink">{t(`settings.env.${x.id}` as MessageKey)}</span>
-              <span className="mt-0.5 block truncate text-[12px] text-ink-3" title={x.detail}>{x.ok ? x.detail : x.fix}</span>
+              <span className="mt-0.5 block break-words text-[12px] text-ink-3" title={x.detail}>{x.detail}</span>
+              {!x.ok && x.fix && <span className="mt-0.5 block text-[12px] text-ink-2">{x.fix}</span>}
             </span>
           </li>
         ))}
       </ul>
+      <FfmpegPath c={c} />
       <p className="flex items-center gap-1.5 text-[12px] text-ink-3"><KeyRound size={12} aria-hidden /> {t('settings.env.where')}</p>
     </Page>
+  );
+}
+
+/** where ffmpeg lives: a file, or a folder that contains one. Empty uses the bundled binary. */
+function FfmpegPath({ c }: { c: Ctx }) {
+  const [v, setV] = useState(c.s.ffmpegPath ?? '');
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState(false);
+  useEffect(() => setV(c.s.ffmpegPath ?? ''), [c.s.ffmpegPath]);
+  const commit = async (x: string) => {
+    if (x.trim() === (c.s.ffmpegPath ?? '')) return;
+    try { await c.patch({ ffmpegPath: x.trim() }); setErr(''); setOk(true); setTimeout(() => setOk(false), 1400); } catch (e) { setErr((e as Error).message); }
+  };
+  const choose = async () => {
+    const pick = client.pickFfmpeg || client.pickFolder;
+    if (!pick) return;
+    const d = await pick(c.s.ffmpegPath || undefined);
+    if (d) { setV(d); void commit(d); }
+  };
+  return (
+    <section aria-labelledby="sec-ffmpeg">
+      <h4 id="sec-ffmpeg" className="text-[13px] font-semibold text-ink">{t('settings.ffmpeg.title')}</h4>
+      <p className="mt-1 text-[12.5px] text-ink-3">{t('settings.ffmpeg.desc')}</p>
+      <div className="mt-3 flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <label htmlFor="ffmpeg-path" className="sr-only">{t('settings.ffmpeg.title')}</label>
+          <input id="ffmpeg-path" spellCheck={false} className="fs-input h-10 pr-8 font-mono text-[12.5px]" value={v} placeholder={t('settings.ffmpeg.placeholder')}
+            onChange={(e) => setV(e.target.value)} onBlur={() => void commit(v)} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+          {ok && <Check size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-jade" aria-label={t('providers.saved')} />}
+        </div>
+        {(client.pickFfmpeg || client.pickFolder) && <button type="button" className="fs-btn fs-btn-secondary h-10" onClick={() => void choose()}><FolderOpen size={14} aria-hidden /> {t('settings.ffmpeg.choose')}</button>}
+        {c.s.ffmpegPath && <button type="button" className="fs-btn fs-btn-ghost h-10" onClick={() => { setV(''); void commit(''); }}>{t('settings.ffmpeg.clear')}</button>}
+      </div>
+      {err && <p className="mt-1.5 flex items-start gap-1 text-[12px] text-seal" role="alert"><CircleAlert size={13} className="mt-0.5 shrink-0" aria-hidden /> {err}</p>}
+    </section>
   );
 }
 

@@ -1,17 +1,21 @@
 // 设置里的模型服务商
 export default {
   list: '服务商',
-  group: { recommended: '推荐', global: '海外', china: '国内', local: '本地', custom: '自定义' },
+  group: { recommended: '推荐', global: '海外', china: '国内', local: '本地', cli: '本机命令行', custom: '自定义' },
   name: {
     anthropic: 'Claude', openai: 'OpenAI', google: 'Gemini', xai: 'Grok', openrouter: 'OpenRouter',
     deepseek: 'DeepSeek', 'moonshotai-cn': 'Kimi', zhipu: '智谱 GLM', qwen: '通义千问', 'minimax-cn': 'MiniMax', siliconflow: '硅基流动',
     'volcengine-ark': '豆包', hunyuan: '腾讯混元', xiaomi: '小米 MiMo', ollama: 'Ollama',
+    'claude-cli': 'Claude Code', 'codex-cli': 'Codex', 'grok-cli': 'Grok',
   },
   blurb: {
     anthropic: 'Anthropic 官方 API', openai: 'OpenAI 官方 API', google: 'Google AI Studio',
     xai: 'xAI 官方 API', openrouter: '一个 key 接入几百个模型', deepseek: '深度求索开放平台', 'moonshotai-cn': '月之暗面开放平台', zhipu: '智谱 AI 开放平台',
     qwen: '阿里云百炼', 'minimax-cn': 'MiniMax 开放平台', siliconflow: '开源模型一站式 API', 'volcengine-ark': '火山方舟', hunyuan: '腾讯云混元大模型',
     xiaomi: '小米 MiMo 开放平台', ollama: '本机运行的开源模型，不需要 key',
+    'claude-cli': '直接调用本机已登录的 claude，不用填 API Key',
+    'codex-cli': '直接调用本机已登录的 codex，不用填 API Key',
+    'grok-cli': '直接调用本机已登录的 grok，不用填 API Key',
   },
   inUse: '在用',
   connected: '已连接',
@@ -28,6 +32,9 @@ export default {
   baseUrl: '请求地址',
   baseUrlHint: '留空就用官方地址；用自己的中转或代理网关时填这里。',
   localHint: '先在这台电脑上运行 Ollama，再启用它。',
+  cliFound: (v: { command: string; path: string }) => `已找到 ${v.command}（${v.path}）。用你已经登录的账号，不用填 API Key 和请求地址。`,
+  cliMissing: (v: { command: string }) => `这台电脑上没有找到 ${v.command}。装好并登录后，这里就能直接用。`,
+  cliFirst: (v: { command: string }) => `先安装并登录 ${v.command}，模型会出现在这里。`,
   enable: '启用',
   disable: '停用',
   models: '模型',

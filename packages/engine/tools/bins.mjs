@@ -9,16 +9,56 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const tryRequire = (id) => { try { return require(id); } catch { return null; } };
 
-export const FFMPEG = process.env.FFMPEG_PATH || tryRequire('ffmpeg-static') || 'ffmpeg';
+const bundled = () => tryRequire('ffmpeg-static') || 'ffmpeg';
+
+/** the ffmpeg to run, read each time: a path chosen in Settings (FFMPEG_PATH) wins over the bundled binary */
+export function ffmpegBin() {
+  const set = (process.env.FFMPEG_PATH || '').trim();
+  return set || bundled();
+}
+
+/** snapshot for callers that imported the old constant; new code uses ffmpegBin() so a settings change is seen */
+export const FFMPEG = ffmpegBin();
+
+/**
+ * Why an ffmpeg run failed, in one line. An empty stderr used to become "ffmpeg:" and nothing else (a packaged binary
+ * that macOS killed, or a path that does not exist, exits with no text).
+ */
+export function ffmpegFailure(o = {}) {
+  const bin = o.bin || ffmpegBin();
+  const name = path.basename(bin) || 'ffmpeg';
+  let exists = false, executable = false;
+  if (path.isAbsolute(bin)) {
+    try {
+      const st = fs.statSync(bin);
+      exists = st.isFile();
+      executable = exists && (process.platform === 'win32' || (st.mode & 0o111) !== 0);
+    } catch { /* missing */ }
+  }
+  const tail = [o.stderr, o.stdout].map((s) => String(s || '').trim()).filter(Boolean).join('\n').split('\n').map((l) => l.trim()).filter(Boolean).slice(-4).join(' | ');
+  const bits = [];
+  if (path.isAbsolute(bin) && !exists) bits.push('not found at ' + bin);
+  else if (path.isAbsolute(bin) && !executable) bits.push('not executable: ' + bin);
+  else bits.push(bin);
+  if (o.spawnError) bits.push(String(o.spawnError).trim());
+  if (o.signal) bits.push('signal ' + o.signal);
+  else if (o.code != null && o.code !== 0) bits.push('exit ' + o.code);
+  if (o.code === 137 || o.signal === 'SIGKILL') bits.push('macOS may have blocked this binary');
+  if (tail) bits.push(tail);
+  else if (!o.spawnError) bits.push('no output');
+  return name + ': ' + bits.join(' — ');
+}
 
 /** --hw's H.264 encoder: the Mac's media engine, elsewhere an NVIDIA card's (NVENC; a render box with a GPU) */
 export const HW_ENCODE = process.platform === 'darwin' ? ['-c:v', 'h264_videotoolbox', '-q:v', '72'] : ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'constqp', '-qp', '18'];
 
 /** Duration (s) and picture size of a media file, read from what `ffmpeg -i` prints (no ffprobe needed). */
 export function probe(file) {
-  const out = spawnSync(FFMPEG, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file], { encoding: 'utf8' }).stderr || '';
+  const bin = ffmpegBin();
+  const r = spawnSync(bin, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file], { encoding: 'utf8' });
+  const out = r.stderr || r.stdout || '';
   const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(out);
-  if (!d) throw new Error(`cannot read ${file}: ${out.trim().split('\n').pop()}`);
+  if (!d) throw new Error(ffmpegFailure({ bin, code: r.status, signal: r.signal, stderr: r.stderr, stdout: r.stdout, spawnError: r.error && r.error.message }));
   const v = /Stream #[^\n]*Video:[^\n]*?(\d{2,5})x(\d{2,5})/.exec(out);
   return { duration: +d[1] * 3600 + +d[2] * 60 + +d[3], width: v ? +v[1] : 0, height: v ? +v[2] : 0 };
 }

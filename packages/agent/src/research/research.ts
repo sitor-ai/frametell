@@ -47,6 +47,41 @@ export function briefFile(h: Handed): string {
   return `${h.brief}\n\n## Sources\n\n${src || '(none listed)'}\n`;
 }
 
+
+function parseObj(text: string): Record<string, unknown> | undefined {
+  const start = text.indexOf('{'), end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) return undefined;
+  try {
+    const v = JSON.parse(text.slice(start, end + 1));
+    return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : undefined;
+  } catch { return undefined; }
+}
+
+/** a local CLI has no finish tool: the brief is the final message, or a JSON object in it */
+export function briefFromCliText(text: string): Handed | undefined {
+  const fence = String.fromCharCode(96, 96, 96);
+  const blobs = [...text.matchAll(new RegExp(fence + '(?:json)?\\s*([\\s\\S]*?)' + fence, 'g'))].map((m) => m[1]);
+  blobs.push(text.trim());
+  for (const blob of blobs) {
+    const obj = parseObj(blob);
+    if (obj && typeof obj.brief === 'string' && obj.brief.trim().length >= 200) {
+      const sources = Array.isArray(obj.sources) ? obj.sources.flatMap((s) => {
+        const x = s as { title?: unknown; ref?: unknown; note?: unknown };
+        return typeof x?.title === 'string' && typeof x.ref === 'string' ? [{ title: x.title, ref: x.ref, ...(typeof x.note === 'string' ? { note: x.note } : {}) }] : [];
+      }) : [];
+      return { brief: obj.brief.trim(), sources };
+    }
+  }
+  if (/^## One line/m.test(text) && text.trim().length >= 200) return { brief: text.trim(), sources: [] };
+  return undefined;
+}
+
+function cliResearchNote(mounts: Mount[]): string {
+  const folders = mounts.map((m) => '- ' + m.name + ': ' + m.root + ' — ' + m.about).join('\n');
+  return '\n\nYou are a local CLI and do not have finish, search_files or read_url. Read these folders at their real paths:\n'
+    + (folders || '(none)')
+    + '\nUse your own file and web tools. When you are done, your final message must be the brief in the required Markdown, then a JSON object {"brief":"...","sources":[{"title":"...","ref":"...","note":"..."}]}.';
+}
 export interface RunResearch {
   dir: string;
   runtime: AgentRuntime;
@@ -83,13 +118,17 @@ export async function runResearch(o: RunResearch): Promise<ResearchResult> {
   const t = researchTools({ mounts, web, limits, signal: o.signal, onFinish: (h) => { handed = h; } });
   const s = await o.runtime.open({ name: 'research', system: researchSystem(), cwd: o.dir, maxTurns: limits.turns, signal: o.signal, onEvent: o.onEvent, agentTools: t.tools, keepToolChars: limits.keepToolChars });
   try {
-    const r = await s.send({ text: researchPrompt(o.brief, mounts, o.sources.urls, !!web.provider), thinking: 'low' });
+    const cli = o.runtime.id === 'cli';
+    const ask = researchPrompt(o.brief, mounts, o.sources.urls, !!web.provider) + (cli ? cliResearchNote(mounts) : '');
+    const r = await s.send({ text: ask, thinking: 'low' });
     if (r.stopReason === 'aborted') throw new DOMException('aborted', 'AbortError');
+    if (!handed && cli) handed = briefFromCliText(r.text);
     // out of turns or time, or it stopped talking without the brief: everything but finish is closed now
     if (!handed) {
       t.close();
       const again = await s.send({ text: 'Stop gathering now and call finish with the brief, written from what you have found so far.', thinking: 'low' });
       if (again.stopReason === 'aborted') throw new DOMException('aborted', 'AbortError');
+      if (!handed) handed = briefFromCliText(again.text);
       if (!handed) throw new Error(again.error || r.error || 'the research ended without a brief');
     }
   } finally { await s.close(); }

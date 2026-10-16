@@ -46,6 +46,9 @@ function readable(): string[] {
   if (ca) out.add(ca);
   const res = (process as { resourcesPath?: string }).resourcesPath;
   if (res) out.add(real(res) ?? res);
+  // a ffmpeg the user chose (or the app bundled) may sit outside the paths already allowed, under home or elsewhere
+  const ff = process.env.FFMPEG_PATH && real(process.env.FFMPEG_PATH);
+  if (ff) { out.add(path.dirname(ff)); const link = real(process.env.FFMPEG_PATH!); if (link) out.add(path.dirname(link)); }
   // the programs on PATH (the desktop app puts its `node` launcher in its data folder), but never a whole home folder
   const home = real(os.homedir()) ?? os.homedir();
   for (const d of (process.env.PATH || '').split(path.delimiter)) {

@@ -52,6 +52,8 @@ export interface StudioClient {
   reveal?(file: string): Promise<void>;
   /** choose a folder with the system dialog (starting at `current`); undefined when dismissed — the desktop app only */
   pickFolder?(current?: string): Promise<string | undefined>;
+  /** choose ffmpeg: a file or the folder it is installed in; undefined when dismissed — the desktop app only */
+  pickFfmpeg?(current?: string): Promise<string | undefined>;
   /** a URL for a file inside the project (preview player, snapshot, video) */
   fileUrl(p: ProjectView, rel: string): string;
   /** set by a hosted service (Frametell Cloud): it runs the models and voices, so the panel leaves out settings, the

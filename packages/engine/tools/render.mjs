@@ -13,7 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import { loadEpisode, OUT, PORTRAIT, EP } from './lib.mjs';
 import { mixTrack } from './mix.mjs';
-import { FFMPEG, HW_ENCODE, probe } from './bins.mjs';
+import { FFMPEG, HW_ENCODE, ffmpegFailure, probe } from './bins.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const has = (k) => process.argv.includes('--' + k);
@@ -60,7 +60,14 @@ const spawned = (cmd, args) => new Promise((res) => {
   kids.add(k);
   k.on('close', (c) => { kids.delete(k); res(c); });
 });
-const run = (cmd, args) => spawned(cmd, args).then((c) => { if (c) throw new Error(cmd + ' ' + c); });
+const run = (cmd, args) => new Promise((res, rej) => {
+  const k = spawn(cmd, args, { stdio: ['inherit', 'inherit', 'pipe'] });
+  let err = '';
+  k.stderr?.on('data', (d) => { const s = d.toString(); err = (err + s).slice(-1500); process.stderr.write(s); });
+  kids.add(k);
+  k.on('error', (e) => { kids.delete(k); rej(new Error(ffmpegFailure({ bin: cmd, spawnError: e.message, stderr: err }))); });
+  k.on('close', (c, signal) => { kids.delete(k); if (c) rej(new Error(ffmpegFailure({ bin: cmd, code: c, signal, stderr: err }))); else res(); });
+});
 const [NO, WITH] = META.lang === 'en' ? ['no-subtitles', 'with-subtitles'] : ['无字幕', '有字幕'];
 const nosub = path.join(OUT, `${name}-${NO}.mp4`), withsub = path.join(OUT, `${name}-${WITH}.mp4`);
 const subsDir = path.join(OUT, PORTRAIT ? 'subs-portrait' : 'subs');

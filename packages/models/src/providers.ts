@@ -2,9 +2,11 @@
 // localized and keyed by id. Most are built into Pi; the rest are OpenAI-compatible
 // endpoints Studio registers itself. Every one takes a key (or, for a local server, nothing), an optional own base URL,
 // and model ids the user adds by hand on top of the ones the provider lists.
+// A CLI provider is different: Studio runs a command already signed in on this computer, so it needs neither a key nor a base URL.
 import type { CustomProviderConfig } from './custom.js';
+import { CLI_TOOLS } from './cli.js';
 
-export type ProviderGroup = 'recommended' | 'global' | 'china' | 'local';
+export type ProviderGroup = 'recommended' | 'global' | 'china' | 'local' | 'cli';
 
 export interface ProviderSpec {
   id: string;
@@ -19,8 +21,14 @@ export interface ProviderSpec {
   keyHint?: string;
   /** a local server: no key, only a base URL */
   local?: boolean;
+  /** a command already signed in on this computer: no key, no base URL */
+  cli?: boolean;
+  /** the command Studio runs, when `cli` */
+  command?: string;
+  /** the executable, filled in when providers are listed; absent when the command is not installed */
+  bin?: string;
   /** the protocol of the endpoint: decides what a custom base URL looks like (Anthropic: no /v1) */
-  protocol: 'openai' | 'anthropic' | 'google';
+  protocol: 'openai' | 'anthropic' | 'google' | 'cli';
   /** the endpoint, shown as the default when the user leaves the base URL empty */
   baseUrl: string;
   /** an OpenAI-compatible endpoint Studio registers (not built into Pi); its models are listed from GET /models */
@@ -28,6 +36,9 @@ export interface ProviderSpec {
 }
 
 export const PROVIDERS: ProviderSpec[] = [
+  ...CLI_TOOLS.map((t): ProviderSpec => ({
+    id: t.id, site: t.site, name: t.name, group: 'cli', blurb: t.blurb, local: true, cli: true, command: t.command, protocol: 'cli', baseUrl: '',
+  })),
   { id: 'anthropic', site: 'https://www.anthropic.com', name: 'Claude', group: 'recommended', blurb: 'The Anthropic API', keyUrl: 'https://console.anthropic.com/settings/keys', keyHint: 'sk-ant-…', protocol: 'anthropic', baseUrl: 'https://api.anthropic.com' },
   { id: 'openai', site: 'https://platform.openai.com', name: 'OpenAI', group: 'global', blurb: 'The OpenAI API', keyUrl: 'https://platform.openai.com/api-keys', keyHint: 'sk-…', protocol: 'openai', baseUrl: 'https://api.openai.com/v1' },
   { id: 'google', site: 'https://ai.google.dev', name: 'Gemini', group: 'global', blurb: 'Google AI Studio', keyUrl: 'https://aistudio.google.com/apikey', keyHint: 'AIza…', protocol: 'google', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },

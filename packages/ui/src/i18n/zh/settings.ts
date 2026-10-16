@@ -83,4 +83,11 @@ export default {
     node: 'Node.js',
     where: '设置保存在 ~/.frametell/config.json，仅本机用户可读。',
   },
+  ffmpeg: {
+    title: 'ffmpeg 位置',
+    desc: '留空就用应用自带的 ffmpeg。打包后如果配音或导出报 ffmpeg 错误，选择本机安装的 ffmpeg 文件，或它所在的文件夹。',
+    placeholder: '/opt/homebrew/bin/ffmpeg',
+    choose: '选择',
+    clear: '恢复自带',
+  },
 };

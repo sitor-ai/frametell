@@ -20,11 +20,11 @@ import elevenlabs from '../assets/providers/elevenlabs.svg?raw';
 // drawn inline in the text colour, so they read on either theme. A provider without a mark gets its initial.
 
 const COLOR: Record<string, string> = {
-  anthropic: claude, google: gemini, deepseek, zhipu, qwen, 'minimax-cn': minimax, siliconflow,
+  anthropic: claude, 'claude-cli': claude, google: gemini, deepseek, zhipu, qwen, 'minimax-cn': minimax, siliconflow,
   'volcengine-ark': doubao, hunyuan, volcengine,
 };
 // drawn inline: one-colour marks, and Kimi, whose letter is drawn in the text colour beside its blue dot
-const MONO: Record<string, string> = { 'moonshotai-cn': kimi, openai, xai: grok, openrouter, xiaomi, ollama, elevenlabs };
+const MONO: Record<string, string> = { 'moonshotai-cn': kimi, openai, 'codex-cli': openai, xai: grok, 'grok-cli': grok, openrouter, xiaomi, ollama, elevenlabs };
 
 export function ProviderLogo({ id, name, size = 20, className = '' }: { id: string; name?: string; size?: number; className?: string }) {
   const box = `inline-flex shrink-0 items-center justify-center ${className}`;

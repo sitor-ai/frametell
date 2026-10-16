@@ -2,17 +2,21 @@ import type zh from '../zh/providers';
 
 const en: typeof zh = {
   list: 'Providers',
-  group: { recommended: 'Recommended', global: 'Global', china: 'China', local: 'Local', custom: 'Your own' },
+  group: { recommended: 'Recommended', global: 'Global', china: 'China', local: 'Local', cli: 'Local CLI', custom: 'Your own' },
   name: {
     anthropic: 'Claude', openai: 'OpenAI', google: 'Gemini', xai: 'Grok', openrouter: 'OpenRouter',
     deepseek: 'DeepSeek', 'moonshotai-cn': 'Kimi', zhipu: 'Zhipu GLM', qwen: 'Qwen', 'minimax-cn': 'MiniMax', siliconflow: 'SiliconFlow',
     'volcengine-ark': 'Doubao', hunyuan: 'Tencent Hunyuan', xiaomi: 'Xiaomi MiMo', ollama: 'Ollama',
+    'claude-cli': 'Claude Code', 'codex-cli': 'Codex', 'grok-cli': 'Grok',
   },
   blurb: {
     anthropic: 'The Anthropic API', openai: 'The OpenAI API', google: 'Google AI Studio',
     xai: 'The xAI API', openrouter: 'One key for hundreds of models', deepseek: 'DeepSeek Open Platform', 'moonshotai-cn': 'Moonshot AI Open Platform', zhipu: 'Zhipu AI Open Platform',
     qwen: 'Alibaba Cloud Model Studio', 'minimax-cn': 'MiniMax Open Platform', siliconflow: 'Open models, one API', 'volcengine-ark': 'Volcengine Ark', hunyuan: 'Tencent Cloud Hunyuan',
     xiaomi: 'Xiaomi MiMo Open Platform', ollama: 'Open models running on this computer; no key',
+    'claude-cli': 'The Claude Code CLI already signed in on this computer',
+    'codex-cli': 'The Codex CLI already signed in on this computer',
+    'grok-cli': 'The Grok CLI already signed in on this computer',
   },
   inUse: 'In use',
   connected: 'Connected',
@@ -29,6 +33,9 @@ const en: typeof zh = {
   baseUrl: 'Base URL',
   baseUrlHint: 'Leave empty for the official endpoint; fill it in for your own relay or gateway.',
   localHint: 'Start Ollama on this computer, then enable it.',
+  cliFound: (v) => `Found ${v.command} (${v.path}). Uses the account you already signed in with. No API key or base URL.`,
+  cliMissing: (v) => `${v.command} was not found on this computer. Install it and sign in, and it can be used directly.`,
+  cliFirst: (v) => `Install and sign in to ${v.command}, and its model shows up here.`,
   enable: 'Enable',
   disable: 'Disable',
   models: 'Models',
