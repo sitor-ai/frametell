@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A film's model can be a CLI already signed in on this computer. Claude Code, Codex and Grok are looked for on `PATH` and in the folders a packaged app does not inherit (`~/.local/bin`, `~/.grok/bin`, `~/.npm-global/bin`, `/usr/local/bin`, `/opt/homebrew/bin`), and each one found is offered under Settings → Providers → Local CLI as its own provider: no API key, no base URL, just the account the CLI is already signed in to. A CLI shows one model, its own default, and any id typed in is passed through as `--model`; the film, the pages and the review can each be one. The command runs inside the project and its stream is read back — the answer tools a CLI does not install are replaced by asking for the JSON object — and research keeps the CLI's own file and web tools, with the brief read out of its last message. `frametell run` takes `--model claude-cli/…` (`codex-cli`, `grok-cli`) the same way, and falls back to a signed-in CLI when no API key is set.
+
 ### Fixed
 
 - While a film is being made, the workbench's players no longer reload the whole film each time a page starts, finishes or goes round its check again. They reloaded dozens of times during a film, the page you were playing was cut off and stuck near its start, and the browser could slow to a crawl. A player now picks up a new version only when a page has been drawn.
+- An ffmpeg that fails now says why. When the binary could not be started or died without printing anything — the packaged binary macOS had blocked, a path that is not there — narration, export and frame cuts reported `ffmpeg:` and nothing else, and the exit code, the signal and stderr were dropped on the way. Every ffmpeg failure now names the binary, what was wrong with it (not found, not executable, killed by a signal, an exit code, macOS blocking it), and the last few lines it printed; the narration stage adds where to change it.
+- Which ffmpeg to run can be chosen. Settings → This computer has an ffmpeg location: type the binary's path, or choose the file (or the folder it is installed in) with the system dialog. It is checked by running `ffmpeg -version`, saved in `config.json` as `ffmpegPath`, and used at once by everything that starts ffmpeg, including the agent's sandbox, which may read the chosen binary's folder. Empty uses the bundled binary, or `ffmpeg` on `PATH` when running from source.
 
 ## [0.7.2] - 2026-10-16
 
