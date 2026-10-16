@@ -8,8 +8,11 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 
-if (app.isPackaged && !process.env.FFMPEG_PATH) {
-  process.env.FFMPEG_PATH = path.join(process.resourcesPath, 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+if (app.isPackaged) {
+  const bundled = path.join(process.resourcesPath, 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+  process.env.FRAMETELL_FFMPEG_BUNDLED = bundled;
+  try { fs.chmodSync(bundled, 0o755); } catch { /* a missing bundle is reported when ffmpeg is used */ }
+  if (!process.env.FFMPEG_PATH) process.env.FFMPEG_PATH = bundled;
 }
 
 try {

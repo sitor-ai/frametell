@@ -38,3 +38,12 @@ test('the export folder is kept as a full path; ~ is the home folder, a relative
   assert.throws(() => patchConfig(c, { exportDir: 'films' }), /完整路径|full path/);
   assert.equal(publicConfig({ ...c, exportDir: undefined }).exportDir, '');
 });
+
+test('an ffmpeg path must exist and run; a folder is the binary inside it; empty clears it', async () => {
+  const { patchConfig, publicConfig, loadConfig } = await import('./config.js');
+  const c = loadConfig();
+  assert.throws(() => patchConfig(c, { ffmpegPath: 'ffmpeg' }), /完整路径|full path/);
+  assert.throws(() => patchConfig(c, { ffmpegPath: '/no/such/ffmpeg' }), /没有找到|not found/);
+  assert.equal(patchConfig({ ...c, ffmpegPath: '/usr/bin/ffmpeg' }, { ffmpegPath: '' }).ffmpegPath, undefined);
+  assert.equal(publicConfig({ ...c, ffmpegPath: undefined }).ffmpegPath, '');
+});

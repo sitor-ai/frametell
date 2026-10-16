@@ -45,4 +45,5 @@ contextBridge.exposeInMainWorld('studioBridge', {
   platform: process.platform,
   reveal: (file) => ipcRenderer.invoke('studio:reveal', file),
   pickFolder: (current) => ipcRenderer.invoke('studio:pickFolder', current),
+  pickFfmpeg: (current) => ipcRenderer.invoke('studio:pickFfmpeg', current),
 });

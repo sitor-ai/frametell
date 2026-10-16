@@ -6,7 +6,7 @@ import type { CustomProviderConfig, ModelInfo, ProviderSpec } from '@frametell/m
 export type { StudioEvent, Storyboard, ModelInfo, ProviderSpec, CustomProviderConfig, SearchProviderId };
 export type { Timeline, PageTiming, UserRef, Look, PageIssue, BrandBrief, BrandAsset, BrandAssetKind } from '@frametell/agent';
 import type { BrandBrief, Look } from '@frametell/agent';
-export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex';
+export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex' | 'cli';
 /** interface language; 'auto' follows the system */
 export type Locale = 'zh' | 'en';
 export type LocalePref = 'auto' | Locale;
@@ -118,6 +118,8 @@ export interface PublicSettings {
   preferences: string;
   /** the folder exports are also copied into; '' when only the project's own out/ */
   exportDir: string;
+  /** ffmpeg to run instead of the bundled one; '' uses the bundled binary or ffmpeg on PATH */
+  ffmpegPath: string;
   defaults: { model?: string; pageModel?: string; reviewModel?: string; researchModel?: string; runtime: RuntimeId; style: string; durationSec: number; voice?: VoiceChoice; subtitles: boolean; concurrency: number };
 }
 export interface SettingsPatch {
@@ -140,6 +142,8 @@ export interface SettingsPatch {
   preferences?: string;
   /** a full path (~ allowed); '' removes it */
   exportDir?: string;
+  /** a full path to ffmpeg, or a folder that contains it (~ allowed); '' uses the bundled one */
+  ffmpegPath?: string;
   defaults?: Partial<PublicSettings['defaults']>;
 }
 

@@ -143,6 +143,7 @@ export function serviceTrouble(text: string): { zh: string; en: string } | undef
   if (/\b40[13]\b|unauthori[sz]ed|invalid.{0,20}(api[ _-]?key|key|token)|authentication|forbidden/i.test(text)) return { zh: '模型的 key 无效或没有权限：在设置里检查 key，再点继续。', en: 'The model key is invalid or not allowed. Check it in Settings, then continue.' };
   if (/\b(429|529|503)\b|rate.?limit|too many requests|overloaded|capacity|限流/i.test(text)) return { zh: '模型服务这会儿太忙，限流了：等几分钟再点继续。', en: 'The model service is busy and limiting requests. Wait a few minutes, then continue.' };
   if (/fetch failed|ECONN|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|network error|terminated/i.test(text)) return { zh: '连不上模型服务：检查网络或代理，再点继续。', en: "Couldn't reach the model service. Check the network or proxy, then continue." };
+  if (/not logged in|not signed in|please (log|sign) in|auth(entication)? required|run .* login/i.test(text)) return { zh: '本地命令行还没登录：在终端里登录后再点继续。', en: 'The local CLI is not signed in. Sign in from a terminal, then continue.' };
   return undefined;
 }
 
@@ -398,6 +399,17 @@ export class Director {
   }
 
   // ── ③ narration ──────────────────────────────────────────────────────────────────────────────
+  /** narration, with a usable note when ffmpeg itself failed (a packaged binary often exits with no text) */
+  private async narrateOrSay() {
+    try {
+      return await narrate(this.o.dir, { tts: this.o.tts!, voice: this.o.voice, signal: this.o.signal, child: childCmd, files: projectFiles, onProgress: (e) => this.emit({ type: 'narrate', ...e }) });
+    } catch (e) {
+      if (stopped(e)) throw e;
+      const raw = (e as Error).message || this.say('ffmpeg 没有说明原因', 'ffmpeg gave no reason');
+      this.fail('narrate', raw + '\n' + this.say('在「设置 → 这台电脑」里选择 ffmpeg 的安装位置，再点继续。', 'Choose where ffmpeg is installed under Settings → This computer, then continue.'));
+    }
+  }
+
   async narrate() {
     this.emit({ type: 'stage', stage: 'narrate', status: 'start' });
     this.state.stage = 'narrate'; this.save();
@@ -407,7 +419,7 @@ export class Director {
       return;
     }
     this.serverMeta();
-    const r = await narrate(this.o.dir, { tts: this.o.tts, voice: this.o.voice, signal: this.o.signal, child: childCmd, files: projectFiles, onProgress: (e) => this.emit({ type: 'narrate', ...e }) });
+    const r = await this.narrateOrSay();
     await this.commit(this.say('配音', 'Voice'));
     this.state.stage = 'pages'; this.save();
     this.emit({ type: 'stage', stage: 'narrate', status: 'done', detail: `${r.duration.toFixed(1)}s${r.warnings.length ? '；' + r.warnings.join('；') : ''}` });
@@ -429,7 +441,7 @@ export class Director {
     if (!this.voiceStale()) return;
     this.emit({ type: 'stage', stage: 'narrate', status: 'start' });
     this.serverMeta();
-    const r = await narrate(this.o.dir, { tts: this.o.tts!, voice: this.o.voice, signal: this.o.signal, child: childCmd, files: projectFiles, onProgress: (e) => this.emit({ type: 'narrate', ...e }) });
+    const r = await this.narrateOrSay();
     await this.commit(this.say('换配音', 'New voice'));
     this.state.exported = false; this.save();
     this.emit({ type: 'stage', stage: 'narrate', status: 'done', detail: `${r.duration.toFixed(1)}s${r.warnings.length ? '；' + r.warnings.join('；') : ''}` });

@@ -2,15 +2,16 @@
 // frametell run <material…> [--style warm-story] [--duration 60] [--model anthropic/claude-opus-5-5] [--lang zh|en]
 //                     [--voice zh_male_yuanboxiaoshu_uranus_bigtts] [--title …] [--out dir]
 // Headless end-to-end run: storyboard (auto-approved) → script → narration → pages → review → render.
-// Keys come from the environment: ANTHROPIC_API_KEY (recommended), OPENAI_API_KEY, GEMINI_API_KEY,
+// A signed-in local CLI (claude, codex, grok) is used when --model names it, or when no API key is set.
+// Otherwise keys come from the environment: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY,
 // OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, VOLCENGINE_ARK_API_KEY …; narration: VOLCENGINE_TTS_API_KEY or ELEVENLABS_API_KEY.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createProject } from '@frametell/engine/tools/project.mjs';
-import { createCatalog, type ProviderKey } from '@frametell/models';
+import { cliModelInfo, cliTool, createCatalog, detectClis, findCli, type ProviderKey } from '@frametell/models';
 import { elevenLabsTts, volcengineTts } from '@frametell/voice';
-import { Director, piRuntime, type AgentRuntime, type StudioEvent } from '@frametell/agent';
+import { cliRuntime, Director, piRuntime, type AgentRuntime, type StudioEvent } from '@frametell/agent';
 import { locale, tr } from '@frametell/core';
 
 const ENV_KEYS: Record<string, string> = {
@@ -31,10 +32,25 @@ async function run(argv: string[]) {
   const keys: ProviderKey[] = Object.entries(ENV_KEYS).filter(([, env]) => process.env[env]).map(([providerId, env]) => ({ providerId, apiKey: process.env[env]! }));
   const catalog = await createCatalog({ keys });
   const [prov, ...rest] = (o.model || '').split('/');
-  const info = o.model ? catalog.info(catalog.get(prov, rest.join('/'))!) : await catalog.defaultModel();
-  if (!info) throw new Error(tr('没有可用的模型：请设置 ANTHROPIC_API_KEY（推荐）或其他 provider 的 key', 'No model available: set ANTHROPIC_API_KEY (recommended) or another provider\'s key'));
-  // Pi only: the Claude Agent SDK and Codex runtimes are parked (code kept in packages/agent; see core/runner.ts)
-  const runtime: AgentRuntime = piRuntime(catalog.models, catalog.get(info.provider, info.id)!);
+  const tool = cliTool(prov);
+  let info, runtime: AgentRuntime;
+  if (tool) {
+    const bin = findCli(tool.command);
+    if (!bin) throw new Error(tr('本机没有找到 ' + tool.command + '：装好并登录后再试', "Couldn't find " + tool.command + " on this computer. Install it and sign in, then try again."));
+    const id = o.model ? rest.join('/') || 'default' : 'default';
+    info = cliModelInfo(tool, id, id !== 'default');
+    runtime = cliRuntime({ kind: tool.kind, bin, provider: tool.id, model: id === 'default' ? undefined : id });
+  } else {
+    info = o.model ? catalog.info(catalog.get(prov, rest.join('/'))!) : await catalog.defaultModel();
+    const found = !info && !o.model ? detectClis()[0] : undefined;
+    if (found) {
+      info = cliModelInfo(found);
+      runtime = cliRuntime({ kind: found.kind, bin: found.bin, provider: found.id });
+    } else {
+      if (!info) throw new Error(tr('没有可用的模型：安装并登录 claude、codex 或 grok，或设置 ANTHROPIC_API_KEY', 'No model available: install and sign in to claude, codex or grok, or set ANTHROPIC_API_KEY'));
+      runtime = piRuntime(catalog.models, catalog.get(info.provider, info.id)!);
+    }
+  }
 
   // the film's language picks the voice service when both keys are set: Volcengine's voices are Chinese, ElevenLabs' speak English
   const lang = o.lang === 'en' || o.lang === 'zh' ? o.lang : locale();

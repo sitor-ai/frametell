@@ -76,7 +76,7 @@ export interface AgentSession {
 }
 
 export interface AgentRuntime {
-  readonly id: 'pi' | 'claude-agent-sdk' | 'codex';
+  readonly id: 'pi' | 'claude-agent-sdk' | 'codex' | 'cli';
   /** the model the session runs on, for display and cost accounting */
   readonly model: { provider: string; id: string };
   open(opts: SessionOptions, resume?: string): Promise<AgentSession>;

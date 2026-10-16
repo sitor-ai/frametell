@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { createCatalog, normalizeBaseUrl } from './catalog.js';
 import { PROVIDERS } from './providers.js';
+import { findCli } from './cli.js';
 
 test('a base URL takes the shape its protocol expects', () => {
   assert.equal(normalizeBaseUrl('anthropic', 'https://relay.example.com/v1/'), 'https://relay.example.com');
@@ -24,5 +28,19 @@ test("a hand-added model id runs like its provider's own, on the user's base URL
 
 test('every provider Studio offers has an endpoint, and ids are unique', () => {
   assert.equal(new Set(PROVIDERS.map((p) => p.id)).size, PROVIDERS.length);
-  for (const p of PROVIDERS) assert.match(p.baseUrl, /^https?:\/\//);
+  for (const p of PROVIDERS) {
+    if (p.cli) { assert.equal(p.protocol, 'cli'); assert.ok(p.command); assert.equal(p.baseUrl, ''); }
+    else assert.match(p.baseUrl, /^https?:\/\//);
+  }
+});
+
+test('findCli resolves a command on PATH, and ignores one that is not there', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frametell-cli-'));
+  const bin = path.join(dir, 'claude');
+  fs.writeFileSync(bin, '#!/bin/sh\n');
+  fs.chmodSync(bin, 0o755);
+  try {
+    assert.equal(findCli('claude', dir, []), bin);
+    assert.equal(findCli('not-a-cli', dir, []), undefined);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

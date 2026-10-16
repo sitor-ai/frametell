@@ -84,6 +84,13 @@ const en: typeof zh = {
     node: 'Node.js',
     where: 'Settings are saved in ~/.frametell/config.json, readable only by you.',
   },
+  ffmpeg: {
+    title: 'ffmpeg location',
+    desc: 'Leave empty to use the bundled ffmpeg. If narration or export fails with an ffmpeg error after packaging, choose the ffmpeg file on this computer, or the folder it is installed in.',
+    placeholder: '/opt/homebrew/bin/ffmpeg',
+    choose: 'Choose',
+    clear: 'Use bundled',
+  },
 };
 
 export default en;

@@ -43,7 +43,7 @@ Frametell makes Chinese films just as well; see the <a href="README.zh-CN.md">Ch
 - **You approve the plan first.** Nothing gets drawn until you've signed off on the storyboard. If a page is wrong, point at it and say what to change.
 - **You can watch it work.** The agent says what it's doing and why, and the cost and time spent are on screen at every step.
 - **Stable results, fewer tokens.** The agent drives a mature video engine with styles, components, camera moves and quality checks. It doesn't generate video from scratch.
-- **Runs locally, with any model.** Your materials and API keys stay on your computer. It works with Anthropic, OpenAI, Google, DeepSeek, OpenRouter and other providers, or any OpenAI- or Anthropic-compatible endpoint.
+- **Runs locally, with any model.** Your materials stay on your computer. If Claude Code, Codex or Grok is already signed in, Frametell can call that CLI directly — no API key or base URL. It also works with Anthropic, OpenAI, Google, DeepSeek, OpenRouter, or any OpenAI- or Anthropic-compatible endpoint.
 
 ## How it works
 
@@ -61,7 +61,7 @@ Built-in styles: `warm-story`, `study`, `chalkboard`, `whiteboard`, `tech-dark`.
 
 **macOS on Apple Silicon:** download the `.dmg` from the [latest release](https://github.com/sitor-ai/frametell/releases/latest), open it and drag Frametell into Applications. The app is signed and notarized by Apple. You also need Chrome, Edge or Chromium installed; Frametell uses it to draw and render the pages.
 
-When it opens, add a key for a model provider (Anthropic, OpenAI, Google, OpenRouter …) under Settings, and an [ElevenLabs](https://elevenlabs.io) key for the voiceover.
+When it opens, pick a signed-in local CLI under Settings → Local CLI (Claude Code, Codex or Grok). No API key or base URL. A provider key still works if you prefer one. Voiceover uses an [ElevenLabs](https://elevenlabs.io) key, or Volcengine.
 
 Windows and Intel Macs don't have an app yet. Until they do, run Frametell from source.
 

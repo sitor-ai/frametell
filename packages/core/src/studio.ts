@@ -2,13 +2,13 @@
 // IPC in the desktop app) only translate calls and stream events, so behaviour is identical everywhere.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createCatalog, PROVIDERS, type ProviderSpec } from '@frametell/models';
+import { cliModels, cliTool, createCatalog, detectClis, PROVIDERS, type ProviderSpec } from '@frametell/models';
 import { bundledSample, ELEVENLABS_DEFAULT_VOICES, ElevenLabsError, elevenLabsTts, listElevenLabsVoices, volcengineTts, VoiceNotFound, VOLCENGINE_VOICES } from '@frametell/voice';
 import { BRAND_DIR, Project, STYLES, cleanBrand, cleanLook, openProjectFile, writeIn, type OpenFile, type Renderer, type Timeline } from '@frametell/agent';
 import { linkProject } from '@frametell/engine/tools/project.mjs';
 import { DATA_DIR, configFile, patchConfig, publicConfig, type ConfigStore } from './config.js';
 import { Projects } from './runner.js';
-import { checkEnv } from './env.js';
+import { applyFfmpeg, checkEnv } from './env.js';
 import { applyProxy } from './net.js';
 import { attach, cleanRefs } from './refs.js';
 import type { UserRef, EnvCheck, LoggedEvent, ModelInfo, NewProjectInput, ProjectMeta, ProjectSummary, PublicSettings, SettingsPatch, StyleInfo, Voice, VoicesView } from './types.js';
@@ -85,6 +85,7 @@ export class Studio {
     this.brands = o.brand === true;
     this.store = new Projects(path.join(this.dataDir, 'projects'), this.config, o.renderer, o.review, o.onEvent, { localFiles: o.localFiles ?? true, web: o.web ?? true });
     applyProxy(this.config.load().proxy);
+    applyFfmpeg(this.config.load().ffmpegPath);
     // every project reaches the engine through links; point them at this install (it may have moved, or been renamed)
     if (o.linkProjects !== false) try { for (const id of fs.readdirSync(this.store.root)) { try { linkProject(this.store.dir(id)); } catch {} } } catch {}
   }
@@ -100,18 +101,24 @@ export class Studio {
     const next = patchConfig(this.config.load(), patch);
     this.config.save(next);
     applyProxy(next.proxy);
+    applyFfmpeg(next.ffmpegPath);
     return publicConfig(next);
   }
   env(): EnvCheck[] { return checkEnv(); }
   styles(): StyleInfo[] { return STYLES; }
 
   /** the providers Studio offers, in the order it shows them (the user's own endpoints come from settings) */
-  providers(): ProviderSpec[] { return PROVIDERS; }
+  providers(): ProviderSpec[] {
+    const found = new Map(detectClis().map((t) => [t.id, t.bin]));
+    return PROVIDERS.map((p) => p.cli ? { ...p, bin: found.get(p.id) } : p);
+  }
 
   async models(): Promise<{ models: ModelInfo[]; default?: ModelInfo }> {
     const cfg = this.config.load();
     const catalog = await createCatalog({ keys: Object.entries(cfg.keys).map(([providerId, apiKey]) => ({ providerId, apiKey })), custom: cfg.custom, baseUrls: cfg.baseUrls, models: cfg.models });
-    return { models: await catalog.available(), default: await catalog.defaultModel() };
+    const installed = cliModels(detectClis(), cfg.models);
+    const listed = await catalog.available();
+    return { models: [...installed, ...listed], default: await catalog.defaultModel() ?? installed[0] };
   }
 
   async voices(): Promise<VoicesView> {
@@ -214,7 +221,7 @@ export class Studio {
       title: input.title?.trim() || fromText(topic) || fromText(said) || files[0]?.name.replace(/\.[^.]+$/, '') || tr('未命名视频', 'Untitled video'),
       style: input.style || d.style, durationSec: input.durationSec || d.durationSec, model, pageModel: pages && pages !== model ? pages : undefined,
       reviewModel: reviews && reviews !== (pages || model) ? reviews : undefined,
-      runtime: input.runtime || d.runtime, voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
+      runtime: input.runtime || (cliTool(model.split('/')[0]) ? 'cli' : d.runtime), voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
       lang: input.lang ?? resolveLocale(cfg.locale), topic, notes: topic ? undefined : input.notes,
       styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, look: cleanLook(input.look), brand,
       ...(input.research !== undefined ? { research: input.research } : {}),

@@ -49,6 +49,13 @@ ipcMain.handle('studio:pickFolder', async (e, current?: string) => {
   const r = win ? await dialog.showOpenDialog(win, o) : await dialog.showOpenDialog(o);
   return r.canceled ? undefined : r.filePaths[0];
 });
+ipcMain.handle('studio:pickFfmpeg', async (e, current?: string) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const properties = (process.platform === 'darwin' ? ['openFile', 'openDirectory'] : ['openFile']) as ('openFile' | 'openDirectory')[];
+  const o = { defaultPath: current || (process.platform === 'darwin' ? '/opt/homebrew/bin' : undefined), properties, buttonLabel: 'Use this ffmpeg' };
+  const r = win ? await dialog.showOpenDialog(win, o) : await dialog.showOpenDialog(o);
+  return r.canceled ? undefined : r.filePaths[0];
+});
 ipcMain.handle('studio:unsubscribe', (_e, subId: string) => { subs.get(subId)?.(); subs.delete(subId); });
 
 function createWindow() {

@@ -7,7 +7,7 @@
 import fs from 'fs';
 import { spawnSync } from 'child_process';
 import { pathToFileURL } from 'url';
-import { FFMPEG, probe as probeFile } from './bins.mjs';
+import { ffmpegBin, ffmpegFailure, probe as probeFile } from './bins.mjs';
 
 const FPS = 12, W = 320;
 const BLANK_GRAD = 24, BLANK_SHARE = 0.002, BLANK_EDGE_S = 0.5, BLANK_MIN_S = 0.3;
@@ -20,8 +20,9 @@ function probe(file) {
 
 /** Grey frames at FPS, W wide, as Uint8Array views. */
 function decode(file, h) {
-  const r = spawnSync(FFMPEG, ['-v', 'error', '-protocol_whitelist', 'file,pipe', '-i', file, '-vf', `fps=${FPS},scale=${W}:${h},format=gray`, '-f', 'rawvideo', '-'], { maxBuffer: 2 ** 31 });
-  if (r.status !== 0) throw new Error(String(r.stderr || 'ffmpeg failed'));
+  const bin = ffmpegBin();
+  const r = spawnSync(bin, ['-v', 'error', '-protocol_whitelist', 'file,pipe', '-i', file, '-vf', `fps=${FPS},scale=${W}:${h},format=gray`, '-f', 'rawvideo', '-'], { maxBuffer: 2 ** 31 });
+  if (r.status !== 0) throw new Error(ffmpegFailure({ bin, code: r.status, signal: r.signal, stderr: r.stderr, stdout: r.stdout, spawnError: r.error && r.error.message }));
   const n = W * h, frames = [];
   for (let o = 0; o + n <= r.stdout.length; o += n) frames.push(new Uint8Array(r.stdout.buffer, r.stdout.byteOffset + o, n));
   return frames;
