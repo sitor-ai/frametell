@@ -6,7 +6,7 @@ import type { CustomProviderConfig, ModelInfo, ProviderSpec } from '@frametell/m
 export type { StudioEvent, Storyboard, ModelInfo, ProviderSpec, CustomProviderConfig, SearchProviderId };
 export type { Timeline, PageTiming, UserRef, Look, PageIssue, BrandBrief, BrandAsset, BrandAssetKind } from '@frametell/agent';
 import type { BrandBrief, Look } from '@frametell/agent';
-export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex';
+export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex' | 'cli';
 /** interface language; 'auto' follows the system */
 export type Locale = 'zh' | 'en';
 export type LocalePref = 'auto' | Locale;
@@ -102,6 +102,8 @@ export interface NewProjectInput {
 /** settings as clients see them: keys are masked hints, never the secrets */
 export interface PublicSettings {
   keys: Record<string, string>;
+  /** per provider: where its effective key comes from; env keys are never shown, only the variable's name */
+  keySources: Record<string, { source: 'env' | 'stored' | 'unset'; envName?: string }>;
   custom: CustomProviderConfig[];
   /** the user's relay per provider (not secret) */
   baseUrls: Record<string, string>;

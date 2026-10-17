@@ -81,6 +81,8 @@ node apps/cli/dist/cli.js serve
 node apps/cli/dist/cli.js run 讲稿.pdf --style warm-story --duration 60
 ```
 
+这样导出的 key 工作室的设置页也会认——服务商会直接显示已连接，并标注来自哪个环境变量，不用再粘贴一遍。变量取消后，回落到设置里保存的 key。
+
 ## 社区
 
 用帧言做了片子、遇到问题、想要新风格，都欢迎来群里聊。扫码加入帧言交流群：

@@ -7,10 +7,13 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import './bins.js';
 import { Studio, type LoggedEvent } from '@frametell/core';
+import { adoptShellEnv } from './shell-env.js';
 
 const require = createRequire(import.meta.url);
 const UI_DIR = path.join(path.dirname(require.resolve('@frametell/ui/package.json')), 'dist');
 app.setName('Frametell');
+// keys exported in ~/.zshrc reach a packaged app only through the login shell; dev runs inherit the terminal already
+if (app.isPackaged) adoptShellEnv();
 const studio = new Studio();
 
 // studio://app/…            the panel

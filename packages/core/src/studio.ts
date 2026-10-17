@@ -2,7 +2,7 @@
 // IPC in the desktop app) only translate calls and stream events, so behaviour is identical everywhere.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createCatalog, PROVIDERS, type ProviderSpec } from '@frametell/models';
+import { cliDef, cliModelInfo, cliModels, createCatalog, detectClis, findCli, PROVIDERS, resolveCredentials, type DetectedCli, type ProviderSpec } from '@frametell/models';
 import { bundledSample, ELEVENLABS_DEFAULT_VOICES, ElevenLabsError, elevenLabsTts, listElevenLabsVoices, volcengineTts, VoiceNotFound, VOLCENGINE_VOICES } from '@frametell/voice';
 import { BRAND_DIR, Project, STYLES, cleanBrand, cleanLook, openProjectFile, writeIn, type OpenFile, type Renderer, type Timeline } from '@frametell/agent';
 import { linkProject } from '@frametell/engine/tools/project.mjs';
@@ -105,13 +105,36 @@ export class Studio {
   env(): EnvCheck[] { return checkEnv(); }
   styles(): StyleInfo[] { return STYLES; }
 
-  /** the providers Studio offers, in the order it shows them (the user's own endpoints come from settings) */
-  providers(): ProviderSpec[] { return PROVIDERS; }
+  /** the providers Studio offers: signed-in local CLIs first (no key needed), then the key providers, in the order it shows them */
+  async providers(): Promise<ProviderSpec[]> {
+    const found = await this.clis();
+    return [
+      ...found.map(({ def, bin, version, auth }): ProviderSpec => ({
+        id: def.id, site: def.site, name: def.name, group: 'cli', blurb: def.blurb,
+        cli: true, command: def.command, bin, version, auth,
+        protocol: 'cli', baseUrl: '',
+      })),
+      ...PROVIDERS,
+    ];
+  }
+
+  /** the installed CLIs, probed at most once a minute: version + auth probes take seconds */
+  private cliCache: { at: number; found: Promise<DetectedCli[]> } | undefined;
+  private clis(): Promise<DetectedCli[]> {
+    if (this.cliCache && Date.now() - this.cliCache.at < 60_000) return this.cliCache.found;
+    const found = detectClis();
+    this.cliCache = { at: Date.now(), found };
+    return found;
+  }
 
   async models(): Promise<{ models: ModelInfo[]; default?: ModelInfo }> {
     const cfg = this.config.load();
-    const catalog = await createCatalog({ keys: Object.entries(cfg.keys).map(([providerId, apiKey]) => ({ providerId, apiKey })), custom: cfg.custom, baseUrls: cfg.baseUrls, models: cfg.models });
-    return { models: await catalog.available(), default: await catalog.defaultModel() };
+    const cred = resolveCredentials(cfg);
+    const catalog = await createCatalog({ keys: cred.keys, custom: cfg.custom, baseUrls: cred.baseUrls, models: cfg.models });
+    // a signed-in CLI's models first: they need no key, so a fresh install still has something to run
+    const cliRows = cliModels((await this.clis()).filter((c) => c.auth !== 'needed'), cfg.models);
+    const models = [...cliRows, ...(await catalog.available())];
+    return { models, default: (await catalog.defaultModel()) ?? cliRows[0] };
   }
 
   async voices(): Promise<VoicesView> {
@@ -214,7 +237,7 @@ export class Studio {
       title: input.title?.trim() || fromText(topic) || fromText(said) || files[0]?.name.replace(/\.[^.]+$/, '') || tr('未命名视频', 'Untitled video'),
       style: input.style || d.style, durationSec: input.durationSec || d.durationSec, model, pageModel: pages && pages !== model ? pages : undefined,
       reviewModel: reviews && reviews !== (pages || model) ? reviews : undefined,
-      runtime: input.runtime || d.runtime, voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
+      runtime: input.runtime || (cliDef(model.split('/')[0]) ? 'cli' : d.runtime), voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
       lang: input.lang ?? resolveLocale(cfg.locale), topic, notes: topic ? undefined : input.notes,
       styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, look: cleanLook(input.look), brand,
       ...(input.research !== undefined ? { research: input.research } : {}),

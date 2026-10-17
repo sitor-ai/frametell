@@ -54,7 +54,7 @@ export function createServer(studio = new Studio(), opts: { token?: string } = {
   app.onError((e, c) => c.json({ error: e.message }, /不存在|not found/.test(e.message) ? 404 : 400));
 
   app.get('/api/settings', (c) => c.json(studio.settings()));
-  app.get('/api/providers', (c) => c.json(studio.providers()));
+  app.get('/api/providers', async (c) => c.json(await studio.providers()));
   app.put('/api/settings', async (c) => c.json(studio.updateSettings(await c.req.json())));
   app.get('/api/env', (c) => c.json(studio.env()));
   app.get('/api/styles', (c) => c.json(studio.styles()));

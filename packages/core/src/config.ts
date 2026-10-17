@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { CustomProviderConfig } from '@frametell/models';
+import { resolveCredentials } from '@frametell/models';
 import { SEARCH_PROVIDERS, searchProvider, type SearchProviderId, type SearchSettings } from '@frametell/agent';
 import { maskProxy } from './net.js';
 import type { LocalePref, PublicSettings, RuntimeId, SettingsPatch, VoiceChoice } from './types.js';
@@ -102,10 +103,11 @@ export const mask = (k?: string) => (!k ? '' : k.length <= 12 ? '••••' :
 /** several keys (comma-separated) masked one by one */
 const maskKeys = (k?: string) => (k ?? '').split(',').map((x) => x.trim()).filter(Boolean).map(mask).join(', ');
 
-/** What the panel may see: keys reduced to masked hints. */
+/** What the panel may see: keys reduced to masked hints. Env-sourced keys never appear — only their source does. */
 export function publicConfig(c: Config): PublicSettings {
   return {
     keys: Object.fromEntries(Object.entries(c.keys).filter(([, v]) => v).map(([k, v]) => [k, mask(v)])),
+    keySources: resolveCredentials(c).sources,
     custom: c.custom,
     baseUrls: c.baseUrls,
     models: c.models,

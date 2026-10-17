@@ -83,6 +83,8 @@ node apps/cli/dist/cli.js serve
 node apps/cli/dist/cli.js run notes.pdf --style warm-story --duration 60 --lang en
 ```
 
+Keys exported like this are picked up by the studio's Settings too — the provider shows connected, with the variable's name, and nothing needs pasting. A key saved in Settings applies again when the variable is unset.
+
 ## Community
 
 Questions, ideas and films you've made are all welcome. Come say hi on [Discord](https://discord.gg/GKz3McPPXx).

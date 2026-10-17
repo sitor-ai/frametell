@@ -31,6 +31,26 @@ test('a Studio keeps its projects and settings where it is told', () => {
   } finally { fs.rmSync(dataDir, { recursive: true, force: true }); }
 });
 
+test('the panel learns an env key exists — its source and the variable name, never the value', () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frametell-env-'));
+  // a machine may really export these: pin both, so the test means the same everywhere
+  const prior = { xiaomi: process.env.FRAMETELL_XIAOMI_API_KEY, anthropic: process.env.ANTHROPIC_API_KEY, frametellAnthropic: process.env.FRAMETELL_ANTHROPIC_API_KEY };
+  process.env.FRAMETELL_XIAOMI_API_KEY = 'sk-envsecret';
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.FRAMETELL_ANTHROPIC_API_KEY;
+  try {
+    const studio = new Studio({ dataDir, config: memoryConfig({ keys: { anthropic: 'sk-ant-0123456789abcdef' } }) });
+    const s = studio.settings();
+    assert.deepEqual(s.keySources.xiaomi, { source: 'env', envName: 'FRAMETELL_XIAOMI_API_KEY' });
+    assert.equal(s.keys.xiaomi, undefined);
+    assert.deepEqual(s.keySources.anthropic, { source: 'stored' });
+    assert.ok(!JSON.stringify(s).includes('sk-envsecret'));
+  } finally {
+    for (const [k, v] of Object.entries(prior)) { const name = k === 'xiaomi' ? 'FRAMETELL_XIAOMI_API_KEY' : k === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'FRAMETELL_ANTHROPIC_API_KEY'; if (v === undefined) delete process.env[name]; else process.env[name] = v; }
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});
+
 test('two Studios in one process do not see each other', () => {
   const a = fs.mkdtempSync(path.join(os.tmpdir(), 'frametell-a-'));
   const b = fs.mkdtempSync(path.join(os.tmpdir(), 'frametell-b-'));

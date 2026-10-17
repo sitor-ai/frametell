@@ -150,6 +150,7 @@ const PAGE_THINKING: Thinking = 'medium';
 const NOT_MADE = { zh: '这次没有改上：页面和改之前一样', en: 'The change was not made: the page is as it was' };
 /** a model service's trouble behind a failure, in words the user can act on (none: the trouble is the page's own) */
 export function serviceTrouble(text: string): { zh: string; en: string } | undefined {
+  if (/not logged in|please (log ?in|sign ?in)|login required|not authenticated|未登录/i.test(text)) return { zh: '这个本机命令行还没有登录：在终端里登录它，再点继续。', en: 'This local command line is not signed in. Sign in from a terminal, then continue.' };
   if (/\b402\b|insufficient|balance|quota|credit|billing|余额|额度|欠费/i.test(text)) return { zh: '模型账户的余额或额度用完了：充值，或在设置里换一个 key，再点继续。', en: 'The model account is out of balance or quota. Top it up or use another key in Settings, then continue.' };
   if (/\b40[13]\b|unauthori[sz]ed|invalid.{0,20}(api[ _-]?key|key|token)|authentication|forbidden/i.test(text)) return { zh: '模型的 key 无效或没有权限：在设置里检查 key，再点继续。', en: 'The model key is invalid or not allowed. Check it in Settings, then continue.' };
   if (/\b(429|529|503)\b|rate.?limit|too many requests|overloaded|capacity|限流/i.test(text)) return { zh: '模型服务这会儿太忙，限流了：等几分钟再点继续。', en: 'The model service is busy and limiting requests. Wait a few minutes, then continue.' };

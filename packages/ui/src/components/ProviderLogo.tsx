@@ -15,6 +15,8 @@ import openrouter from '../assets/providers/openrouter.svg?raw';
 import xiaomi from '../assets/providers/xiaomi.svg?raw';
 import ollama from '../assets/providers/ollama.svg?raw';
 import elevenlabs from '../assets/providers/elevenlabs.svg?raw';
+import cursor from '../assets/providers/cursor.svg?raw';
+import pi from '../assets/providers/pi.svg';
 
 // Each provider by its own mark (assets/providers, see NOTICE.md). Marks in colour are images; one-colour marks are
 // drawn inline in the text colour, so they read on either theme. A provider without a mark gets its initial.
@@ -22,9 +24,10 @@ import elevenlabs from '../assets/providers/elevenlabs.svg?raw';
 const COLOR: Record<string, string> = {
   anthropic: claude, google: gemini, deepseek, zhipu, qwen, 'minimax-cn': minimax, siliconflow,
   'volcengine-ark': doubao, hunyuan, volcengine,
+  'claude-cli': claude, 'qwen-cli': qwen, 'pi-cli': pi,
 };
 // drawn inline: one-colour marks, and Kimi, whose letter is drawn in the text colour beside its blue dot
-const MONO: Record<string, string> = { 'moonshotai-cn': kimi, openai, xai: grok, openrouter, xiaomi, ollama, elevenlabs };
+const MONO: Record<string, string> = { 'moonshotai-cn': kimi, openai, xai: grok, openrouter, xiaomi, ollama, elevenlabs, 'codex-cli': openai, 'kimi-cli': kimi, 'grok-cli': grok, 'cursor-cli': cursor };
 
 export function ProviderLogo({ id, name, size = 20, className = '' }: { id: string; name?: string; size?: number; className?: string }) {
   const box = `inline-flex shrink-0 items-center justify-center ${className}`;
