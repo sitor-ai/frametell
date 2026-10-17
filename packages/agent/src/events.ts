@@ -32,7 +32,7 @@ export type UserRef =
   | { kind: 'frame'; page: string; label: string; at: number; path: string; text?: string }
   | { kind: 'file'; label: string; path: string; image: boolean }
   /** the narrator to use from now on: the server switches the film's voice and narrates it again, nothing is redrawn */
-  | { kind: 'voice'; label: string; provider: 'volcengine' | 'elevenlabs'; id: string; name: string };
+  | { kind: 'voice'; label: string; provider: 'volcengine' | 'elevenlabs' | 'edge'; id: string; name: string };
 
 export type StudioEvent =
   | { type: 'stage'; stage: Stage; status: 'start' | 'done' | 'failed' | 'skipped'; detail?: string }
@@ -56,7 +56,7 @@ export type StudioEvent =
   | { type: 'resumed' }
   | { type: 'narrate'; page: string; index: number; total: number; cached: boolean }
   /** the film's narrator from now on (the user switched it) */
-  | { type: 'voice'; voice: { provider: 'volcengine' | 'elevenlabs'; id: string; name?: string } }
+  | { type: 'voice'; voice: { provider: 'volcengine' | 'elevenlabs' | 'edge'; id: string; name?: string } }
   | { type: 'render'; line: string }
   | { type: 'gate'; red: boolean; blank: { at: number; seconds: number }[]; report: { name: string; value: number; unit?: string }[] }
   /** the film's running cost after a model turn: `usage` and `amount` are the film's so far; `turn` is the turn that just

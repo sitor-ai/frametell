@@ -68,7 +68,7 @@ export type Lang = 'zh' | 'en';
 /** `voice`: the service that voices the narration; absent when the film has no voice. `preferences`: what the user
  *  wants in every film (Settings), read by every session. `styleNotes`: the user's notes for the style this film is
  *  drawn in (a style they shaped), read after the style card. `brand`: the brand the film is made for */
-export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief }
+export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs' | 'edge'; preferences?: string; styleNotes?: string; brand?: BrandBrief }
 
 const LANG_NAME: Record<Lang, string> = { zh: 'Simplified Chinese', en: 'English' };
 /** the language everything said to the user is written in: the user's own, never the prompts' */

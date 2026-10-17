@@ -3,13 +3,14 @@
 //                     [--voice zh_male_yuanboxiaoshu_uranus_bigtts] [--title …] [--out dir]
 // Headless end-to-end run: storyboard (auto-approved) → script → narration → pages → review → render.
 // Keys come from the environment: ANTHROPIC_API_KEY (recommended), OPENAI_API_KEY, GEMINI_API_KEY,
-// OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, VOLCENGINE_ARK_API_KEY …; narration: VOLCENGINE_TTS_API_KEY or ELEVENLABS_API_KEY.
+// OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, VOLCENGINE_ARK_API_KEY …; narration: VOLCENGINE_TTS_API_KEY or ELEVENLABS_API_KEY,
+// else the free Edge voices.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createProject } from '@frametell/engine/tools/project.mjs';
 import { createCatalog, type ProviderKey } from '@frametell/models';
-import { elevenLabsTts, volcengineTts } from '@frametell/voice';
+import { edgeTts, elevenLabsTts, volcengineTts } from '@frametell/voice';
 import { Director, piRuntime, type AgentRuntime, type StudioEvent } from '@frametell/agent';
 import { locale, tr } from '@frametell/core';
 
@@ -36,12 +37,13 @@ async function run(argv: string[]) {
   // Pi only: the Claude Agent SDK and Codex runtimes are parked (code kept in packages/agent; see core/runner.ts)
   const runtime: AgentRuntime = piRuntime(catalog.models, catalog.get(info.provider, info.id)!);
 
-  // the film's language picks the voice service when both keys are set: Volcengine's voices are Chinese, ElevenLabs' speak English
+  // the film's language picks the voice service when both keys are set: Volcengine's voices are Chinese, ElevenLabs'
+  // speak English; without any key the free Edge voices speak
   const lang = o.lang === 'en' || o.lang === 'zh' ? o.lang : locale();
   const volc = process.env.VOLCENGINE_TTS_API_KEY ? volcengineTts(process.env.VOLCENGINE_TTS_API_KEY) : undefined;
   const eleven = process.env.ELEVENLABS_API_KEY ? elevenLabsTts(process.env.ELEVENLABS_API_KEY) : undefined;
-  const tts = lang === 'en' ? eleven ?? volc : volc ?? eleven;
-  const voice = tts ? { speaker: o.voice || (tts.id === 'volcengine' ? 'zh_male_yuanboxiaoshu_uranus_bigtts' : 'JBFqnCBsd6RMkjVDRZzb'), rate: 0, instruction: '像跟朋友分享一个实用的发现，语气轻松、真诚、自然，有轻重缓急' } : undefined;
+  const tts = lang === 'en' ? eleven ?? volc ?? edgeTts() : volc ?? eleven ?? edgeTts();
+  const voice = tts ? { speaker: o.voice || (tts.id === 'volcengine' ? 'zh_male_yuanboxiaoshu_uranus_bigtts' : tts.id === 'edge' ? (lang === 'en' ? 'en-US-GuyNeural' : 'zh-CN-YunxiNeural') : 'JBFqnCBsd6RMkjVDRZzb'), rate: 0, instruction: '像跟朋友分享一个实用的发现，语气轻松、真诚、自然，有轻重缓急' } : undefined;
 
   const style = o.style || 'warm-story';
   const title = o.title || path.basename(pos[0]).replace(/\.[^.]+$/, '');

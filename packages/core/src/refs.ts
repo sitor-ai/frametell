@@ -43,7 +43,7 @@ export function cleanRefs(refs: unknown): UserRef[] {
     if (x.kind === 'line') return typeof x.page === 'string' && typeof x.text === 'string' && Number.isFinite(x.at);
     if (x.kind === 'frame') return typeof x.page === 'string' && typeof x.path === 'string' && safe(x.path) && Number.isFinite(x.at);
     if (x.kind === 'file') return typeof x.path === 'string' && safe(x.path);
-    if (x.kind === 'voice') return (x.provider === 'volcengine' || x.provider === 'elevenlabs') && typeof x.id === 'string' && /^[\w.-]{1,120}$/.test(x.id) && typeof x.name === 'string';
+    if (x.kind === 'voice') return (x.provider === 'volcengine' || x.provider === 'elevenlabs' || x.provider === 'edge') && typeof x.id === 'string' && /^[\w.-]{1,120}$/.test(x.id) && typeof x.name === 'string';
     return false;
   });
 }

@@ -6,8 +6,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createProject, linkProject } from '@frametell/engine/tools/project.mjs';
 import { createCatalog } from '@frametell/models';
-import { elevenLabsTts, volcengineTts } from '@frametell/voice';
-import { createWeb, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type DirectorOptions, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
+import { edgeTts, elevenLabsTts, volcengineTts } from '@frametell/voice';
+import { cliAgentRuntime, createWeb, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type DirectorOptions, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
 import type { Config, ConfigStore } from './config.js';
 import { prepareMaterials } from './materials.js';
 import { applyProxy } from './net.js';
@@ -124,6 +124,13 @@ export function researchPlan(meta: ProjectMeta, cfg: Config, reach: ResearchReac
 }
 
 type Model = { runtime: AgentRuntime; prices: Prices };
+/** the money side of a CLI-agent model: the subscription pays, so a film on one shows no per-token cost */
+const CLI_PRICES: Prices = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, currency: 'USD' };
+/** a model ref that names an agent CLI on this machine ("claude-cli/opus"), which runs without any API key */
+const cliRef = (ref: string) => {
+  const [provider, ...rest] = ref.split('/');
+  return /^(claude|codex|agy)-cli$/.test(provider) ? { agent: provider.replace(/-cli$/, '') as 'claude' | 'codex' | 'agy', model: rest.join('/') || undefined } : undefined;
+};
 /** the director's runtime, the pages' and the reviewer's when the film uses other models, and the research's when it has any */
 async function buildRuntime(meta: ProjectMeta, cfg: Config, research?: boolean): Promise<Model & { pages?: Model; reviewer?: Model; research?: Model }> {
   applyProxy(cfg.proxy);
@@ -132,32 +139,36 @@ async function buildRuntime(meta: ProjectMeta, cfg: Config, research?: boolean):
   // run from starting
   // research runs on the cheaper model: the one set for it, else the pages', else the director's
   const researchRef = research ? cfg.defaults.researchModel || meta.pageModel || meta.model : undefined;
-  const only = [meta.model, meta.pageModel, meta.reviewModel, researchRef].filter((m): m is string => !!m).map((m) => m.split('/')[0]);
+  const only = [meta.model, meta.pageModel, meta.reviewModel, researchRef].filter((m): m is string => !!m).filter((m) => !cliRef(m)).map((m) => m.split('/')[0]);
   const catalog = await createCatalog({ keys: Object.entries(cfg.keys).map(([providerId, apiKey]) => ({ providerId, apiKey })), custom: cfg.custom, baseUrls: cfg.baseUrls, models: cfg.models, only });
-  const one = (ref: string) => {
+  const one = (ref: string): { prices: Prices; runtime?: AgentRuntime; model?: ReturnType<typeof catalog.get>; vision?: boolean } => {
+    const cli = cliRef(ref);
+    if (cli) return { prices: CLI_PRICES, runtime: cliAgentRuntime(cli) };
     const [provider, ...rest] = ref.split('/');
     const model = catalog.get(provider, rest.join('/'));
     if (!model) throw new Error(tr(`模型 ${ref} 不可用：检查设置里的 key`, `Model ${ref} is not available: check its key in Settings`));
     const info = catalog.info(model);
-    return { model, info, prices: { ...info.cost, currency: info.currency } as Prices };
+    return { model, vision: info.vision, prices: { ...info.cost, currency: info.currency } as Prices };
   };
-  const { model, prices } = one(meta.model);
-  let pages: { runtime: AgentRuntime; prices: Prices } | undefined;
+  const built = (f: ReturnType<typeof one>): Model => ({ runtime: f.runtime ?? piRuntime(catalog.models, f.model!), prices: f.prices });
+  const main = one(meta.model);
+  let pages: Model | undefined;
   if (meta.pageModel && meta.pageModel !== meta.model) {
     const p = one(meta.pageModel);
     // the page agents check their own frames: a model that cannot see would draw blind
-    if (!p.info.vision) throw new Error(tr(`画页模型 ${meta.pageModel} 不能看图，换一个能看图的`, `The page model ${meta.pageModel} can't see images; choose one that can`));
-    pages = { runtime: piRuntime(catalog.models, p.model), prices: p.prices };
+    if (!(p.vision ?? true)) throw new Error(tr(`画页模型 ${meta.pageModel} 不能看图，换一个能看图的`, `The page model ${meta.pageModel} can't see images; choose one that can`));
+    pages = built(p);
   }
-  let reviewer: { runtime: AgentRuntime; prices: Prices } | undefined;
+  let reviewer: Model | undefined;
   if (meta.reviewModel) {
     const r = one(meta.reviewModel);
-    if (!r.info.vision) throw new Error(tr(`审阅模型 ${meta.reviewModel} 不能看图，换一个能看图的`, `The review model ${meta.reviewModel} can't see images; choose one that can`));
-    reviewer = { runtime: piRuntime(catalog.models, r.model), prices: r.prices };
+    if (!(r.vision ?? true)) throw new Error(tr(`审阅模型 ${meta.reviewModel} 不能看图，换一个能看图的`, `The review model ${meta.reviewModel} can't see images; choose one that can`));
+    reviewer = built(r);
   }
-  // Every project runs on Pi, which works with any provider. The Claude Agent SDK and Codex runtimes are parked: their
-  // code stays in packages/agent (@frametell/agent/runtime/claude, /codex) but Studio does not offer them — two more agent loops to
-  // keep in step was not worth it yet. To bring one back, branch on meta.runtime here, e.g.:
+  // A film with no API keys can still run whole on an agent CLI ("claude-cli/…"), which works from its own login;
+  // the API-key path runs on Pi, which works with any provider. The Claude Agent SDK and Codex SDK runtimes remain
+  // parked: their code stays in packages/agent (@frametell/agent/runtime/claude, /codex) but Studio does not offer
+  // them. To bring one back, branch on meta.runtime here, e.g.:
   //   if (meta.runtime === 'claude-agent-sdk') return { runtime: claudeRuntime({ apiKey, baseUrl, model: id }), prices };
   //   if (meta.runtime === 'codex') return { runtime: codexRuntime({ apiKey, baseUrl, model: id }), prices };
   let forResearch: Model | undefined;
@@ -165,17 +176,18 @@ async function buildRuntime(meta: ProjectMeta, cfg: Config, research?: boolean):
     // a research model that is not available (its key removed) falls back to the film's own
     let r: ReturnType<typeof one> | undefined;
     for (const ref of [researchRef, meta.pageModel, meta.model]) { try { if (ref) { r = one(ref); break; } } catch {} }
-    if (r) forResearch = { runtime: piRuntime(catalog.models, r.model), prices: r.prices };
+    if (r) forResearch = built(r);
   }
-  return { runtime: piRuntime(catalog.models, model), prices, pages, reviewer, research: forResearch };
+  return { ...built(main), pages, reviewer, research: forResearch };
 }
 
-/** the film's narrator as the director takes it; no tts when the film has no voice, or its service has no key */
+/** the film's narrator as the director takes it; no tts when the film has no voice, or its service has no key (Edge takes none) */
 function voiceFor(meta: ProjectMeta, cfg: Config) {
-  const key = meta.voice?.provider === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine;
-  const tts = meta.voice && key ? (meta.voice.provider === 'elevenlabs'
-    ? elevenLabsTts(key, undefined, { baseUrl: cfg.ttsBaseUrls?.elevenlabs })
-    : volcengineTts(key, { baseUrl: cfg.ttsBaseUrls?.volcengine })) : undefined;
+  const p = meta.voice?.provider;
+  const tts = !meta.voice ? undefined
+    : p === 'edge' ? edgeTts()
+    : p === 'elevenlabs' ? (cfg.tts.elevenlabs ? elevenLabsTts(cfg.tts.elevenlabs, undefined, { baseUrl: cfg.ttsBaseUrls?.elevenlabs }) : undefined)
+    : (cfg.tts.volcengine ? volcengineTts(cfg.tts.volcengine, { baseUrl: cfg.ttsBaseUrls?.volcengine }) : undefined);
   const voice = meta.voice && tts ? { speaker: meta.voice.id, rate: 0, instruction: '像跟朋友分享一个实用的发现，语气轻松、真诚、自然，有轻重缓急' } : undefined;
   return { tts, voice, provider: voice && meta.voice?.provider };
 }
@@ -507,7 +519,7 @@ class Runner {
       this.emit({ type: 'note', text: this.tr(`这部片子用的已经是「${name}」了`, `This film already uses ${name}.`) });
       return false;
     }
-    if (!(v.provider === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine)) {
+    if (v.provider !== 'edge' && !(v.provider === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine)) {
       this.emit({ type: 'error', message: this.tr(`「${name}」需要先在设置里连接${v.provider === 'elevenlabs' ? ' ElevenLabs' : '火山引擎'}`, `${name} needs ${v.provider === 'elevenlabs' ? 'ElevenLabs' : 'Volcengine'} connected in Settings first.`) });
       return false;
     }

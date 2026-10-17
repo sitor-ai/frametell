@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { elevenLabsTts, volcengineTts } from './tts.js';
+import { edgeSsml, edgeTicket, elevenLabsTts, volcengineTts } from './tts.js';
 
 // a provider that never answers until the request's signal gives up
 function hangingFetch(answers: number) {
@@ -69,4 +69,21 @@ test('without an address the voices go to the services themselves, as before', a
   const r = recording(() => JSON.stringify({ audio_base64: Buffer.from('mp3').toString('base64'), alignment: { characters: ['a'], character_start_times_seconds: [0], character_end_times_seconds: [0.1] } }));
   await withFakes(r.fetch, () => elevenLabsTts('k').synth('hello', { voice: 'v1', signal: new AbortController().signal }).then(() => {}));
   assert.ok(r.calls[0].url.startsWith('https://api.elevenlabs.io/v1/text-to-speech/v1/'));
+});
+
+test('the Edge ticket follows the clock in five-minute steps', () => {
+  const t = Date.parse('2026-10-17T08:07:22Z');
+  const ticket = edgeTicket(t);
+  assert.match(ticket, /^[0-9A-F]{16}-[0-9A-F]{64}$/);
+  assert.equal(ticket, edgeTicket(t + 60_000), 'inside the same five-minute window');
+  assert.notEqual(ticket, edgeTicket(t + 5 * 60_000), 'the next window mints another ticket');
+  // the reference client's own values for these clocks (rany2/edge-tts drm.py), so a porting slip shows here
+  assert.equal(edgeTicket(1700000000000), '2CD23A2CA0B2595A-F3C846C370E05F9CC83ACC5F995C5F5D87A4D0F14CE8936A0F902E64099E38A2');
+  assert.equal(edgeTicket(1780000000500), 'FDA8112B8756B195-BA3F4ED428AF8E21948543EAD66D831CEAAFE0A00E5471312ECDDC3C7422E611');
+});
+
+test('the Edge SSML escapes the text and says the rate', () => {
+  assert.match(edgeSsml('zh-CN-YunxiNeural', 'a < b & c', 0), /rate='\+0%'/);
+  assert.ok(edgeSsml('v', 'a < b & c', 0).includes('a &lt; b &amp; c'));
+  assert.match(edgeSsml('v', 'x', -20), /rate='-20%'/);
 });

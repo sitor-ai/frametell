@@ -71,8 +71,8 @@ app.whenReady().then(() => {
     const rel = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
     const m = /^p\/([\w-]+)\/(.*)$/.exec(rel);
     if (m) return serveFile(studio.projectFile(m[1], m[2]));
-    const v = /^voice\/(volcengine|elevenlabs)\/([\w.-]+)$/.exec(rel);
-    if (v) return studio.voicePreview(v[1] as 'volcengine' | 'elevenlabs', v[2]).then(serveFile, (e: Error) => new Response(e.message, { status: 400 }));
+    const v = /^voice\/(volcengine|elevenlabs|edge)\/([\w.-]+)$/.exec(rel);
+    if (v) return studio.voicePreview(v[1] as 'volcengine' | 'elevenlabs' | 'edge', v[2]).then(serveFile, (e: Error) => new Response(e.message, { status: 400 }));
     const abs = path.resolve(UI_DIR, rel || 'index.html');
     if (!abs.startsWith(UI_DIR)) return new Response('forbidden', { status: 403 });
     return serveFile(fs.existsSync(abs) && fs.statSync(abs).isFile() ? abs : path.join(UI_DIR, 'index.html'));

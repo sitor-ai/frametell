@@ -10,7 +10,7 @@ import { ProviderLogo } from '../components/ProviderLogo';
 export interface ProviderView {
   id: string;
   name: string;
-  group: 'recommended' | 'global' | 'china' | 'local' | 'custom';
+  group: 'cli' | 'recommended' | 'global' | 'china' | 'local' | 'custom';
   site?: string;
   keyUrl?: string;
   keyHint?: string;
@@ -22,11 +22,12 @@ export interface ProviderView {
 /** a provider's name and one line about it in the interface language (the spec's Chinese name is the fallback) */
 export const providerName = (p: Pick<ProviderView, 'id' | 'name' | 'group'>) => { const k = `providers.name.${p.id}`; const n = t(k as MessageKey); return p.group === 'custom' || n === k ? p.name : n; };
 const blurb = (p: ProviderView) => (p.group === 'custom' ? p.baseUrl : t(`providers.blurb.${p.id}` as MessageKey));
-export const connected = (s: PublicSettings, p: Pick<ProviderView, 'id'>) => !!s.keys[p.id];
+/** an agent CLI needs no key: being listed at all means it was found installed and working */
+export const connected = (s: PublicSettings, p: Pick<ProviderView, 'id'>) => !!s.keys[p.id] || /-(cli)$/.test(p.id);
 
 export function ProviderList({ providers, s, open, onOpen, onAddCustom }: { providers: ProviderView[]; s: PublicSettings; open?: string; onOpen: (id: string) => void; onAddCustom: () => void }) {
   const inUse = s.defaults.model?.split('/')[0];
-  const groups = (['recommended', 'global', 'china', 'local', 'custom'] as const).map((g) => ({ g, items: providers.filter((p) => p.group === g) }));
+  const groups = (['cli', 'recommended', 'global', 'china', 'local', 'custom'] as const).map((g) => ({ g, items: providers.filter((p) => p.group === g) }));
   return (
     <nav aria-label={t('providers.list')} className="space-y-4">
       {groups.map(({ g, items }) => (items.length > 0 || g === 'custom') && (

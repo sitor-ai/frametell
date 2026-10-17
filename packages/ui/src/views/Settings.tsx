@@ -5,7 +5,7 @@ import { forgetVoices, useLoad } from '../lib/hooks';
 import { t, useT, type MessageKey, getLocale } from '../i18n';
 import { ProviderLogo } from '../components/ProviderLogo';
 import { AddVoice, PlayButton, usePreview, VoiceProblem } from '../components/VoicePicker';
-import { CustomForm, ProviderDetail, ProviderList, type ProviderView } from './ProviderSettings';
+import { CustomForm, ProviderDetail, ProviderList, providerName, type ProviderView } from './ProviderSettings';
 import { PreferenceSettings } from './PreferenceSettings';
 
 // Settings: a centred dialog with the sections on the left. A section is one entry in SECTIONS — either a list with a
@@ -25,10 +25,13 @@ interface Section {
   detail: (c: Ctx, open: string | undefined, setOpen: (id: string | undefined) => void) => React.ReactNode;
 }
 
-// Volcengine first in Chinese; in English ElevenLabs first, Volcengine's voices speaking only Chinese
-const VOICES = [
-  { id: 'volcengine', key: 'volcengine' as const, url: 'https://console.volcengine.com/speech/app', hint: 'API Key / AppID:Token' },
-  { id: 'elevenlabs', key: 'elevenlabs' as const, url: 'https://elevenlabs.io/app/settings/api-keys', hint: 'sk_…' },
+// Volcengine first in Chinese; in English ElevenLabs first, Volcengine's voices speaking only Chinese. Edge takes no
+// key: it is the free narrator the films use until a paid service is connected.
+interface VoiceService { id: string; key?: 'volcengine' | 'elevenlabs'; url?: string; hint?: string }
+const VOICES: VoiceService[] = [
+  { id: 'volcengine', key: 'volcengine', url: 'https://console.volcengine.com/speech/app', hint: 'API Key / AppID:Token' },
+  { id: 'elevenlabs', key: 'elevenlabs', url: 'https://elevenlabs.io/app/settings/api-keys', hint: 'sk_…' },
+  { id: 'edge' },
 ];
 
 // the web search the research uses before a storyboard; reading pages needs no key, searching needs one of these
@@ -55,6 +58,7 @@ const SECTIONS: Section[] = [
         }} />
       );
       const p = c.providers.find((x) => x.id === open) ?? c.providers[0];
+      if (p && /-cli$/.test(p.id)) return <CliDetail key={p.id} p={p} models={c.models} c={c} />;
       return p && (
         <ProviderDetail key={p.id} p={p} s={c.s} models={c.models} loading={c.modelsLoading} patch={c.patch}
           onRemoveCustom={p.group === 'custom' ? async () => { await c.patch({ custom: (c.s.custom as { id: string }[]).filter((x) => x.id !== p.id) as never[], keys: { [p.id]: '' } }); setOpen(undefined); } : undefined} />
@@ -63,7 +67,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: 'voice', icon: AudioLines, label: 'settings.nav.voice',
-    list: (c) => ({ items: (getLocale() === 'en' ? [...VOICES].reverse() : VOICES).map((v) => ({ id: v.id, name: t(`settings.voice.${v.id}` as MessageKey), logo: v.id, on: !!c.s.tts[v.key] })) }),
+    list: (c) => ({ items: (getLocale() === 'en' ? [...VOICES].reverse() : VOICES).map((v) => ({ id: v.id, name: t(`settings.voice.${v.id}` as MessageKey), logo: v.id, on: !v.key || !!c.s.tts[v.key] })) }),
     detail: (c, open) => { const v = VOICES.find((x) => x.id === open) ?? VOICES[0]; return <VoiceDetail key={v.id} v={v} c={c} />; },
   },
   { id: 'preferences', icon: NotebookPen, label: 'settings.nav.preferences', hosted: true, detail: (c) => <PreferenceSettings s={c.s} patch={c.patch} /> },
@@ -105,7 +109,8 @@ function SecretField({ id, label, saved, hint, onSave }: { id: string; label: st
 }
 
 function VoiceDetail({ v, c }: { v: (typeof VOICES)[number]; c: Ctx }) {
-  const on = !!c.s.tts[v.key];
+  const key = v.key;
+  const on = !key || !!c.s.tts[key];
   // a saved ElevenLabs key is tried by listing its voices, so a wrong key or a missing permission is said right here
   const voices = useLoad(() => (v.id === 'elevenlabs' && c.s.tts.elevenlabs ? client.voices() : Promise.resolve(undefined)), [v.id, c.s.tts.elevenlabs]);
   return (
@@ -121,12 +126,57 @@ function VoiceDetail({ v, c }: { v: (typeof VOICES)[number]; c: Ctx }) {
         </div>
       </header>
       <div className="space-y-4 px-7 py-6">
-        <SecretField id={`tts-${v.id}`} label={t('providers.key')} saved={c.s.tts[v.key]} hint={v.hint} onSave={(x) => c.patch({ tts: { [v.key]: x } })} />
-        {on && <VoiceProblem problems={voices.data?.problems} />}
-        {!on && <a href={v.url} target="_blank" rel="noreferrer" className="inline-flex text-[12.5px] text-accent-ink hover:underline">{t('providers.getKey', { name: t(`settings.voice.${v.id}` as MessageKey) })} ↗</a>}
-        <p className="text-[12.5px] leading-relaxed text-ink-3">{t('settings.voice.desc')}</p>
+        {key ? (
+          <>
+            <SecretField id={`tts-${v.id}`} label={t('providers.key')} saved={c.s.tts[key]} hint={v.hint} onSave={(x) => c.patch({ tts: { [key]: x } })} />
+            {on && <VoiceProblem problems={voices.data?.problems} />}
+            {!on && <a href={v.url} target="_blank" rel="noreferrer" className="inline-flex text-[12.5px] text-accent-ink hover:underline">{t('providers.getKey', { name: t(`settings.voice.${v.id}` as MessageKey) })} ↗</a>}
+            <p className="text-[12.5px] leading-relaxed text-ink-3">{t('settings.voice.desc')}</p>
+          </>
+        ) : (
+          <p className="text-[12.5px] leading-relaxed text-ink-3">{t('settings.voice.edgeNote')}</p>
+        )}
       </div>
       {v.id === 'volcengine' && on && <MyVoices c={c} />}
+    </div>
+  );
+}
+
+/** an agent CLI (claude-cli, …): nothing to connect — it runs on its own login; its models are already in the pickers */
+function CliDetail({ p, models, c }: { p: ProviderView; models: ModelInfo[]; c: Ctx }) {
+  const mine = models.filter((m) => m.provider === p.id);
+  const def = c.s.defaults.model;
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex items-start gap-3.5 border-b border-line pb-5 pl-7 pr-14 pt-6">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-paper"><ProviderLogo id={p.id} name={p.name} size={24} /></span>
+        <div className="min-w-0 flex-1">
+          <h3 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[17px] font-semibold leading-tight text-ink">
+            {providerName(p)}
+            {def?.startsWith(`${p.id}/`) && <span className="rounded-md bg-accent-soft px-1.5 text-[11px] font-medium leading-5 text-accent-ink">{t('providers.inUse')}</span>}
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-normal text-jade"><span className="h-1.5 w-1.5 rounded-full bg-jade" aria-hidden />{t('providers.connected')}</span>
+          </h3>
+          <p className="mt-1 text-[12.5px] text-ink-3">{t('providers.cli.blurb')}</p>
+        </div>
+      </header>
+      <div className="space-y-4 px-7 py-6">
+        <h4 className="fs-label">{t('providers.cli.models')}</h4>
+        <ul className="overflow-hidden rounded-xl border border-line bg-surface">
+          {mine.map((m) => {
+            const ref = `${m.provider}/${m.id}`;
+            const on = def === ref;
+            return (
+              <li key={m.id} className="flex items-center gap-3 border-b border-line px-3.5 py-2 last:border-b-0">
+                <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{m.name}</span>
+                <span className="shrink-0 font-mono text-[11px] text-ink-3">{ref}</span>
+                {on ? <span className="shrink-0 text-[11.5px] font-medium text-accent-ink">{t('providers.isDefault')}</span>
+                  : <button type="button" className="fs-btn fs-btn-ghost h-7 shrink-0 text-[12px]" onClick={() => void c.patch({ defaults: { model: ref } })}>{t('providers.makeDefault')}</button>}
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-[12.5px] leading-relaxed text-ink-3">{t('providers.cli.cost')}</p>
+      </div>
     </div>
   );
 }
@@ -199,6 +249,17 @@ function General({ c }: { c: Ctx }) {
         <div className="mt-3 flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="sec-lang">
           {(['auto', 'zh', 'en'] as const).map((p) => (
             <button key={p} type="button" role="radio" aria-checked={(c.s.locale ?? pref) === p} className="fs-chip" onClick={() => { setPref(p); void c.patch({ locale: p }); }}>{t(`settings.language.${p}`)}</button>
+          ))}
+        </div>
+      </section>
+      <section aria-labelledby="sec-conc">
+        <h4 id="sec-conc" className="text-[13px] font-semibold text-ink">{t('settings.general.concurrency')}</h4>
+        <p className="mt-1 text-[12.5px] text-ink-3">{t('settings.general.concurrencyDesc')}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="sec-conc">
+          {([1, 2, 3, 5, 10] as const).map((n) => (
+            <button key={n} type="button" role="radio" aria-checked={(c.s.defaults.concurrency ?? 10) === n} className="fs-chip" onClick={() => void c.patch({ defaults: { concurrency: n } })}>
+              {n === 1 ? t('settings.general.sequential') : t('settings.general.parallel', { n })}
+            </button>
           ))}
         </div>
       </section>
@@ -303,8 +364,9 @@ export function Settings({ open, onClose, onChanged, section: initial }: { open:
   };
   const providers: ProviderView[] = useMemo(() => [
     ...(catalog.data || []),
+    ...(['claude', 'codex', 'agy'] as const).filter((a) => (models.data?.models || []).some((m) => m.provider === `${a}-cli`)).map((a): ProviderView => ({ id: `${a}-cli`, name: t(`providers.name.${a}-cli` as MessageKey), group: 'cli', baseUrl: '', protocol: 'none' })),
     ...((s?.custom as { id: string; name: string; baseUrl: string; protocol: string }[] | undefined) || []).map((c) => ({ id: c.id, name: c.name, group: 'custom' as const, baseUrl: c.baseUrl, protocol: c.protocol })),
-  ], [catalog.data, s?.custom]);
+  ], [catalog.data, models.data, s?.custom]);
 
   const sec = shown.find((x) => x.id === section) ?? shown[0];
   const ctx: Ctx | undefined = s && { s, patch, models: models.data?.models || [], modelsLoading: models.loading, providers };

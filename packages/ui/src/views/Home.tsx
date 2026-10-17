@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ArrowRight, ChevronDown, FileText, Globe, Image as ImageIcon, Loader2, NotebookPen, Paperclip, Settings2, X } from 'lucide-react';
-import { client, hosted, type PublicSettings } from '../lib/client';
+import { client, hosted, type PublicSettings, type Voice } from '../lib/client';
 import { go, useLoad, useVoices } from '../lib/hooks';
 import { STYLE_SWATCH, styleLabel } from '../lib/styles';
 import { intlTag, t, useT } from '../i18n';
@@ -70,9 +70,11 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
   // default in English) never offers them; ElevenLabs' speak many (no lang). Hosted: only the voices the service can use
   const voiceList = (voices.data?.voices || []).filter((v) => (!v.lang || v.lang === filmLang) && (!hosted || voices.data?.configured[v.provider]));
   // the saved default, unless it doesn't speak the film's language (an ElevenLabs default for a Chinese film, on a
-  // service whose default is English): then the first voice made for that language
-  const saved = voiceList.find((v) => v.id === settings.data?.defaults.voice?.id);
-  const defaultVoice = (saved && (saved.lang === filmLang || !voiceList.some((v) => v.lang === filmLang)) ? saved : voiceList.find((v) => v.lang === filmLang) ?? saved) ?? voiceList[0];
+  // service whose default is English) or its service has no key — then the first usable voice made for the film's
+  // language (Edge's are always usable; they take no key)
+  const canUse = (v: Voice) => voices.data?.configured[v.provider] !== false;
+  const saved = voiceList.find((v) => v.id === settings.data?.defaults.voice?.id && canUse(v));
+  const defaultVoice = (saved && (saved.lang === filmLang || !voiceList.some((v) => v.lang === filmLang)) ? saved : voiceList.find((v) => v.lang === filmLang && canUse(v)) ?? saved) ?? voiceList[0];
   // no voice to offer means none; until the list loads, undefined (the server's default)
   const voiceId = voice !== undefined ? voice : voices.data ? defaultVoice?.id ?? null : undefined;
   const picked = voiceList.find((v) => v.id === voiceId);

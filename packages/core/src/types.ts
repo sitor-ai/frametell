@@ -11,12 +11,12 @@ export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex';
 export type Locale = 'zh' | 'en';
 export type LocalePref = 'auto' | Locale;
 export type RunStatus = 'idle' | 'running' | 'awaiting_approval' | 'done' | 'failed' | 'stopped';
-export interface VoiceChoice { provider: 'volcengine' | 'elevenlabs'; id: string; name?: string }
-export interface Voice { provider: 'volcengine' | 'elevenlabs'; id: string; name: string; gender?: 'female' | 'male'; lang?: string; previewUrl?: string; /** added by the user by its id (「我的音色」) */ mine?: boolean }
-/** what Studio offers to narrate with, and which services have a key */
+export interface VoiceChoice { provider: 'volcengine' | 'elevenlabs' | 'edge'; id: string; name?: string }
+export interface Voice { provider: 'volcengine' | 'elevenlabs' | 'edge'; id: string; name: string; gender?: 'female' | 'male'; lang?: string; previewUrl?: string; /** added by the user by its id (「我的音色」) */ mine?: boolean }
+/** what Studio offers to narrate with, and which services have a key (Edge is always connected: it takes none) */
 export interface VoicesView {
   voices: Voice[];
-  configured: { volcengine: boolean; elevenlabs: boolean };
+  configured: { volcengine: boolean; elevenlabs: boolean; edge: boolean };
   /** a key is saved but its voices could not be listed: the key lacks the Voices permission (the default voices are
    * listed instead), the key is wrong, the service could not be reached, or something else; detail is the service's own words */
   problems?: { elevenlabs?: { problem: 'permission' | 'key' | 'network' | 'other'; detail: string } };

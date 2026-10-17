@@ -12,6 +12,12 @@ export default {
     zh: '中文',
     en: 'English',
   },
+  general: {
+    concurrency: '画页并发',
+    concurrencyDesc: '同时画几页。用外部 AI Agent(Claude Code 等)时建议按顺序，一张画完再画下一张，更稳也更省。',
+    sequential: '1 张（按顺序）',
+    parallel: (v: { n: number }) => `${v.n} 张同时`,
+  },
   exportDir: {
     title: '导出位置',
     desc: '每次导出 mp4，带字幕和无字幕两版都会另存一份到这里，同名的旧版会被替换。不填就只留在项目里。',
@@ -25,6 +31,9 @@ export default {
     elevenlabs: 'ElevenLabs',
     volcengineBlurb: '豆包语音合成，中文音色',
     elevenlabsBlurb: '多语言音色，可以用你自己的音色库',
+    edge: 'Edge 朗读（免费）',
+    edgeBlurb: '微软 Edge 浏览器的朗读服务，免费、无需注册。还没连接付费配音服务时，配音默认用它。',
+    edgeNote: '这一家不需要 Key：首页「配音」选择器里有 Edge 音色，可以直接试听、选用。',
     mineDesc: '火山引擎音色库里的任何音色、你自己复刻的音色（S_ 开头），粘贴 ID 就能用。它们会出现在每个音色列表的最上面。',
     rename: '给 {id} 改名',
     remove: '移除 {name}',

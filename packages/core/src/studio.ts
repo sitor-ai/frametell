@@ -3,15 +3,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createCatalog, PROVIDERS, type ProviderSpec } from '@frametell/models';
-import { bundledSample, ELEVENLABS_DEFAULT_VOICES, ElevenLabsError, elevenLabsTts, listElevenLabsVoices, volcengineTts, VoiceNotFound, VOLCENGINE_VOICES } from '@frametell/voice';
+import { bundledSample, ELEVENLABS_DEFAULT_VOICES, ElevenLabsError, elevenLabsTts, listElevenLabsVoices, volcengineTts, edgeTts, VoiceNotFound, VOLCENGINE_VOICES, EDGE_VOICES } from '@frametell/voice';
 import { BRAND_DIR, Project, STYLES, cleanBrand, cleanLook, openProjectFile, writeIn, type OpenFile, type Renderer, type Timeline } from '@frametell/agent';
 import { linkProject } from '@frametell/engine/tools/project.mjs';
-import { DATA_DIR, configFile, patchConfig, publicConfig, type ConfigStore } from './config.js';
+import { DATA_DIR, configFile, patchConfig, publicConfig, type Config, type ConfigStore } from './config.js';
+import { detectCliAgents, type CliAgent } from './cli.js';
 import { Projects } from './runner.js';
 import { checkEnv } from './env.js';
 import { applyProxy } from './net.js';
 import { attach, cleanRefs } from './refs.js';
-import type { UserRef, EnvCheck, LoggedEvent, ModelInfo, NewProjectInput, ProjectMeta, ProjectSummary, PublicSettings, SettingsPatch, StyleInfo, Voice, VoicesView } from './types.js';
+import type { UserRef, EnvCheck, Locale, LoggedEvent, ModelInfo, NewProjectInput, ProjectMeta, ProjectSummary, PublicSettings, SettingsPatch, StyleInfo, Voice, VoiceChoice, VoicesView } from './types.js';
 import { resolveLocale, tr } from './i18n.js';
 
 export interface MaterialFile { name: string; data: Uint8Array }
@@ -30,6 +31,14 @@ function elevenLabsVoices(key: string): Promise<Voice[]> {
   elevenLabsLists.set(key, { at: Date.now(), list });
   list.catch(() => { if (elevenLabsLists.get(key)?.list === list) elevenLabsLists.delete(key); });
   return list;
+}
+
+/** The film's voice, when nobody chose one: the saved default, unless its service has no key — then an Edge voice
+ *  (free, takes no key) that speaks the film's language. */
+function defaultVoiceChoice(d: Config['defaults'], cfg: Config, lang: Locale): VoiceChoice {
+  const v = d.voice;
+  if (v && (v.provider === 'edge' || (v.provider === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine))) return v;
+  return { provider: 'edge', id: lang === 'en' ? 'en-US-GuyNeural' : 'zh-CN-YunxiNeural', name: lang === 'en' ? 'Guy' : '云希' };
 }
 
 export interface StudioOptions {
@@ -111,7 +120,18 @@ export class Studio {
   async models(): Promise<{ models: ModelInfo[]; default?: ModelInfo }> {
     const cfg = this.config.load();
     const catalog = await createCatalog({ keys: Object.entries(cfg.keys).map(([providerId, apiKey]) => ({ providerId, apiKey })), custom: cfg.custom, baseUrls: cfg.baseUrls, models: cfg.models });
-    return { models: await catalog.available(), default: await catalog.defaultModel() };
+    const cli = await detectCliAgents();
+    const cliModels: ModelInfo[] = cli.flatMap(({ agent, version }) => {
+      const names: Record<CliAgent, { title: string; models: [string, string][] }> = {
+        claude: { title: 'Claude Code', models: [['opus', 'Opus'], ['sonnet', 'Sonnet'], ['haiku', 'Haiku']] },
+        codex: { title: 'Codex CLI', models: [['default', 'default']] },
+        agy: { title: 'Antigravity (agy)', models: [['default', 'default']] },
+      };
+      const { title, models: ids } = names[agent];
+      return ids.map(([id, label]): ModelInfo => ({ provider: `${agent}-cli`, providerName: `${title}${version ? ` · ${version}` : ''}`, id, name: `${title} · ${label}`, vision: true, reasoning: true, contextWindow: 200_000, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, currency: 'USD', recommended: false }));
+    });
+    const models = [...(await catalog.available()), ...cliModels];
+    return { models, default: await catalog.defaultModel() ?? cliModels[0] };
   }
 
   async voices(): Promise<VoicesView> {
@@ -119,7 +139,7 @@ export class Studio {
     // the user's own voices first, then the built-in ones, listed without a key: their samples ship with Studio, so
     // they can be heard before connecting
     const mine: Voice[] = (cfg.myVoices ?? []).map((v) => ({ provider: v.provider, id: v.id, name: v.name || v.id, mine: true }));
-    const voices: Voice[] = [...mine, ...VOLCENGINE_VOICES.filter((v) => !mine.some((m) => m.id === v.id))];
+    const voices: Voice[] = [...mine, ...VOLCENGINE_VOICES.filter((v) => !mine.some((m) => m.id === v.id)), ...EDGE_VOICES];
     let problems: VoicesView['problems'];
     if (cfg.tts.elevenlabs) {
       try { voices.push(...(await elevenLabsVoices(cfg.tts.elevenlabs))); } catch (e) {
@@ -129,7 +149,7 @@ export class Studio {
         if (problem === 'permission') voices.push(...ELEVENLABS_DEFAULT_VOICES);
       }
     }
-    return { voices, configured: { volcengine: !!cfg.tts.volcengine, elevenlabs: !!cfg.tts.elevenlabs }, ...(problems && { problems }) };
+    return { voices, configured: { volcengine: !!cfg.tts.volcengine, elevenlabs: !!cfg.tts.elevenlabs, edge: true }, ...(problems && { problems }) };
   }
 
   /**
@@ -137,7 +157,7 @@ export class Studio {
    * the user's key and kept on this machine (the same sentence for every voice, so they compare fairly). Returns the
    * mp3 path; ElevenLabs voices also carry a hosted previewUrl.
    */
-  async voicePreview(provider: 'volcengine' | 'elevenlabs', id: string): Promise<string> {
+  async voicePreview(provider: 'volcengine' | 'elevenlabs' | 'edge', id: string): Promise<string> {
     if (!/^[\w.-]+$/.test(id)) throw new Error(tr('音色 id 不合法', 'Invalid voice id'));
     const shipped = provider === 'volcengine' ? bundledSample(id) : undefined;
     if (shipped) return shipped;
@@ -145,10 +165,12 @@ export class Studio {
     const file = path.join(dir, `${provider}-${id}.mp3`);
     if (fs.existsSync(file)) return file;
     const cfg = this.config.load();
-    const key = provider === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine;
+    const key = provider === 'elevenlabs' ? cfg.tts.elevenlabs : provider === 'edge' ? 'edge' : cfg.tts.volcengine;
     if (!key) throw new Error(tr('先在设置里连接配音服务', 'Connect a voice service in Settings first'));
-    const tts = provider === 'elevenlabs' ? elevenLabsTts(key) : volcengineTts(key);
-    const text = provider === 'elevenlabs' ? 'Hi, I will narrate your video, one clear idea at a time.' : '你好，我来给你的视频配音。我们一句一句，把道理讲清楚。';
+    const tts = provider === 'edge' ? edgeTts() : provider === 'elevenlabs'
+      ? elevenLabsTts(key, undefined, { baseUrl: cfg.ttsBaseUrls?.elevenlabs })
+      : volcengineTts(key, { baseUrl: cfg.ttsBaseUrls?.volcengine });
+    const text = provider === 'elevenlabs' || (provider === 'edge' && /^en/i.test(id)) ? 'Hi, I will narrate your video, one clear idea at a time.' : '你好，我来给你的视频配音。我们一句一句，把道理讲清楚。';
     const { audio } = await tts.synth(text, { voice: id, instruction: '像跟朋友分享一个实用的发现，语气轻松、真诚、自然' });
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(file, audio);
@@ -210,12 +232,13 @@ export class Studio {
       if (e.length > 40) e = e.slice(0, 40).replace(/\s+\S*$/, '');
       return e ? e[0].toUpperCase() + e.slice(1) : undefined;
     };
+    const lang = input.lang ?? resolveLocale(cfg.locale);
     const meta = this.store.create({
       title: input.title?.trim() || fromText(topic) || fromText(said) || files[0]?.name.replace(/\.[^.]+$/, '') || tr('未命名视频', 'Untitled video'),
       style: input.style || d.style, durationSec: input.durationSec || d.durationSec, model, pageModel: pages && pages !== model ? pages : undefined,
       reviewModel: reviews && reviews !== (pages || model) ? reviews : undefined,
-      runtime: input.runtime || d.runtime, voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
-      lang: input.lang ?? resolveLocale(cfg.locale), topic, notes: topic ? undefined : input.notes,
+      runtime: input.runtime || d.runtime, voice: input.voice === null ? undefined : input.voice ?? defaultVoiceChoice(d, cfg, lang), subtitles: input.subtitles ?? d.subtitles,
+      lang, topic, notes: topic ? undefined : input.notes,
       styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, look: cleanLook(input.look), brand,
       ...(input.research !== undefined ? { research: input.research } : {}),
     }, files.map((f) => ({ name: f.name, data: Buffer.from(f.data) })));

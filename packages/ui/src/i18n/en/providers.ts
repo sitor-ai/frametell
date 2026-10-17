@@ -2,17 +2,23 @@ import type zh from '../zh/providers';
 
 const en: typeof zh = {
   list: 'Providers',
-  group: { recommended: 'Recommended', global: 'Global', china: 'China', local: 'Local', custom: 'Your own' },
+  group: { cli: 'External agents', recommended: 'Recommended', global: 'Global', china: 'China', local: 'Local', custom: 'Your own' },
   name: {
     anthropic: 'Claude', openai: 'OpenAI', google: 'Gemini', xai: 'Grok', openrouter: 'OpenRouter',
     deepseek: 'DeepSeek', 'moonshotai-cn': 'Kimi', zhipu: 'Zhipu GLM', qwen: 'Qwen', 'minimax-cn': 'MiniMax', siliconflow: 'SiliconFlow',
     'volcengine-ark': 'Doubao', hunyuan: 'Tencent Hunyuan', xiaomi: 'Xiaomi MiMo', ollama: 'Ollama',
+    'claude-cli': 'Claude Code', 'codex-cli': 'Codex CLI', 'agy-cli': 'Antigravity (agy)',
   },
   blurb: {
     anthropic: 'The Anthropic API', openai: 'The OpenAI API', google: 'Google AI Studio',
     xai: 'The xAI API', openrouter: 'One key for hundreds of models', deepseek: 'DeepSeek Open Platform', 'moonshotai-cn': 'Moonshot AI Open Platform', zhipu: 'Zhipu AI Open Platform',
     qwen: 'Alibaba Cloud Model Studio', 'minimax-cn': 'MiniMax Open Platform', siliconflow: 'Open models, one API', 'volcengine-ark': 'Volcengine Ark', hunyuan: 'Tencent Cloud Hunyuan',
     xiaomi: 'Xiaomi MiMo Open Platform', ollama: 'Open models running on this computer; no key',
+  },
+  cli: {
+    blurb: 'A coding agent installed on this machine: it works from its own login, no API key. Its models show up in the home model picker (a few minutes after installing, or restart Studio).',
+    models: 'Models it brings',
+    cost: 'Its own subscription pays, not per token, so a film on it shows no cost.',
   },
   inUse: 'In use',
   connected: 'Connected',
