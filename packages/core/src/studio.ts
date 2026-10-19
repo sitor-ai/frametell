@@ -2,7 +2,7 @@
 // IPC in the desktop app) only translate calls and stream events, so behaviour is identical everywhere.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createCatalog, PROVIDERS, type ProviderSpec } from '@frametell/models';
+import { cliModels, cliTool, createCatalog, detectClis, PROVIDERS, type ProviderSpec } from '@frametell/models';
 import { bundledSample, ELEVENLABS_DEFAULT_VOICES, ElevenLabsError, elevenLabsTts, listElevenLabsVoices, volcengineTts, VoiceNotFound, VOLCENGINE_VOICES } from '@frametell/voice';
 import { BRAND_DIR, Project, STYLES, cleanBrand, cleanLook, openProjectFile, writeIn, type OpenFile, type Renderer, type Timeline } from '@frametell/agent';
 import { linkProject } from '@frametell/engine/tools/project.mjs';
@@ -106,12 +106,18 @@ export class Studio {
   styles(): StyleInfo[] { return STYLES; }
 
   /** the providers Studio offers, in the order it shows them (the user's own endpoints come from settings) */
-  providers(): ProviderSpec[] { return PROVIDERS; }
+  providers(): ProviderSpec[] {
+    const found = new Map(detectClis().map((t) => [t.id, t.bin]));
+    return PROVIDERS.map((p) => p.cli ? { ...p, bin: found.get(p.id) } : p);
+  }
 
   async models(): Promise<{ models: ModelInfo[]; default?: ModelInfo }> {
     const cfg = this.config.load();
     const catalog = await createCatalog({ keys: Object.entries(cfg.keys).map(([providerId, apiKey]) => ({ providerId, apiKey })), custom: cfg.custom, baseUrls: cfg.baseUrls, models: cfg.models });
-    return { models: await catalog.available(), default: await catalog.defaultModel() };
+    // a signed-in CLI is listed for review. It is not the default: the film still needs an API model.
+    const installed = cliModels(detectClis(), cfg.models);
+    const listed = await catalog.available();
+    return { models: [...installed, ...listed], default: await catalog.defaultModel() };
   }
 
   async voices(): Promise<VoicesView> {
@@ -192,6 +198,7 @@ export class Studio {
     const pages = input.pageModel ?? d.pageModel;
     const reviews = input.reviewModel ?? d.reviewModel;
     if (!model) throw new Error(tr('请先在设置里配置模型', 'Set up a model in Settings first'));
+    if ([model, pages].some((ref) => !!ref && cliTool(ref.split('/')[0]))) throw new Error(tr('本机命令行目前只做审阅，不能当这部片子或画页的模型。在设置里把它选成审阅模型，片子本身仍要一个 API 模型。', 'A local CLI only reviews for now, so it cannot be this film\'s model or its page model. Choose it as the review model in Settings. The film itself still needs an API model.'));
     const said = input.notes?.trim();
     const brand = this.brands ? cleanBrand(input.brand) : undefined;
     if (!files.length && !said && !input.topic) throw new Error(tr('说一句想讲什么，或者附上资料', 'Say what the video is about, or attach some material'));

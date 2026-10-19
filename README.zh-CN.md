@@ -41,7 +41,7 @@ https://github.com/user-attachments/assets/99dd4dc5-2ed4-421d-bf4d-697acd553b59
 - **先拍板，再动手。** 分镜确认之前一页都不画。哪一页不对，指着它说改什么就行。
 - **过程看得见。** Agent 边做边说在干什么、为什么这么做，花了多少钱、用了多久，任何时候一眼可见。
 - **效果稳，省 token。** 不是从零生成视频，而是驱动一整套成熟的视频引擎：风格、组件、镜头运动、质量检查都是现成的。
-- **本地运行，任何模型。** 资料和密钥都留在你的电脑上。支持 Anthropic、OpenAI、Google、DeepSeek、OpenRouter 等，也可以接任意 OpenAI / Anthropic 兼容接口。
+- **本地运行，任何模型。** 资料和密钥都留在你的电脑上。支持 Anthropic、OpenAI、Google、DeepSeek、OpenRouter 等，也可以接任意 OpenAI / Anthropic 兼容接口。本机已经登录 Claude Code、Codex 或 Grok 时，可以用这个命令行审阅成片。它不画片子。
 
 ## 怎么做出来的
 
@@ -59,7 +59,7 @@ https://github.com/user-attachments/assets/99dd4dc5-2ed4-421d-bf4d-697acd553b59
 
 **macOS（Apple 芯片）**：从 [最新版本](https://github.com/sitor-ai/frametell/releases/latest) 下载 `.dmg`，打开后把帧言拖进「应用程序」。应用经过 Apple 签名和公证。本机还需要装有 Chrome、Edge 或 Chromium，帧言用它来画页面和渲染。
 
-打开后在「设置」里填上模型服务商的 key（Anthropic、OpenAI、Google、DeepSeek 等），配音再填一个火山引擎 TTS 或 ElevenLabs 的 key。
+打开后在「设置」里填上模型服务商的 key（Anthropic、OpenAI、Google、DeepSeek 等），配音再填一个火山引擎 TTS 或 ElevenLabs 的 key。本机已经登录 Claude Code、Codex 或 Grok 时，可以在「设置 → 本机命令行」里把它选成审阅模型。它只看页面，不画页面。
 
 Windows 和 Intel Mac 暂时还没有安装包，可以先从源码运行。
 

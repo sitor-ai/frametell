@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createProject } from '@frametell/engine/tools/project.mjs';
-import { createCatalog, type ProviderKey } from '@frametell/models';
+import { cliTool, createCatalog, type ProviderKey } from '@frametell/models';
 import { elevenLabsTts, volcengineTts } from '@frametell/voice';
 import { Director, piRuntime, type AgentRuntime, type StudioEvent } from '@frametell/agent';
 import { locale, tr } from '@frametell/core';
@@ -31,6 +31,7 @@ async function run(argv: string[]) {
   const keys: ProviderKey[] = Object.entries(ENV_KEYS).filter(([, env]) => process.env[env]).map(([providerId, env]) => ({ providerId, apiKey: process.env[env]! }));
   const catalog = await createCatalog({ keys });
   const [prov, ...rest] = (o.model || '').split('/');
+  if (cliTool(prov)) throw new Error(tr('本机命令行目前只做审阅，不能用 frametell run 画整部片子。在面板里把它选成审阅模型，并设置一个 API 模型。', 'A local CLI only reviews for now, so frametell run cannot use it to make the film. Choose it as the review model in the studio, and set an API model.'));
   const info = o.model ? catalog.info(catalog.get(prov, rest.join('/'))!) : await catalog.defaultModel();
   if (!info) throw new Error(tr('没有可用的模型：请设置 ANTHROPIC_API_KEY（推荐）或其他 provider 的 key', 'No model available: set ANTHROPIC_API_KEY (recommended) or another provider\'s key'));
   // Pi only: the Claude Agent SDK and Codex runtimes are parked (code kept in packages/agent; see core/runner.ts)

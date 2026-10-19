@@ -53,10 +53,15 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
-  const noModel = models.data && !models.data.models.length;
-  const modelId = model ?? settings.data?.defaults.model ?? (models.data?.default ? `${models.data.default.provider}/${models.data.default.id}` : undefined);
+  // a local CLI only reviews, so it is not offered as the film's model or the pages'
+  const writing = (models.data?.models || []).filter((m) => !m.cli);
+  const noModel = models.data && !writing.length;
+  const savedModel = settings.data?.defaults.model;
+  const savedWriting = savedModel && writing.some((m) => `${m.provider}/${m.id}` === savedModel) ? savedModel : undefined;
+  const fallback = models.data?.default && !models.data.default.cli ? `${models.data.default.provider}/${models.data.default.id}` : undefined;
+  const modelId = model ?? savedWriting ?? fallback;
   // the pages' model: only ones that can see (the page agents check their own frames); unset, the director's
-  const seeing = (models.data?.models || []).filter((m) => m.vision);
+  const seeing = writing.filter((m) => m.vision);
   const savedPages = settings.data?.defaults.pageModel;
   const savedOwn = !!savedPages && savedPages !== modelId && seeing.some((m) => `${m.provider}/${m.id}` === savedPages);
   // one model by default; 「高级」 gives the director and the pages one each (open by itself when they were saved apart)
@@ -196,7 +201,7 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
               <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div>
                   <p className="mb-1.5 flex items-baseline justify-between gap-2 text-[12px]"><span className="font-medium text-ink-2">{t('home.director')}</span><span className="truncate text-ink-3">{t('home.directorDoes')}</span></p>
-                  <ModelPicker models={models.data?.models || []} value={modelId} onChange={setModel} onAdd={addModel} onManage={openSettings} disabled={!models.data} />
+                  <ModelPicker models={writing} value={modelId} onChange={setModel} onAdd={addModel} onManage={openSettings} disabled={!models.data} />
                 </div>
                 <div>
                   <p className="mb-1.5 flex items-baseline justify-between gap-2 text-[12px]">
@@ -210,7 +215,7 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
               </div>
             ) : (
               <div className="sm:max-w-[calc(50%-8px)]">
-                <ModelPicker models={models.data?.models || []} value={modelId} onChange={setModel} onAdd={addModel} onManage={openSettings} disabled={!models.data} />
+                <ModelPicker models={writing} value={modelId} onChange={setModel} onAdd={addModel} onManage={openSettings} disabled={!models.data} />
               </div>
             )}
             <button type="button" aria-expanded={split} onClick={() => { setAdvanced(!split); if (split) setPageModel(null); }}

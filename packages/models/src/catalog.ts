@@ -40,6 +40,8 @@ export interface ModelInfo {
   recommended: boolean;
   /** typed in by the user, not listed by the provider */
   added?: boolean;
+  /** a signed-in local CLI. It can review a film. It does not draw one. */
+  cli?: boolean;
 }
 
 /** What Studio suggests, in order: the first one the user has a key for becomes the default. */

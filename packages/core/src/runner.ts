@@ -5,9 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createProject, linkProject } from '@frametell/engine/tools/project.mjs';
-import { createCatalog } from '@frametell/models';
+import { cliModelInfo, cliTool, createCatalog, findCli } from '@frametell/models';
 import { elevenLabsTts, volcengineTts } from '@frametell/voice';
-import { createWeb, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type DirectorOptions, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
+import { cliRuntime, createWeb, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type DirectorOptions, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
 import type { Config, ConfigStore } from './config.js';
 import { prepareMaterials } from './materials.js';
 import { applyProxy } from './net.js';
@@ -145,40 +145,47 @@ async function buildRuntime(meta: ProjectMeta, cfg: Config, research?: boolean):
   const researchRef = research ? cfg.defaults.researchModel || meta.pageModel || meta.model : undefined;
   const only = [meta.model, meta.pageModel, meta.reviewModel, researchRef].filter((m): m is string => !!m).map((m) => m.split('/')[0]);
   const catalog = await createCatalog({ keys: Object.entries(cfg.keys).map(([providerId, apiKey]) => ({ providerId, apiKey })), custom: cfg.custom, baseUrls: cfg.baseUrls, models: cfg.models, only });
-  const one = (ref: string) => {
+  const one = (ref: string, review = false) => {
     const [provider, ...rest] = ref.split('/');
+    const tool = cliTool(provider);
+    if (tool) {
+      // a signed-in CLI only reviews. As the film's model it would run with a shell outside the sandbox.
+      if (!review) throw new Error(tr('本机命令行目前只做审阅：在设置里把它选成审阅模型。这部片子和它的页面仍要一个 API 模型。', 'A local CLI only reviews for now. Choose it as the review model in Settings. This film and its pages still need an API model.'));
+      const bin = findCli(tool.command);
+      if (!bin) throw new Error(tr('本机没有找到 ' + tool.command + '：装好并登录后再试', "Couldn't find " + tool.command + " on this computer. Install it and sign in, then try again."));
+      const id = rest.join('/') || 'default';
+      const info = cliModelInfo(tool, id, id !== 'default');
+      return { runtime: cliRuntime({ kind: tool.kind, bin, provider: tool.id, model: id === 'default' ? undefined : id }), prices: { ...info.cost, currency: info.currency } as Prices, info };
+    }
     const model = catalog.get(provider, rest.join('/'));
     if (!model) throw new Error(tr(`模型 ${ref} 不可用：检查设置里的 key`, `Model ${ref} is not available: check its key in Settings`));
     const info = catalog.info(model);
-    return { model, info, prices: { ...info.cost, currency: info.currency } as Prices };
+    return { runtime: piRuntime(catalog.models, model), prices: { ...info.cost, currency: info.currency } as Prices, info };
   };
-  const { model, prices } = one(meta.model);
+  const main = one(meta.model);
   let pages: { runtime: AgentRuntime; prices: Prices } | undefined;
   if (meta.pageModel && meta.pageModel !== meta.model) {
     const p = one(meta.pageModel);
     // the page agents check their own frames: a model that cannot see would draw blind
     if (!p.info.vision) throw new Error(tr(`画页模型 ${meta.pageModel} 不能看图，换一个能看图的`, `The page model ${meta.pageModel} can't see images; choose one that can`));
-    pages = { runtime: piRuntime(catalog.models, p.model), prices: p.prices };
+    pages = { runtime: p.runtime, prices: p.prices };
   }
   let reviewer: { runtime: AgentRuntime; prices: Prices } | undefined;
   if (meta.reviewModel) {
-    const r = one(meta.reviewModel);
+    const r = one(meta.reviewModel, true);
     if (!r.info.vision) throw new Error(tr(`审阅模型 ${meta.reviewModel} 不能看图，换一个能看图的`, `The review model ${meta.reviewModel} can't see images; choose one that can`));
-    reviewer = { runtime: piRuntime(catalog.models, r.model), prices: r.prices };
+    reviewer = { runtime: r.runtime, prices: r.prices };
   }
-  // Every project runs on Pi, which works with any provider. The Claude Agent SDK and Codex runtimes are parked: their
-  // code stays in packages/agent (@frametell/agent/runtime/claude, /codex) but Studio does not offer them — two more agent loops to
-  // keep in step was not worth it yet. To bring one back, branch on meta.runtime here, e.g.:
-  //   if (meta.runtime === 'claude-agent-sdk') return { runtime: claudeRuntime({ apiKey, baseUrl, model: id }), prices };
-  //   if (meta.runtime === 'codex') return { runtime: codexRuntime({ apiKey, baseUrl, model: id }), prices };
+  // A CLI model (claude-cli, codex-cli, grok-cli) is only the reviewer: read-only, no skip-permission flags.
+  // The film and its pages run on Pi. The Claude Agent SDK and Codex SDK runtimes stay parked.
   let forResearch: Model | undefined;
   if (researchRef) {
     // a research model that is not available (its key removed) falls back to the film's own
     let r: ReturnType<typeof one> | undefined;
     for (const ref of [researchRef, meta.pageModel, meta.model]) { try { if (ref) { r = one(ref); break; } } catch {} }
-    if (r) forResearch = { runtime: piRuntime(catalog.models, r.model), prices: r.prices };
+    if (r) forResearch = { runtime: r.runtime, prices: r.prices };
   }
-  return { runtime: piRuntime(catalog.models, model), prices, pages, reviewer, research: forResearch };
+  return { runtime: main.runtime, prices: main.prices, pages, reviewer, research: forResearch };
 }
 
 /** the film's narrator as the director takes it; no tts when the film has no voice, or its service has no key */

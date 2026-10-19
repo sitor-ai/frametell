@@ -6,7 +6,7 @@ import type { CustomProviderConfig, ModelInfo, ProviderSpec } from '@frametell/m
 export type { StudioEvent, Storyboard, ModelInfo, ProviderSpec, CustomProviderConfig, SearchProviderId };
 export type { Timeline, PageTiming, UserRef, Look, PageIssue, BrandBrief, BrandAsset, BrandAssetKind } from '@frametell/agent';
 import type { BrandBrief, Look } from '@frametell/agent';
-export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex';
+export type RuntimeId = 'pi' | 'claude-agent-sdk' | 'codex' | 'cli';
 /** interface language; 'auto' follows the system */
 export type Locale = 'zh' | 'en';
 export type LocalePref = 'auto' | Locale;

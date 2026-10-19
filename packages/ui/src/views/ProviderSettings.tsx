@@ -10,11 +10,15 @@ import { ProviderLogo } from '../components/ProviderLogo';
 export interface ProviderView {
   id: string;
   name: string;
-  group: 'recommended' | 'global' | 'china' | 'local' | 'custom';
+  group: 'recommended' | 'global' | 'china' | 'local' | 'cli' | 'custom';
   site?: string;
   keyUrl?: string;
   keyHint?: string;
   local?: boolean;
+  cli?: boolean;
+  command?: string;
+  /** set when the command is installed on this computer */
+  bin?: string;
   baseUrl: string;
   protocol: string;
 }
@@ -22,11 +26,11 @@ export interface ProviderView {
 /** a provider's name and one line about it in the interface language (the spec's Chinese name is the fallback) */
 export const providerName = (p: Pick<ProviderView, 'id' | 'name' | 'group'>) => { const k = `providers.name.${p.id}`; const n = t(k as MessageKey); return p.group === 'custom' || n === k ? p.name : n; };
 const blurb = (p: ProviderView) => (p.group === 'custom' ? p.baseUrl : t(`providers.blurb.${p.id}` as MessageKey));
-export const connected = (s: PublicSettings, p: Pick<ProviderView, 'id'>) => !!s.keys[p.id];
+export const connected = (s: PublicSettings, p: Pick<ProviderView, 'id' | 'cli' | 'bin'>) => p.cli ? !!p.bin : !!s.keys[p.id];
 
 export function ProviderList({ providers, s, open, onOpen, onAddCustom }: { providers: ProviderView[]; s: PublicSettings; open?: string; onOpen: (id: string) => void; onAddCustom: () => void }) {
   const inUse = s.defaults.model?.split('/')[0];
-  const groups = (['recommended', 'global', 'china', 'local', 'custom'] as const).map((g) => ({ g, items: providers.filter((p) => p.group === g) }));
+  const groups = (['cli', 'recommended', 'global', 'china', 'local', 'custom'] as const).map((g) => ({ g, items: providers.filter((p) => p.group === g) }));
   return (
     <nav aria-label={t('providers.list')} className="space-y-4">
       {groups.map(({ g, items }) => (items.length > 0 || g === 'custom') && (
@@ -159,7 +163,11 @@ export function ProviderDetail({ p, s, models, loading, patch, onClose, onRemove
 
       <div className="min-h-0 flex-1 space-y-7 overflow-y-auto px-7 py-6">
         <section className="space-y-4">
-          {p.local ? (
+          {p.cli ? (
+            <div className="rounded-xl border border-line px-4 py-3 text-[12.5px] leading-relaxed text-ink-2">
+              {p.bin ? t('providers.cliFound', { command: p.command || p.id, path: p.bin }) : t('providers.cliMissing', { command: p.command || p.id })}
+            </div>
+          ) : p.local ? (
             <div className="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3">
               <span className="text-[12.5px] leading-relaxed text-ink-2">{t('providers.localHint')}</span>
               <button type="button" className={`fs-btn ${isOn ? 'fs-btn-ghost' : 'fs-btn-secondary'} shrink-0`} onClick={() => void patch({ keys: { [p.id]: isOn ? '' : 'local' } })}>{isOn ? t('providers.disable') : t('providers.enable')}</button>
@@ -168,7 +176,7 @@ export function ProviderDetail({ p, s, models, loading, patch, onClose, onRemove
             <KeyInput id={p.id} label={t('providers.key')} saved={s.keys[p.id]} hint={p.keyHint} onSave={(v) => patch({ keys: { [p.id]: v } })} />
           )}
           {p.keyUrl && <a href={p.keyUrl} target="_blank" rel="noreferrer" className="-mt-1 inline-flex items-center gap-1 text-[12.5px] text-accent-ink hover:underline">{t('providers.getKey', { name: providerName(p) })}<ArrowUpRight size={13} aria-hidden /></a>}
-          {p.group !== 'custom' && <UrlInput id={p.id} saved={s.baseUrls?.[p.id] ?? ''} placeholder={p.baseUrl} onSave={(v) => patch({ baseUrls: { [p.id]: v } })} />}
+          {p.group !== 'custom' && !p.cli && <UrlInput id={p.id} saved={s.baseUrls?.[p.id] ?? ''} placeholder={p.baseUrl} onSave={(v) => patch({ baseUrls: { [p.id]: v } })} />}
         </section>
 
         <section aria-labelledby={`models-${p.id}`}>
@@ -201,11 +209,13 @@ export function ProviderDetail({ p, s, models, loading, patch, onClose, onRemove
             </div>
           )}
           {!isOn ? (
-            <p className="rounded-xl border border-dashed border-line-2 px-4 py-6 text-center text-[12.5px] leading-relaxed text-ink-3">{p.local ? t('providers.enableFirst') : t('providers.keyFirst', { name: providerName(p) })}</p>
+            <p className="rounded-xl border border-dashed border-line-2 px-4 py-6 text-center text-[12.5px] leading-relaxed text-ink-3">{p.cli ? t('providers.cliFirst', { command: p.command || p.id }) : p.local ? t('providers.enableFirst') : t('providers.keyFirst', { name: providerName(p) })}</p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
               {visible.map((m) => {
-                const key = `${m.provider}/${m.id}`, isDef = def === key;
+                const key = `${m.provider}/${m.id}`;
+                const isDef = p.cli ? s.defaults.reviewModel === key : def === key;
+                const mark = () => void patch({ defaults: p.cli ? { reviewModel: isDef ? '' : key } : { model: key } });
                 return (
                   <li key={m.id} className="group flex items-center gap-3 px-3.5 py-2.5">
                     <span className="min-w-0 flex-1">
@@ -218,9 +228,9 @@ export function ProviderDetail({ p, s, models, loading, patch, onClose, onRemove
                       {m.name !== m.id && <span className="block truncate font-mono text-[11px] text-ink-3">{m.id}</span>}
                     </span>
                     {m.added && <button type="button" className="fs-icon-btn h-7 w-7 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100" onClick={() => void patch({ models: { [p.id]: added.filter((x) => x !== m.id) } })} aria-label={t('providers.removeModel', { id: m.id })}><Trash2 size={13} /></button>}
-                    <button type="button" onClick={() => void patch({ defaults: { model: key } })} aria-pressed={isDef} title={isDef ? t('providers.isDefault') : t('providers.makeDefault')}
+                    <button type="button" onClick={mark} aria-pressed={isDef} title={isDef ? t(p.cli ? 'providers.isReview' : 'providers.isDefault') : t(p.cli ? 'providers.makeReview' : 'providers.makeDefault')}
                       className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11.5px] transition-colors ${isDef ? 'text-accent-ink' : 'text-ink-3 opacity-0 hover:bg-ink/[0.06] hover:text-ink focus-visible:opacity-100 group-hover:opacity-100'}`}>
-                      <Star size={12} className={isDef ? 'fill-current' : ''} aria-hidden />{isDef ? t('providers.isDefault') : t('providers.makeDefault')}
+                      <Star size={12} className={isDef ? 'fill-current' : ''} aria-hidden />{isDef ? t(p.cli ? 'providers.isReview' : 'providers.isDefault') : t(p.cli ? 'providers.makeReview' : 'providers.makeDefault')}
                     </button>
                   </li>
                 );
