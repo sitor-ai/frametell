@@ -68,7 +68,7 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
   const filmLang = lang ?? locale;
   // only voices that speak the film's language: Volcengine's are Chinese voices (lang 'zh'), so an English film (the
   // default in English) never offers them; ElevenLabs' speak many (no lang). Hosted: only the voices the service can use
-  const voiceList = (voices.data?.voices || []).filter((v) => (!v.lang || v.lang === filmLang) && (!hosted || voices.data?.configured[v.provider]));
+  const voiceList = (voices.data?.voices || []).filter((v) => (!v.lang || v.lang === filmLang) && !(hosted && v.provider === 'edge') && (!hosted || voices.data?.configured[v.provider]));
   // the saved default, unless it doesn't speak the film's language (an ElevenLabs default for a Chinese film, on a
   // service whose default is English): then the first voice made for that language
   const saved = voiceList.find((v) => v.id === settings.data?.defaults.voice?.id);

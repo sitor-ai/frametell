@@ -8,7 +8,7 @@ import { ProviderLogo } from './ProviderLogo';
 // service, after the choice of no voice at all (null). Any voice can be heard from the list without choosing it; the
 // chosen one can be heard from the field itself. The list also stands alone (VoiceList), for the workbench's composer.
 
-const PROVIDER_NAME: Record<Voice['provider'], () => string> = { volcengine: () => t('home.voice.volcengine'), elevenlabs: () => 'ElevenLabs' };
+const PROVIDER_NAME: Record<Voice['provider'], () => string> = { volcengine: () => t('home.voice.volcengine'), elevenlabs: () => 'ElevenLabs', edge: () => t('home.voice.edge') };
 const gender = (v: Voice) => (v.gender === 'female' ? t('home.voice.femaleTag') : v.gender === 'male' ? t('home.voice.maleTag') : '');
 
 /** one sample playing at a time, whichever list or field asked for it */
@@ -173,7 +173,7 @@ export function VoiceList({ id, voices, problems, value, onChoose, unconfigured 
     const hit = (v: Voice) => !s || v.name.toLowerCase().includes(s) || v.id.toLowerCase().includes(s);
     return [
       { key: 'mine', label: t('picker.mine'), provider: undefined, items: voices.filter((v) => v.mine && hit(v)) },
-      ...(['volcengine', 'elevenlabs'] as const).map((provider) => ({ key: provider, label: PROVIDER_NAME[provider](), provider, items: voices.filter((v) => !v.mine && v.provider === provider && hit(v)) })),
+      ...(['edge', 'volcengine', 'elevenlabs'] as const).map((provider) => ({ key: provider, label: PROVIDER_NAME[provider](), provider, items: voices.filter((v) => !v.mine && v.provider === provider && hit(v)) })),
     ].filter((g) => g.items.length);
   }, [voices, q]);
   // no voice leads the list, unless a search is typed

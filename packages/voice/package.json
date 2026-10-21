@@ -2,7 +2,7 @@
   "name": "@frametell/voice",
   "version": "0.7.3",
   "private": true,
-  "description": "Narration for Frametell: Volcengine TTS 2.0 and ElevenLabs, cut into cues with per-character timing.",
+  "description": "Narration for Frametell: Volcengine TTS, ElevenLabs and free Edge voices, cut into cues with per-character timing.",
   "license": "AGPL-3.0-only",
   "author": "Sitor Team (https://sitor.ai)",
   "homepage": "https://github.com/sitor-ai/frametell#readme",
@@ -34,6 +34,10 @@
     "test": "node --test dist/*.test.js"
   },
   "dependencies": {
-    "@frametell/engine": "workspace:*"
+    "@frametell/engine": "workspace:*",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2"
   }
 }

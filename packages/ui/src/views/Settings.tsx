@@ -25,10 +25,13 @@ interface Section {
   detail: (c: Ctx, open: string | undefined, setOpen: (id: string | undefined) => void) => React.ReactNode;
 }
 
-// Volcengine first in Chinese; in English ElevenLabs first, Volcengine's voices speaking only Chinese
-const VOICES = [
-  { id: 'volcengine', key: 'volcengine' as const, url: 'https://console.volcengine.com/speech/app', hint: 'API Key / AppID:Token' },
-  { id: 'elevenlabs', key: 'elevenlabs' as const, url: 'https://elevenlabs.io/app/settings/api-keys', hint: 'sk_…' },
+// Volcengine first in Chinese; in English ElevenLabs first, Volcengine's voices speaking only Chinese. Edge takes no
+// key: an extra narrator anyone can turn on by picking one of its voices (never picked by default).
+interface VoiceService { id: string; key?: 'volcengine' | 'elevenlabs'; url?: string; hint?: string }
+const VOICES: VoiceService[] = [
+  { id: 'volcengine', key: 'volcengine', url: 'https://console.volcengine.com/speech/app', hint: 'API Key / AppID:Token' },
+  { id: 'elevenlabs', key: 'elevenlabs', url: 'https://elevenlabs.io/app/settings/api-keys', hint: 'sk_…' },
+  { id: 'edge' },
 ];
 
 // the web search the research uses before a storyboard; reading pages needs no key, searching needs one of these
@@ -63,7 +66,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: 'voice', icon: AudioLines, label: 'settings.nav.voice',
-    list: (c) => ({ items: (getLocale() === 'en' ? [...VOICES].reverse() : VOICES).map((v) => ({ id: v.id, name: t(`settings.voice.${v.id}` as MessageKey), logo: v.id, on: !!c.s.tts[v.key] })) }),
+    list: (c) => ({ items: (getLocale() === 'en' ? [...VOICES].reverse() : VOICES).map((v) => ({ id: v.id, name: t(`settings.voice.${v.id}` as MessageKey), logo: v.id, on: !v.key || !!c.s.tts[v.key] })) }),
     detail: (c, open) => { const v = VOICES.find((x) => x.id === open) ?? VOICES[0]; return <VoiceDetail key={v.id} v={v} c={c} />; },
   },
   { id: 'preferences', icon: NotebookPen, label: 'settings.nav.preferences', hosted: true, detail: (c) => <PreferenceSettings s={c.s} patch={c.patch} /> },
@@ -105,7 +108,8 @@ function SecretField({ id, label, saved, hint, onSave }: { id: string; label: st
 }
 
 function VoiceDetail({ v, c }: { v: (typeof VOICES)[number]; c: Ctx }) {
-  const on = !!c.s.tts[v.key];
+  const key = v.key;
+  const on = !key || !!c.s.tts[key];
   // a saved ElevenLabs key is tried by listing its voices, so a wrong key or a missing permission is said right here
   const voices = useLoad(() => (v.id === 'elevenlabs' && c.s.tts.elevenlabs ? client.voices() : Promise.resolve(undefined)), [v.id, c.s.tts.elevenlabs]);
   return (
@@ -121,10 +125,16 @@ function VoiceDetail({ v, c }: { v: (typeof VOICES)[number]; c: Ctx }) {
         </div>
       </header>
       <div className="space-y-4 px-7 py-6">
-        <SecretField id={`tts-${v.id}`} label={t('providers.key')} saved={c.s.tts[v.key]} hint={v.hint} onSave={(x) => c.patch({ tts: { [v.key]: x } })} />
-        {on && <VoiceProblem problems={voices.data?.problems} />}
-        {!on && <a href={v.url} target="_blank" rel="noreferrer" className="inline-flex text-[12.5px] text-accent-ink hover:underline">{t('providers.getKey', { name: t(`settings.voice.${v.id}` as MessageKey) })} ↗</a>}
-        <p className="text-[12.5px] leading-relaxed text-ink-3">{t('settings.voice.desc')}</p>
+        {key ? (
+          <>
+            <SecretField id={`tts-${v.id}`} label={t('providers.key')} saved={c.s.tts[key]} hint={v.hint} onSave={(x) => c.patch({ tts: { [key]: x } })} />
+            {on && <VoiceProblem problems={voices.data?.problems} />}
+            {!on && <a href={v.url} target="_blank" rel="noreferrer" className="inline-flex text-[12.5px] text-accent-ink hover:underline">{t('providers.getKey', { name: t(`settings.voice.${v.id}` as MessageKey) })} ↗</a>}
+            <p className="text-[12.5px] leading-relaxed text-ink-3">{t('settings.voice.desc')}</p>
+          </>
+        ) : (
+          <p className="text-[12.5px] leading-relaxed text-ink-3">{t('settings.voice.edgeNote')}</p>
+        )}
       </div>
       {v.id === 'volcengine' && on && <MyVoices c={c} />}
     </div>
