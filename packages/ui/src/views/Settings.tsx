@@ -202,6 +202,17 @@ function General({ c }: { c: Ctx }) {
           ))}
         </div>
       </section>
+      <section aria-labelledby="sec-conc">
+        <h4 id="sec-conc" className="text-[13px] font-semibold text-ink">{t('settings.general.concurrency')}</h4>
+        <p className="mt-1 text-[12.5px] text-ink-3">{t('settings.general.concurrencyDesc')}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="sec-conc">
+          {([1, 2, 3, 5, 10] as const).map((n) => (
+            <button key={n} type="button" role="radio" aria-checked={(c.s.defaults.concurrency ?? 10) === n} className="fs-chip" onClick={() => void c.patch({ defaults: { concurrency: n } })}>
+              {n === 1 ? t('settings.general.sequential') : t('settings.general.parallel', { n })}
+            </button>
+          ))}
+        </div>
+      </section>
       <ExportDir c={c} />
     </Page>
   );
