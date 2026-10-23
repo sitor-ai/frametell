@@ -38,3 +38,36 @@ test('the export folder is kept as a full path; ~ is the home folder, a relative
   assert.throws(() => patchConfig(c, { exportDir: 'films' }), /完整路径|full path/);
   assert.equal(publicConfig({ ...c, exportDir: undefined }).exportDir, '');
 });
+
+test('an ffmpeg path must exist and run; a folder is the binary inside it; empty clears it', async () => {
+  const { patchConfig, publicConfig, loadConfig } = await import('./config.js');
+  const c = loadConfig();
+  assert.throws(() => patchConfig(c, { ffmpegPath: 'ffmpeg' }), /完整路径|full path/);
+  assert.throws(() => patchConfig(c, { ffmpegPath: '/no/such/ffmpeg' }), /没有找到|not found/);
+  assert.equal(patchConfig({ ...c, ffmpegPath: '/usr/bin/ffmpeg' }, { ffmpegPath: '' }).ffmpegPath, undefined);
+  assert.equal(publicConfig({ ...c, ffmpegPath: undefined }).ffmpegPath, '');
+});
+
+test('clearing the ffmpeg choice puts back a FFMPEG_PATH the user exported', async () => {
+  const { applyFfmpeg } = await import('./env.js');
+  const was = { path: process.env.FFMPEG_PATH, user: process.env.FRAMETELL_FFMPEG_USER, bundled: process.env.FRAMETELL_FFMPEG_BUNDLED };
+  const restore = () => {
+    for (const [k, v] of [['FFMPEG_PATH', was.path], ['FRAMETELL_FFMPEG_USER', was.user], ['FRAMETELL_FFMPEG_BUNDLED', was.bundled]] as const) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+  };
+  try {
+    process.env.FRAMETELL_FFMPEG_USER = '/opt/user/ffmpeg';
+    process.env.FRAMETELL_FFMPEG_BUNDLED = '/app/ffmpeg';
+    applyFfmpeg('/opt/chosen/ffmpeg');
+    assert.equal(process.env.FFMPEG_PATH, '/opt/chosen/ffmpeg');
+    applyFfmpeg('');
+    assert.equal(process.env.FFMPEG_PATH, '/opt/user/ffmpeg');
+    delete process.env.FRAMETELL_FFMPEG_USER;
+    applyFfmpeg(undefined);
+    assert.equal(process.env.FFMPEG_PATH, '/app/ffmpeg');
+    delete process.env.FRAMETELL_FFMPEG_BUNDLED;
+    applyFfmpeg('');
+    assert.equal(process.env.FFMPEG_PATH, undefined);
+  } finally { restore(); }
+});

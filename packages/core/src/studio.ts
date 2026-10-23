@@ -8,7 +8,7 @@ import { BRAND_DIR, Project, STYLES, cleanBrand, cleanLook, openProjectFile, wri
 import { linkProject } from '@frametell/engine/tools/project.mjs';
 import { DATA_DIR, configFile, patchConfig, publicConfig, type ConfigStore } from './config.js';
 import { Projects } from './runner.js';
-import { checkEnv } from './env.js';
+import { applyFfmpeg, checkEnv } from './env.js';
 import { applyProxy } from './net.js';
 import { attach, cleanRefs } from './refs.js';
 import { addAsset, listAssets, prepareAsset, removeAsset, updateAsset, type NewUserAsset } from './assets.js';
@@ -87,6 +87,7 @@ export class Studio {
     this.brands = o.brand === true;
     this.store = new Projects(path.join(this.dataDir, 'projects'), this.config, o.renderer, o.review, o.onEvent, { localFiles: o.localFiles ?? true, web: o.web ?? true });
     applyProxy(this.config.load().proxy);
+    applyFfmpeg(this.config.load().ffmpegPath);
     // every project reaches the engine through links; point them at this install (it may have moved, or been renamed)
     if (o.linkProjects !== false) try { for (const id of fs.readdirSync(this.store.root)) { try { linkProject(this.store.dir(id)); } catch {} } } catch {}
   }
@@ -102,6 +103,7 @@ export class Studio {
     const next = patchConfig(this.config.load(), patch);
     this.config.save(next);
     applyProxy(next.proxy);
+    applyFfmpeg(next.ffmpegPath);
     return publicConfig(next);
   }
   env(): EnvCheck[] { return checkEnv(); }

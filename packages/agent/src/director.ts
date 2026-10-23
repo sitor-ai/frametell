@@ -157,6 +157,13 @@ const PAGE_THINKING: Thinking = 'medium';
 const KIT_THINKING: Thinking = 'low';
 /** a revised page whose code is as it was: the change never landed */
 const NOT_MADE = { zh: '这次没有改上：页面和改之前一样', en: 'The change was not made: the page is as it was' };
+/** the narration failure the user sees. The hint to pick ffmpeg is only when ffmpeg itself failed. */
+export function narrateFailure(message: string, say: (zh: string, en: string) => string): string {
+  const raw = message.trim() || say('配音没有说明原因', 'Narration gave no reason');
+  if (!/\bffmpeg\b/i.test(raw)) return raw;
+  return raw + '\n' + say('在「设置 → 这台电脑」里选择 ffmpeg 的安装位置，再点继续。', 'Choose where ffmpeg is installed under Settings → This computer, then continue.');
+}
+
 /** a model service's trouble behind a failure, in words the user can act on (none: the trouble is the page's own) */
 export function serviceTrouble(text: string): { zh: string; en: string } | undefined {
   if (/\b402\b|insufficient|balance|quota|credit|billing|余额|额度|欠费/i.test(text)) return { zh: '模型账户的余额或额度用完了：充值，或在设置里换一个 key，再点继续。', en: 'The model account is out of balance or quota. Top it up or use another key in Settings, then continue.' };
@@ -591,6 +598,17 @@ export class Director {
   }
 
   // ── ③ narration ──────────────────────────────────────────────────────────────────────────────
+  /** narration, with a usable note when ffmpeg itself failed (a packaged binary often exits with no text).
+   *  A TTS or network error is not ffmpeg's: telling the user to pick a binary would send them to the wrong place. */
+  private async narrateOrSay() {
+    try {
+      return await narrate(this.o.dir, { tts: this.o.tts!, voice: this.o.voice, signal: this.o.signal, child: childCmd, files: projectFiles, onProgress: (e) => this.emit({ type: 'narrate', ...e }) });
+    } catch (e) {
+      if (stopped(e)) throw e;
+      this.fail('narrate', narrateFailure((e as Error).message, (zh, en) => this.say(zh, en)));
+    }
+  }
+
   async narrate() {
     this.emit({ type: 'stage', stage: 'narrate', status: 'start' });
     this.state.stage = 'narrate'; this.save();
@@ -600,7 +618,7 @@ export class Director {
       return;
     }
     this.serverMeta();
-    const r = await narrate(this.o.dir, { tts: this.o.tts, voice: this.o.voice, signal: this.o.signal, child: childCmd, files: projectFiles, onProgress: (e) => this.emit({ type: 'narrate', ...e }) });
+    const r = await this.narrateOrSay();
     await this.commit(this.say('配音', 'Voice'));
     this.state.stage = 'pages'; this.save();
     this.emit({ type: 'stage', stage: 'narrate', status: 'done', detail: `${r.duration.toFixed(1)}s${r.warnings.length ? '；' + r.warnings.join('；') : ''}` });
@@ -622,7 +640,7 @@ export class Director {
     if (!this.voiceStale()) return;
     this.emit({ type: 'stage', stage: 'narrate', status: 'start' });
     this.serverMeta();
-    const r = await narrate(this.o.dir, { tts: this.o.tts!, voice: this.o.voice, signal: this.o.signal, child: childCmd, files: projectFiles, onProgress: (e) => this.emit({ type: 'narrate', ...e }) });
+    const r = await this.narrateOrSay();
     await this.commit(this.say('换配音', 'New voice'));
     this.state.exported = false; this.save();
     this.emit({ type: 'stage', stage: 'narrate', status: 'done', detail: `${r.duration.toFixed(1)}s${r.warnings.length ? '；' + r.warnings.join('；') : ''}` });

@@ -120,6 +120,8 @@ export interface PublicSettings {
   preferences: string;
   /** the folder exports are also copied into; '' when only the project's own out/ */
   exportDir: string;
+  /** ffmpeg to run instead of the bundled one; '' uses the bundled binary or ffmpeg on PATH */
+  ffmpegPath: string;
   defaults: { model?: string; pageModel?: string; reviewModel?: string; researchModel?: string; runtime: RuntimeId; style: string; durationSec: number; voice?: VoiceChoice; subtitles: boolean; concurrency: number };
 }
 export interface SettingsPatch {
@@ -142,6 +144,8 @@ export interface SettingsPatch {
   preferences?: string;
   /** a full path (~ allowed); '' removes it */
   exportDir?: string;
+  /** a full path to ffmpeg, or a folder that contains it (~ allowed); '' uses the bundled one */
+  ffmpegPath?: string;
   defaults?: Partial<PublicSettings['defaults']>;
 }
 

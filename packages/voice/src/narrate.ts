@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { FFMPEG } from '@frametell/engine/tools/bins.mjs';
+import { ffmpegBin, ffmpegFailure } from '@frametell/engine/tools/bins.mjs';
 import { ENGINE_DIR } from '@frametell/engine/tools/project.mjs';
 import type { TtsProvider, WordTime } from './tts.js';
 
@@ -42,19 +42,25 @@ export type ChildCmd = (dir: string, cmd: string, argv: string[]) => { cmd: stri
 export const directChild: ChildCmd = (_dir, cmd, argv) => ({ cmd, argv, env: { ...process.env, ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {}) } });
 
 /** a child to its end; one that could not start, was stopped, ran too long or printed more than 64 MiB rejects */
-function runChild(child: ChildCmd, dir: string, cmd: string, argv: string[], signal?: AbortSignal): Promise<{ code: number; out: Buffer; err: string }> {
+function runChild(child: ChildCmd, dir: string, cmd: string, argv: string[], signal?: AbortSignal): Promise<{ code: number; out: Buffer; err: string; signal?: string }> {
   const c = child(dir, cmd, argv);
   return new Promise((ok, fail) => execFile(c.cmd, c.argv, { cwd: dir, env: c.env, encoding: 'buffer', maxBuffer: 64 << 20, timeout: 300_000, signal }, (e, out, err) => {
-    if (e && typeof e.code !== 'number') return fail(e.name === 'AbortError' ? e : new Error(`${path.basename(cmd)}: ${String(err || e.message).trim().slice(-1000)}`));
-    ok({ code: e ? (e.code as number) : 0, out, err: err.toString('utf8') });
+    if (e?.name === 'AbortError' || signal?.aborted) return fail(e?.name === 'AbortError' ? e : new DOMException('aborted', 'AbortError'));
+    const stderr = Buffer.isBuffer(err) ? err.toString('utf8') : String(err || '');
+    const stdout = Buffer.isBuffer(out) ? out : Buffer.from(out || '');
+    const shown = c.cmd === cmd ? cmd : cmd + ' (via ' + c.cmd + ')';
+    const failed = e as (Error & { code?: string | number; signal?: string }) | null;
+    if (failed && typeof failed.code !== 'number') return fail(new Error(ffmpegFailure({ bin: shown, signal: failed.signal, stderr, stdout: stdout.toString('utf8'), spawnError: failed.message || String(failed.code || '') })));
+    ok({ code: failed && typeof failed.code === 'number' ? failed.code : 0, out: stdout, err: stderr, signal: failed?.signal });
   }));
 }
 
 /** ffmpeg on a file of the project, local files only: a "sound" that is really a playlist of web addresses fetches
  *  nothing. `pre` goes before the input, `post` after it; resolves with what it printed */
 async function ffmpeg(child: ChildCmd, dir: string, pre: string[], input: string, post: string[], signal?: AbortSignal): Promise<string> {
-  const r = await runChild(child, dir, FFMPEG, ['-hide_banner', ...pre, '-protocol_whitelist', 'file,pipe', '-i', input, ...post], signal);
-  if (r.code) throw new Error(`ffmpeg: ${r.err.trim().split('\n').pop()}`);
+  const bin = ffmpegBin();
+  const r = await runChild(child, dir, bin, ['-hide_banner', ...pre, '-protocol_whitelist', 'file,pipe', '-i', input, ...post], signal);
+  if (r.code) throw new Error(ffmpegFailure({ bin, code: r.code, signal: r.signal, stderr: r.err, stdout: r.out.toString("utf8") }));
   return r.err;
 }
 
@@ -63,8 +69,9 @@ const RATE = 24000;
  *  ffmpeg hands the samples back on a pipe and the host writes the file (ProjectFiles), so no name in the project is
  *  ever opened for writing by ffmpeg: a link planted there would take its output anywhere */
 async function toWav(child: ChildCmd, dir: string, input: string, post: string[], signal?: AbortSignal): Promise<Buffer> {
-  const r = await runChild(child, dir, FFMPEG, ['-hide_banner', '-loglevel', 'error', '-protocol_whitelist', 'file,pipe', '-i', input, ...post, '-ac', '1', '-ar', String(RATE), '-f', 's16le', 'pipe:1'], signal);
-  if (r.code) throw new Error(`ffmpeg: ${r.err.trim().split('\n').pop()}`);
+  const bin = ffmpegBin();
+  const r = await runChild(child, dir, bin, ['-hide_banner', '-loglevel', 'error', '-protocol_whitelist', 'file,pipe', '-i', input, ...post, '-ac', '1', '-ar', String(RATE), '-f', 's16le', 'pipe:1'], signal);
+  if (r.code) throw new Error(ffmpegFailure({ bin, code: r.code, signal: r.signal, stderr: r.err, stdout: r.out.toString("utf8") }));
   const pcm = r.out.subarray(0, r.out.length & ~1), head = Buffer.alloc(44);
   head.write('RIFF', 0); head.writeUInt32LE(36 + pcm.length, 4); head.write('WAVEfmt ', 8); head.writeUInt32LE(16, 16); head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22);
   head.writeUInt32LE(RATE, 24); head.writeUInt32LE(RATE * 2, 28); head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34); head.write('data', 36); head.writeUInt32LE(pcm.length, 40);
@@ -73,9 +80,10 @@ async function toWav(child: ChildCmd, dir: string, input: string, post: string[]
 
 /** a media file's length in seconds, from what `ffmpeg -i` prints (it exits 1 there: no output is named) */
 export async function mediaDuration(dir: string, file: string, child: ChildCmd, signal?: AbortSignal): Promise<number> {
-  const { err } = await runChild(child, dir, FFMPEG, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file], signal);
-  const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(err);
-  if (!d) throw new Error(`cannot read ${file}: ${err.trim().split('\n').pop()}`);
+  const bin = ffmpegBin();
+  const r = await runChild(child, dir, bin, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file], signal);
+  const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(r.err);
+  if (!d) throw new Error(ffmpegFailure({ bin, code: r.code, signal: r.signal, stderr: r.err, stdout: r.out.toString('utf8') }));
   return +d[1] * 3600 + +d[2] * 60 + +d[3];
 }
 

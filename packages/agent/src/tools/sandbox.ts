@@ -23,6 +23,22 @@ const real = (p: string) => { try { return fs.realpathSync(p); } catch { return 
 const extraHidden = () => (process.env.FRAMETELL_SANDBOX_HIDE || '').split(',').map((s) => s.trim()).filter(Boolean);
 const inside = (p: string, dir: string) => p === dir || p.startsWith(dir.endsWith(path.sep) ? dir : dir + path.sep);
 
+/** folders the sandbox may read so it can run `ffmpegPath`. A folder that contains `home` is left out:
+ *  dirname("~/ffmpeg") is ~, and allowing that folder would open the whole home folder to the shell. */
+export function ffmpegSandboxDirs(ffmpegPath: string | undefined, home: string): string[] {
+  const raw = (ffmpegPath || '').trim();
+  if (!path.isAbsolute(raw)) return [];
+  const out = new Set<string>();
+  const add = (dir: string) => { if (path.isAbsolute(dir) && !inside(home, dir)) out.add(dir); };
+  let link = false;
+  try { link = fs.lstatSync(raw).isSymbolicLink(); } catch { return []; }
+  if (link) add(path.dirname(path.resolve(raw)));
+  const target = real(raw);
+  if (target) add(path.dirname(target));
+  else if (!link) add(path.dirname(path.resolve(raw)));
+  return [...out];
+}
+
 /** what a tool run from the project needs to read besides it: the engine and its modules (pnpm links them from
  *  node_modules folders further up), and the Node that runs them (a version manager or the app keeps it in home).
  *  The installed engine's own folders, never where the project's engine/ and engine_modules/ links point: the shell
@@ -46,8 +62,10 @@ function readable(): string[] {
   if (ca) out.add(ca);
   const res = (process as { resourcesPath?: string }).resourcesPath;
   if (res) out.add(real(res) ?? res);
-  // the programs on PATH (the desktop app puts its `node` launcher in its data folder), but never a whole home folder
+  // a ffmpeg the user chose (or the app bundled) may sit outside the paths already allowed. Its own folder, never ~.
   const home = real(os.homedir()) ?? os.homedir();
+  for (const dir of ffmpegSandboxDirs(process.env.FFMPEG_PATH, home)) out.add(dir);
+  // the programs on PATH (the desktop app puts its `node` launcher in its data folder), but never a whole home folder
   for (const d of (process.env.PATH || '').split(path.delimiter)) {
     const r = d && real(d);
     if (r && path.isAbsolute(r) && !inside(home, r)) out.add(r);

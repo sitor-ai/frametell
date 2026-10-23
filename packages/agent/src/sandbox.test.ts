@@ -6,7 +6,7 @@ import path from 'node:path';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { execFile, execFileSync, spawnSync } from 'node:child_process';
-import { confine, usesBwrap } from './tools/sandbox.js';
+import { confine, ffmpegSandboxDirs, usesBwrap } from './tools/sandbox.js';
 import { Project, childCmd, cutFrame, engineCmd, gateResult, nodeEnv, projectFiles } from './project.js';
 import { openProjectFile } from './projectfs.js';
 import crypto from 'node:crypto';
@@ -17,6 +17,22 @@ import { fileTools } from './tools/files.js';
 import { ENGINE_DIR, engineModulesDir } from '@frametell/engine/tools/project.mjs';
 
 const sandboxed = process.platform === 'darwin' || (process.platform === 'linux' && (() => { try { execFileSync('bwrap', ['--ro-bind', '/', '/', '--dev', '/dev', '--proc', '/proc', 'true'], { stdio: 'ignore' }); return true; } catch { return false; } })());
+
+test('a chosen ffmpeg is readable, but a binary in the home folder does not open the home folder', () => {
+  const home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ft-ff-home-')));
+  const binDir = path.join(home, 'bin');
+  fs.mkdirSync(binDir);
+  const nested = path.join(binDir, 'ffmpeg');
+  const atHome = path.join(home, 'ffmpeg');
+  fs.writeFileSync(nested, '');
+  fs.writeFileSync(atHome, '');
+  try {
+    assert.deepEqual(ffmpegSandboxDirs(nested, home), [binDir]);
+    assert.deepEqual(ffmpegSandboxDirs(atHome, home), []);
+    assert.deepEqual(ffmpegSandboxDirs('ffmpeg', home), []);
+    assert.deepEqual(ffmpegSandboxDirs(path.join(os.tmpdir(), 'no-such-ffmpeg'), home), []);
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
+});
 
 test('the shell reads and writes its project, and nothing in a folder kept out nor the studio\'s record', { skip: !sandboxed && 'no sandbox here' }, () => {
   const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ft-sandbox-')));

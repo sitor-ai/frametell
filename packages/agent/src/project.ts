@@ -7,7 +7,7 @@ import { ENGINE_DIR, linkProject } from '@frametell/engine/tools/project.mjs';
 import { lintStoryboard, type StoryboardIssue } from '@frametell/engine/tools/storyboard-lint.mjs';
 import type { FilmGateResult } from '@frametell/engine/tools/film-gate.mjs';
 import type { ChildCmd, ProjectFiles } from '@frametell/voice';
-import { FFMPEG } from '@frametell/engine/tools/bins.mjs';
+import { ffmpegBin, ffmpegFailure } from '@frametell/engine/tools/bins.mjs';
 import { confine } from './tools/sandbox.js';
 import { gitAsync, gitSync, stageAll, stageAllSync } from './git.js';
 import { openProjectFile, readIn, writeIn, type OpenFile } from './projectfs.js';
@@ -58,7 +58,8 @@ const run = (cmd: string, args: string[], cwd?: string) => new Promise<void>((ok
 export async function cutFrame(dir: string, from: OpenFile, before: string[], after: string[], out: string, max = 16 << 20) {
   const input = process.platform === 'win32' ? from.path : '/dev/fd/3';   // Windows has no /dev/fd: the checked real path
   // one frame, whatever the input holds (a "snapshot" can be a film), and no more than `max` bytes of answer
-  const [cmd, argv] = confinedCmd(dir, FFMPEG, ['-loglevel', 'error', ...before, '-protocol_whitelist', 'file,pipe', '-i', input, ...after, '-frames:v', '1', '-f', 'image2pipe', '-c:v', 'mjpeg', 'pipe:1']);
+  const bin = ffmpegBin();
+  const [cmd, argv] = confinedCmd(dir, bin, ['-loglevel', 'error', ...before, '-protocol_whitelist', 'file,pipe', '-i', input, ...after, '-frames:v', '1', '-f', 'image2pipe', '-c:v', 'mjpeg', 'pipe:1']);
   const jpg = await new Promise<Buffer>((ok, fail) => {
     const child = spawn(cmd, argv, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe', from.fd], env: nodeEnv(), timeout: 120_000 });
     const parts: Buffer[] = [];
@@ -70,8 +71,8 @@ export async function cutFrame(dir: string, from: OpenFile, before: string[], af
     });
     child.stderr!.on('data', (d: Buffer) => { if (err.length < 4000) err += d.toString(); });
     child.on('error', fail);
-    child.on('close', (code) => (over ? fail(new Error(`ffmpeg: the frame came back as more than ${max} bytes`))
-      : code === 0 && parts.length ? ok(Buffer.concat(parts)) : fail(new Error((err || `ffmpeg exited ${code}`).slice(0, 1000)))));
+    child.on('close', (code, signal) => (over ? fail(new Error('ffmpeg: the frame came back as more than ' + max + ' bytes'))
+      : code === 0 && parts.length ? ok(Buffer.concat(parts)) : fail(new Error(ffmpegFailure({ bin, code, signal, stderr: err }).slice(0, 1000)))));
   });
   writeIn(dir, out, jpg, { record: true });
 }
@@ -291,11 +292,12 @@ export class Project {
   /** a film's length in seconds: ffmpeg's reading of its header (quick), in a confined child like every other ffmpeg
    *  over what the agent made, never in this process */
   async duration(file: string): Promise<number> {
-    const [cmd, argv] = confinedCmd(this.dir, FFMPEG, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file]);
-    const err = await new Promise<string>((ok) => execFile(cmd, argv, { cwd: this.dir, encoding: 'utf8', timeout: 60_000, maxBuffer: 1 << 20, env: nodeEnv(), signal: this.signal },
-      (_e, _o, stderr) => ok(String(stderr || ''))));
-    const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(err);
-    if (!d) throw new Error(`cannot read ${path.basename(file)}: ${err.trim().split('\n').pop() ?? ''}`.slice(0, 1000));
+    const bin = ffmpegBin();
+    const [cmd, argv] = confinedCmd(this.dir, bin, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file]);
+    const ran = await new Promise<{ err: string; out: string; code?: number; signal?: string; spawn?: string }>((ok) => execFile(cmd, argv, { cwd: this.dir, encoding: 'utf8', timeout: 60_000, maxBuffer: 1 << 20, env: nodeEnv(), signal: this.signal },
+      (e, stdout, stderr) => ok({ err: String(stderr || ''), out: String(stdout || ''), code: typeof e?.code === 'number' ? e.code : undefined, signal: e?.signal, spawn: e && typeof e.code !== 'number' ? e.message : undefined })));
+    const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(ran.err);
+    if (!d) throw new Error(ffmpegFailure({ bin, code: ran.code, signal: ran.signal, stderr: ran.err, stdout: ran.out, spawnError: ran.spawn }).slice(0, 1000));
     return +d[1] * 3600 + +d[2] * 60 + +d[3];
   }
 
