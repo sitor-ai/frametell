@@ -1,6 +1,6 @@
 {
   "name": "@frametell/desktop",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "Frametell for macOS and Windows: the core in Electron's main process, the panel in a window, IPC in between.",
   "license": "AGPL-3.0-only",

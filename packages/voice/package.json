@@ -1,6 +1,6 @@
 {
   "name": "@frametell/voice",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "Narration for Frametell: Volcengine TTS 2.0 and ElevenLabs, cut into cues with per-character timing.",
   "license": "AGPL-3.0-only",

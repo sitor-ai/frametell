@@ -1,6 +1,6 @@
 {
   "name": "@frametell/models",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "Model catalog for Frametell: every Pi provider, plus Volcengine Ark and custom endpoints.",
   "license": "AGPL-3.0-only",

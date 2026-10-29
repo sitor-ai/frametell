@@ -1,6 +1,6 @@
 {
   "name": "@frametell/core",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "Frametell's application core: settings, projects and their runs, events. Transport-agnostic; the CLI serves it over HTTP and the desktop app over IPC.",
   "license": "AGPL-3.0-only",
