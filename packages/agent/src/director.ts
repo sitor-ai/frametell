@@ -815,7 +815,8 @@ export class Director {
         if (/stopped answering twice/.test(e.message)) throw new Error(this.say('浏览器两次没有响应，导出停下了。再导出一次通常就好，已经画好的片段会直接用上', 'The browser stopped responding twice, so the export stopped. Exporting again usually works, and the parts already drawn are reused'));
         throw e;
       });
-    const duration = await this.project.duration(out.withSubs);
+    // the film is made: a length ffmpeg can't read here (it couldn't start in this process) is the time line's, not a failed export
+    const duration = await this.project.duration(out.withSubs).catch(async () => (await this.project.timeline()).duration);
     this.state.video = out.withSubs; this.state.exported = true; this.save();
     const saved = this.saveCopies(out);
     this.emit({ type: 'stage', stage: 'render', status: 'done' });

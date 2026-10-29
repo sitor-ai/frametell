@@ -292,10 +292,11 @@ export class Project {
    *  over what the agent made, never in this process */
   async duration(file: string): Promise<number> {
     const [cmd, argv] = confinedCmd(this.dir, FFMPEG, ['-hide_banner', '-protocol_whitelist', 'file,pipe', '-i', file]);
-    const err = await new Promise<string>((ok) => execFile(cmd, argv, { cwd: this.dir, encoding: 'utf8', timeout: 60_000, maxBuffer: 1 << 20, env: nodeEnv(), signal: this.signal },
-      (_e, _o, stderr) => ok(String(stderr || ''))));
+    // ffmpeg -i without an output always exits 1; its error matters only when it printed nothing (it never ran, or was stopped)
+    const [err, why] = await new Promise<[string, string]>((ok) => execFile(cmd, argv, { cwd: this.dir, encoding: 'utf8', timeout: 60_000, maxBuffer: 1 << 20, env: nodeEnv(), signal: this.signal },
+      (e, _o, stderr) => ok([String(stderr || ''), e ? (e.killed ? `ffmpeg was stopped (${e.signal ?? 'timeout'})` : e.message) : ''])));
     const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(err);
-    if (!d) throw new Error(`cannot read ${path.basename(file)}: ${err.trim().split('\n').pop() ?? ''}`.slice(0, 1000));
+    if (!d) throw new Error(`cannot read ${path.basename(file)}: ${err.trim().split('\n').pop() || why || 'ffmpeg printed nothing'}`.slice(0, 1000));
     return +d[1] * 3600 + +d[2] * 60 + +d[3];
   }
 
