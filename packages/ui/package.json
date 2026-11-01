@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p . --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test src/editor/*.test.ts"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "5.2.6",
@@ -16,6 +17,7 @@
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
     "@vitejs/plugin-react": "5.0.3",
+    "acorn": "8.14.1",
     "autoprefixer": "10.4.21",
     "clsx": "2.1.1",
     "lucide-react": "0.475.0",

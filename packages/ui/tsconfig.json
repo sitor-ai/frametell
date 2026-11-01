@@ -4,5 +4,6 @@
     "jsx": "react-jsx", "strict": true, "skipLibCheck": true, "isolatedModules": true, "noEmit": true, "resolveJsonModule": true,
     "types": ["vite/client"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

@@ -15,6 +15,7 @@ import { addAsset, listAssets, prepareAsset, removeAsset, updateAsset, type NewU
 import { USER_ASSETS_MAX, type UserAsset } from '@frametell/agent';
 import type { UserRef, EnvCheck, LoggedEvent, ModelInfo, NewProjectInput, ProjectMeta, ProjectSummary, PublicSettings, SettingsPatch, StyleInfo, Voice, VoicesView } from './types.js';
 import { resolveLocale, tr } from './i18n.js';
+import { EditRefused, commitVersion, draftPages, dropDraft, editFile, editMessage, filmPages, listVersions, pageView, putPage, restoreVersion, saveDraft, type FilmVersion, type PageSource } from './edit.js';
 
 export interface MaterialFile { name: string; data: Uint8Array }
 
@@ -341,6 +342,56 @@ export class Studio {
     try { if (/^[\w-]+$/.test(id)) { this.store.read(id); return this.store.dir(id); } } catch {}
     throw new Error(tr('项目不存在', 'Project not found'));
   }
+
+  // ── the film edited by hand (edit.ts): a draft beside the film, saved as a version of its history ──
+  /** whether the film can be edited now (not while it is being made), the draft's pages, and the film's pages */
+  editInfo(id: string): { editable: boolean; why: string | null; draft: { pages: string[] } | null; pages: string[] } {
+    const dir = this.projectDir(id), why = this.notEditable(id);
+    const draft = draftPages(dir);
+    return { editable: !why, why, draft: draft.length ? { pages: draft } : null, pages: filmPages(dir) };
+  }
+  /** a page as the editor reads it (the draft's, else the film's) */
+  editPage(id: string, page: string): PageSource { return this.editing(() => pageView(this.projectDir(id), page)); }
+  /** a page as the editor wrote it, kept in the draft; `{ stale }` when the page changed since `base` */
+  putEditPage(id: string, page: string, base: string, source: string, did?: unknown): PageSource | { stale: string } {
+    const why = this.notEditable(id);
+    if (why) throw new Error(why);
+    return this.editing(() => putPage(this.projectDir(id), page, String(base), String(source), did));
+  }
+  /** the draft written into the film and kept as a version (`label` names it) */
+  async saveEdit(id: string, label?: string): Promise<{ pages: string[]; version?: FilmVersion }> {
+    const why = this.notEditable(id);
+    if (why) throw new Error(why);
+    const dir = this.projectDir(id);
+    const pages = saveDraft(dir);
+    if (!pages.length) throw new Error(tr('没有要保存的改动', 'Nothing to save'));
+    this.timelines.delete(id);
+    const version = await commitVersion(dir, editMessage(typeof label === 'string' ? label : undefined));
+    return { pages, ...(version ? { version } : {}) };
+  }
+  /** the draft thrown away */
+  dropEdit(id: string): void { dropDraft(this.projectDir(id)); }
+  /** the film's versions, newest first */
+  async versions(id: string): Promise<FilmVersion[]> { return (await listVersions(this.projectDir(id))).map(({ sha: _, ...v }) => v); }
+  /** version `n` put back as the film, kept as a new version; refused while the film is being made or has a draft */
+  async restoreVersion(id: string, n: number): Promise<{ version: FilmVersion }> {
+    const why = this.notEditable(id);
+    if (why) throw new Error(why);
+    const dir = this.projectDir(id);
+    if (draftPages(dir).length) throw new Error(tr('先保存或放弃现在的改动', 'Save or drop the edits first'));
+    const version = await this.editing(() => restoreVersion(dir, Number(n)));
+    this.timelines.delete(id);
+    return { version };
+  }
+  /** a file of the edit-mode preview where it differs from the film's (its page, the runtime, the draft's pages); null:
+   *  the film's own file */
+  editFile(id: string, rel: string): { body: string; type: string } | null { return editFile(this.projectDir(id), rel); }
+  private notEditable(id: string): string | null {
+    const s = this.store.runner(id).summary().status;
+    return s === 'running' ? tr('影片还在制作中，做完才能编辑', 'This film is being made; edit it when it is done') : null;
+  }
+  /** an EditRefused said as an error of the request */
+  private editing<T>(f: () => T): T { try { return f(); } catch (e) { if (e instanceof EditRefused) throw new Error(e.message); throw e; } }
 
   /** replay events after `since`, then stream live ones; returns the unsubscribe function */
   subscribe(id: string, since: number, fn: (e: LoggedEvent) => void): () => void { return this.store.runner(id).subscribe(fn, since); }

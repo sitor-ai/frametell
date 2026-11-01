@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Pause, Play } from 'lucide-react';
 import { client, type ProjectView } from '../lib/client';
 import { useLoad, useRun } from '../lib/hooks';
@@ -11,6 +11,11 @@ import { useT } from '../i18n';
 import { FilmCredits, orShort } from '../components/Credits';
 import { hosted } from '../lib/client';
 import { openedFilm, track } from '../lib/track';
+import { ModeSwitch } from '../editor/ModeSwitch';
+import type { EditInfo } from '../editor/types';
+
+// the editor (editor/Editor.tsx) is loaded only when a film is opened in it
+const Editor = lazy(() => import('../editor/Editor').then((m) => ({ default: m.Editor })));
 
 const fmtK = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n));
 
@@ -60,6 +65,16 @@ export function Workbench({ id, openSettings }: { id: string; openSettings: (sec
   const [playKey, setPlayKey] = useState(0);
   const [pagePlay, setPagePlay] = useState(0);
   const [pane, setPane] = useState<'talk' | 'stage'>('talk');   // narrow windows show one pane at a time
+  // 编辑: the editor over the whole window, the workbench kept behind it; a version saved or gone back to changes the
+  // film's files, so the stage is built again on the way back
+  const [editing, setEditing] = useState<EditInfo | null>(null);
+  const [rev, setRev] = useState(0);
+  const editBtn = useRef<HTMLButtonElement>(null);
+  const exitEdit = (changed: boolean) => {
+    setEditing(null);
+    if (changed) { setRev((r) => r + 1); project.reload(); }
+    requestAnimationFrame(() => editBtn.current?.focus());
+  };
   const main = useRef<HTMLElement>(null);
   const [box, setBox] = useState(0);
   const [left, setLeft] = useState(readLeft);
@@ -136,6 +151,7 @@ export function Workbench({ id, openSettings }: { id: string; openSettings: (sec
         <span className={`hidden shrink-0 text-[12.5px] sm:inline ${finished(run) && !running ? 'text-jade' : run.awaitingApproval ? 'text-accent-ink' : 'text-ink-3'}`} aria-live="polite">{status}</span>
         {conn === 'reconnecting' && <span className="shrink-0 rounded-full bg-seal-soft px-2 py-0.5 text-[12px] text-seal" role="status">{t('workbench.reconnecting')}</span>}
         <span className="ml-auto flex shrink-0 items-center gap-2">
+          {p && client.edit && finished(run) && <ModeSwitch id={p.id} making={running} editing={!!editing} onOpen={setEditing} btn={editBtn} />}
           {p && <CostChip run={run} project={p} />}
           {p && running && <button className="fs-btn fs-btn-ghost fs-btn-sm" onClick={() => pause(p.id)} disabled={pausing} aria-busy={pausing} title={t('workbench.pauseTitle')}><Pause size={13} aria-hidden /> {pausing ? t('workbench.pausing') : t('workbench.pause')}</button>}
           {p && run.paused && <button className="fs-btn fs-btn-secondary fs-btn-sm" onClick={() => client.start(p.id).catch(orShort(p.id))}><Play size={13} aria-hidden /> {t('workbench.resume')}</button>}
@@ -154,7 +170,7 @@ export function Workbench({ id, openSettings }: { id: string; openSettings: (sec
             <Conversation run={run} project={p} onSelectPage={(pid) => { setSelected(pid); setPane('stage'); }} onPlayPage={playPage} selected={selected} onPlay={play} openSettings={openSettings} />
           </aside>
           <section className={`min-h-0 min-w-0 lg:block ${pane === 'stage' ? 'block' : 'hidden'}`} aria-label={t('workbench.workbenchAria')}>
-            <Stage run={run} project={p} selected={selected} onSelect={setSelected} playKey={playKey} pagePlay={pagePlay}
+            <Stage key={rev} run={run} project={p} selected={selected} onSelect={setSelected} playKey={playKey} pagePlay={pagePlay}
               onRef={(r) => { setPane('talk'); offerRef(r); }} />
           </section>
           <div role="separator" aria-orientation="vertical" aria-label={t('workbench.resize')} aria-valuenow={width} aria-valuemin={LEFT_MIN} aria-valuemax={Math.round(maxLeft)} tabIndex={0}
@@ -167,6 +183,11 @@ export function Workbench({ id, openSettings }: { id: string; openSettings: (sec
             <span className={`absolute inset-y-0 left-[3px] transition-colors group-hover:w-[2px] group-hover:bg-accent group-focus-visible:w-[2px] group-focus-visible:bg-accent ${drag ? 'w-[2px] bg-accent' : 'w-px bg-transparent'}`} />
           </div>
         </main>
+      )}
+      {p && editing && (
+        <Suspense fallback={null}>
+          <Editor id={p.id} title={p.title} project={p} info={editing} onExit={exitEdit} />
+        </Suspense>
       )}
     </div>
   );

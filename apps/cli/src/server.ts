@@ -41,6 +41,9 @@ export function createServer(studio = new Studio(), opts: { token?: string } = {
   const token = opts.token || crypto.randomBytes(16).toString('hex');
   const sig = (id: string) => crypto.createHmac('sha256', token).update(id).digest('hex').slice(0, 20);
   const previewBase = (id: string) => `/p/${id}/${sig(id)}/`;
+  // the film as the editor shows it: the same files, but its page runs the editor's runtime first and its pages come
+  // from the draft
+  const editBase = (id: string) => `/e/${id}/${sig(id)}/`;
   const app = new Hono();
 
   app.use('*', async (c, next) => {
@@ -119,6 +122,23 @@ export function createServer(studio = new Studio(), opts: { token?: string } = {
     return c.json(await studio.attach(c.req.param('id'), f.name, new Uint8Array(await f.arrayBuffer())));
   });
 
+  // the film edited by hand (core edit.ts): a draft, saved as a version of the film's history
+  app.get('/api/projects/:id/edit', (c) => c.json({ ...studio.editInfo(c.req.param('id')), previewUrl: editBase(c.req.param('id')) }));
+  app.get('/api/projects/:id/edit/pages/:page', (c) => c.json(studio.editPage(c.req.param('id'), c.req.param('page'))));
+  app.put('/api/projects/:id/edit/pages/:page', async (c) => {
+    const { base, source, did } = (await c.req.json().catch(() => ({}))) as { base?: unknown; source?: unknown; did?: unknown };
+    if (typeof base !== 'string' || typeof source !== 'string') return c.json({ error: 'base and source' }, 400);
+    const r = studio.putEditPage(c.req.param('id'), c.req.param('page'), base, source, did);
+    return 'stale' in r ? c.json({ error: tr('这一页刚改过，请重新读取', 'The page changed since: read it again'), base: r.stale }, 409) : c.json(r);
+  });
+  app.post('/api/projects/:id/edit/save', async (c) => {
+    const { label } = (await c.req.json().catch(() => ({}))) as { label?: unknown };
+    return c.json(await studio.saveEdit(c.req.param('id'), typeof label === 'string' ? label : undefined));
+  });
+  app.delete('/api/projects/:id/edit', (c) => { studio.dropEdit(c.req.param('id')); return c.json({ ok: true }); });
+  app.get('/api/projects/:id/versions', async (c) => c.json({ versions: await studio.versions(c.req.param('id')) }));
+  app.post('/api/projects/:id/versions/:n/restore', async (c) => c.json(await studio.restoreVersion(c.req.param('id'), Number(c.req.param('n')))));
+
   // the user's pictures for the film (素材)
   app.get('/api/projects/:id/assets', (c) => c.json(studio.assets(c.req.param('id'))));
   app.post('/api/projects/:id/assets', async (c) => {
@@ -152,6 +172,17 @@ export function createServer(studio = new Studio(), opts: { token?: string } = {
       }
       off();
     });
+  });
+
+  app.get('/e/:id/:sig/*', (c) => {
+    const id = c.req.param('id');
+    if (c.req.param('sig') !== sig(id)) return c.json({ error: 'forbidden' }, 403);
+    const rel = decodeURIComponent(c.req.path.slice(editBase(id).length));
+    // never kept by the browser: a page changes with every edit
+    const own = studio.editFile(id, rel);
+    if (own) return new Response(own.body, { headers: { 'Content-Type': own.type, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+    const f = studio.projectFile(id, rel);
+    return f ? sendFile(c, f, { 'Access-Control-Allow-Origin': '*' }) : c.notFound();
   });
 
   app.get('/p/:id/:sig/*', (c) => {

@@ -36,6 +36,16 @@ contextBridge.exposeInMainWorld('studioBridge', {
   export: (id) => call('export', id),
   setCover: (id, page) => call('setCover', id, page),
   setCoverImage: async (id, file) => { const image = await call('setCoverImage', id, new Uint8Array(await file.arrayBuffer())); if (!image) throw new Error('refused'); return image; },
+  // the film edited by hand: a draft beside it, saved as a version of its history
+  edit: {
+    info: async (id) => ({ ...(await call('editInfo', id)), previewUrl: `studio://app/e/${id}/` }),
+    page: (id, page) => call('editPage', id, page),
+    put: (id, page, b) => call('putEditPage', id, page, b.base, b.source, b.did),
+    save: (id, label) => call('saveEdit', id, label),
+    drop: (id) => call('dropEdit', id),
+    versions: (id) => call('versions', id),
+    restore: (id, n) => call('restoreVersion', id, n),
+  },
   subscribe: (id, since, onEvent, onState) => {
     const subId = Math.random().toString(36).slice(2);
     let last = since;

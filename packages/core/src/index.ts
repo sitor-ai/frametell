@@ -12,3 +12,5 @@ export { COVER_IMAGE } from './runner.js';
 export { USER_ASSETS_DIR, type UserAsset, type UserAssetType } from '@frametell/agent';
 export { sniff, type NewUserAsset, type Sniffed } from './assets.js';
 export { sanitizeSvg, type CleanSvg } from './svg.js';
+/** a film edited by hand: a page's text and base, a version of its history */
+export type { FilmVersion, PageSource } from './edit.js';

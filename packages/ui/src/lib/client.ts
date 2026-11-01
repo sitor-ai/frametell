@@ -74,6 +74,8 @@ export interface StudioClient {
   frames(id: string, times: number[]): Promise<string[]>;
   /** render the finished film to mp4 */
   export(id: string): Promise<boolean>;
+  /** the film edited by hand (editor/): a draft beside the film, saved as a version; absent where a host can't edit */
+  edit?: EditApi;
   /** the page the exported film opens on (its first frame); null: the first page. False while the film is being made.
    *  Absent where a host can't set it */
   setCover?(id: string, page: string | null): Promise<boolean>;
@@ -92,6 +94,24 @@ export interface StudioClient {
   /** set by a hosted service (Frametell Cloud): it runs the models and voices, so the panel leaves out settings, the
    * model choice and voices it cannot use, and shows the account instead */
   hosted?: Hosted;
+}
+
+/** a page's text and its base (what an edit is made against) */
+export interface EditPageSource { base: string; source: string }
+/** a version of the film, numbered from the first; newest first in a list */
+export interface EditVersion { n: number; kind: 'step' | 'edit' | 'restore'; label: string | null; at: string }
+export interface EditApi {
+  /** whether the film can be edited now, the draft's pages, the film's pages, and where the edit-mode preview is
+   *  (`${previewUrl}index.html`; ends with '/') */
+  info(id: string): Promise<{ editable: boolean; why: string | null; draft: { pages: string[] } | null; pages: string[]; previewUrl: string }>;
+  page(id: string, page: string): Promise<EditPageSource>;
+  /** the page as edited, made against `base`, into the draft; `{ stale }`: the page changed since, with its base now */
+  put(id: string, page: string, b: { base: string; source: string; did: { kind: string; words?: string }[] }): Promise<EditPageSource | { stale: string }>;
+  save(id: string, label?: string): Promise<{ pages: string[]; version?: EditVersion }>;
+  drop(id: string): Promise<unknown>;
+  versions(id: string): Promise<EditVersion[]>;
+  /** version `n` put back as the film, kept as a new version */
+  restore(id: string, n: number): Promise<{ version: EditVersion }>;
 }
 
 /** a brand's files, as the attach menu offers them: `kind` 'logo', 'logo-dark', 'mark', 'icon' or 'image'; `thumb` a
@@ -127,7 +147,7 @@ export function shortOf(e: unknown): { needed: number; available: number } | und
 /** a small copy's extension, from its type (a browser without a WebP encoder makes a PNG) */
 const thumbExt = (b: Blob) => (b.type === 'image/png' ? 'png' : b.type === 'image/jpeg' ? 'jpg' : 'webp');
 
-class HttpError extends Error { constructor(msg: string, readonly status: number) { super(msg); } }
+class HttpError extends Error { constructor(msg: string, readonly status: number, readonly base?: string) { super(msg); } }
 
 async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'same-origin', headers: {} };
@@ -135,7 +155,7 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   else if (body !== undefined) { init.body = JSON.stringify(body); (init.headers as Record<string, string>)['content-type'] = 'application/json'; }
   const res = await fetch(url, init);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new HttpError((data as { error?: string }).error || t('common.requestFailed', { status: res.status }), res.status);
+  if (!res.ok) throw new HttpError((data as { error?: string }).error || t('common.requestFailed', { status: res.status }), res.status, (data as { base?: string }).base);
   return data as T;
 }
 
@@ -172,6 +192,20 @@ export const httpClient: StudioClient = {
   export: async (id) => (await call<{ ok: boolean }>('POST', `/api/projects/${id}/export`)).ok,
   setCover: async (id, page) => (await call<{ ok: boolean }>('PUT', `/api/projects/${id}/cover`, { page })).ok,
   setCoverImage: async (id, file) => { const f = new FormData(); f.append('file', file); return (await call<{ image: string }>('PUT', `/api/projects/${id}/cover/image`, f)).image; },
+  edit: {
+    info: (id) => call('GET', `/api/projects/${id}/edit`),
+    page: (id, page) => call('GET', `/api/projects/${id}/edit/pages/${encodeURIComponent(page)}`),
+    put: async (id, page, b) => {
+      try { return await call<EditPageSource>('PUT', `/api/projects/${id}/edit/pages/${encodeURIComponent(page)}`, b); } catch (e) {
+        if (e instanceof HttpError && e.status === 409 && e.base) return { stale: e.base };
+        throw e;
+      }
+    },
+    save: (id, label) => call('POST', `/api/projects/${id}/edit/save`, label ? { label } : {}),
+    drop: (id) => call('DELETE', `/api/projects/${id}/edit`),
+    versions: async (id) => (await call<{ versions: EditVersion[] }>('GET', `/api/projects/${id}/versions`)).versions,
+    restore: (id, n) => call('POST', `/api/projects/${id}/versions/${n}/restore`),
+  },
   frames: async (id, times) => (await call<{ paths: string[] }>('GET', `/api/projects/${id}/frames?t=${times.map((t) => t.toFixed(1)).join(',')}`)).paths,
   say: async (id, text, refs) => (await call<{ ok: boolean }>('POST', `/api/projects/${id}/say`, { text, refs })).ok,
   // the manifest's list, or the manifest itself ({ assets })

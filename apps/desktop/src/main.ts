@@ -22,7 +22,8 @@ function serveFile(abs: string | null) {
 }
 
 // ── IPC: one handler per StudioClient method; events stream back on 'studio:event' ──
-const METHODS = new Set(['settings', 'updateSettings', 'providers', 'env', 'styles', 'models', 'voices', 'addVoice', 'projects', 'project', 'createProject', 'start', 'approve', 'redrawPicture', 'stop', 'deleteProject', 'moveProject', 'say', 'attach', 'export', 'setCover', 'setCoverImage', 'timeline', 'frames']);
+const METHODS = new Set(['settings', 'updateSettings', 'providers', 'env', 'styles', 'models', 'voices', 'addVoice', 'projects', 'project', 'createProject', 'start', 'approve', 'redrawPicture', 'stop', 'deleteProject', 'moveProject', 'say', 'attach', 'export', 'setCover', 'setCoverImage', 'timeline', 'frames',
+  'editInfo', 'editPage', 'putEditPage', 'saveEdit', 'dropEdit', 'versions', 'restoreVersion']);
 const subs = new Map<string, () => void>();
 
 ipcMain.handle('studio:call', async (_e, method: string, args: unknown[]) => {
@@ -71,6 +72,12 @@ app.whenReady().then(() => {
     const rel = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
     const m = /^p\/([\w-]+)\/(.*)$/.exec(rel);
     if (m) return serveFile(studio.projectFile(m[1], m[2]));
+    // the film as the editor shows it (core edit.ts): its page runs the editor's runtime first, its pages are the draft's
+    const em = /^e\/([\w-]+)\/(.*)$/.exec(rel);
+    if (em) {
+      const own = studio.editFile(em[1], em[2]);
+      return own ? new Response(own.body, { headers: { 'content-type': own.type, 'cache-control': 'no-store' } }) : serveFile(studio.projectFile(em[1], em[2]));
+    }
     const v = /^voice\/(volcengine|elevenlabs)\/([\w.-]+)$/.exec(rel);
     if (v) return studio.voicePreview(v[1] as 'volcengine' | 'elevenlabs', v[2]).then(serveFile, (e: Error) => new Response(e.message, { status: 400 }));
     const abs = path.resolve(UI_DIR, rel || 'index.html');
