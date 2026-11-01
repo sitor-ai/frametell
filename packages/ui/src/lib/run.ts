@@ -34,7 +34,9 @@ export type FeedItem = In & (
   | { kind: 'paused'; key: string; reason: 'user' | 'interrupted' | 'error' | 'credits'; message?: string; code?: Ev<'paused'>['code']; at: number }
   | { kind: 'check'; key: string; round: number; reds: number; yellows: number; messages: string[]; at: number }
   | { kind: 'approval'; key: string; storyboard: Storyboard; at: number; /** when it goes on by itself */ goOnAt?: number; /** it did: nobody answered in time */ auto?: boolean }
-  | { kind: 'pages'; key: string; at: number }
+  /** one round of drawing pages; `ids` on a change to a finished film: only the pages this round draws again (the
+   *  others stay as they were and are not listed) */
+  | { kind: 'pages'; key: string; at: number; ids?: string[] }
   | { kind: 'error'; key: string; message: string; at: number }
   /** the film is finished and plays in the preview (newer runs; older logs go straight to `done`) */
   | { kind: 'ready'; key: string; duration: number; at: number }
@@ -180,7 +182,7 @@ function step(v: RunView, e: LoggedEvent): RunView {
       r.stages = { ...r.stages, [e.stage]: s };
       // one page list per round of drawing: a revision after the film gets its own
       const lastDone = r.feed.map((f) => f.kind === 'done' || f.kind === 'ready').lastIndexOf(true);
-      if (e.stage === 'pages' && e.status === 'start' && !r.feed.slice(lastDone + 1).some((f) => f.kind === 'pages')) push({ kind: 'pages', key, at, stage: 'pages' });
+      if (e.stage === 'pages' && e.status === 'start' && !r.feed.slice(lastDone + 1).some((f) => f.kind === 'pages')) push({ kind: 'pages', key, at, stage: 'pages', ...(lastDone >= 0 ? { ids: [] } : {}) });
       else if (e.stage !== 'pages' || e.status !== 'start') push({ kind: 'stage', key, stage: e.stage, status: s.status, detail: e.detail, at });
       if (e.stage === 'script' && e.status === 'start') r.awaitingApproval = false;
       if (e.status === 'start') r.error = undefined;
@@ -282,6 +284,9 @@ function step(v: RunView, e: LoggedEvent): RunView {
       p.progress = undefined;
       r.pages = { ...r.pages, [e.id]: p };
       if (!r.pageOrder.includes(e.id)) r.pageOrder = [...r.pageOrder, e.id].sort();
+      // a change to the finished film lists the pages it draws again, as each is heard of
+      const i = r.feed.map((f) => f.kind === 'pages').lastIndexOf(true), round = r.feed[i];
+      if (round?.kind === 'pages' && round.ids && !round.ids.includes(e.id)) r.feed = r.feed.map((f, j) => (j === i ? { ...round, ids: [...round.ids!, e.id].sort() } : f));
       return r;
     }
     case 'cost': r.cost = { amount: e.amount, currency: e.currency, usage: e.usage }; return r;

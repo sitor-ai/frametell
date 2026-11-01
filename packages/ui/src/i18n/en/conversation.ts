@@ -105,6 +105,7 @@ const en: typeof zh = {
     checkPassed: 'Storyboard check passed',
     checkIssues: (v) => `Found ${v.reds} ${v.reds === 1 ? 'thing' : 'things'} to fix${v.yellows ? ` and ${v.yellows} ${v.yellows === 1 ? 'note' : 'notes'}` : ''}; the director is revising`,
     pagesDone: 'All {n} pages are drawn',
+    pagesRedrawn: '{n} of its pages drawn again, the rest as they were',
   },
   bar: {
     revising: 'The director is working out which pages to change',

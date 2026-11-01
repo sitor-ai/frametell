@@ -277,11 +277,12 @@ const PAGE_STATE: Record<PageView['status'], { text: (p?: PageView) => string; i
   failed: { text: () => t('conversation.page.failed'), icon: <TriangleAlert size={14} />, tone: 'text-seal' },
 };
 
-function Pages({ run, onSelect, onPlay, selected }: { run: RunView; onSelect: (id: string) => void; onPlay: (id: string) => void; selected?: string }) {
+function Pages({ run, only, onSelect, onPlay, selected }: { run: RunView; only?: string[]; onSelect: (id: string) => void; onPlay: (id: string) => void; selected?: string }) {
   useT();
-  // while the first page waits only it has been heard of: the others are listed as waiting their turn
+  // while the first page waits only it has been heard of: the others are listed as waiting their turn. A change to the
+  // finished film lists only the pages it draws again: the rest are as they were, and with many pages they are noise
   const planned = run.storyboard?.pages.map((p) => p.id) || [];
-  const ids = run.firstPage ? [...new Set([...run.pageOrder, ...planned])].sort() : run.pageOrder.length ? run.pageOrder : planned;
+  const ids = only ? only : run.firstPage ? [...new Set([...run.pageOrder, ...planned])].sort() : run.pageOrder.length ? run.pageOrder : planned;
   return (
     <ul className="space-y-0.5" aria-label={t('conversation.page.progressLabel')}>
       {ids.map((id) => {
@@ -656,8 +657,8 @@ function Chapter({ b, run, project, onSelectPage, onPlayPage, selected }: { b: E
             : <p key={it.key} className="text-[12.5px] leading-relaxed text-ink-3">{t('conversation.chapter.checkIssues', { reds: it.reds, yellows: it.yellows })}</p>;
           if (it.kind === 'approval') return <Approval key={it.key} sb={it.storyboard} project={project} run={run} active={run.awaitingApproval && !run.firstPage && approvals.at(-1) === it} waitMs={it.goOnAt && it.goOnAt - it.at} auto={it.auto} />;
           if (it.kind === 'first_page') return <FirstPage key={it.key} it={it} run={run} project={project} active={!!run.firstPage && lastFirst === it} onOpen={onSelectPage} />;
-          if (it.kind === 'pages' && !b.latest) return <p key={it.key} className="text-[12.5px] text-ink-3">{t('conversation.chapter.pagesDone', { n: run.pageOrder.length })}</p>;
-          if (it.kind === 'pages') return <Pages key={it.key} run={run} onSelect={onSelectPage} onPlay={onPlayPage} selected={selected} />;
+          if (it.kind === 'pages' && !b.latest) return <p key={it.key} className="text-[12.5px] text-ink-3">{it.ids ? t('conversation.chapter.pagesRedrawn', { n: it.ids.length }) : t('conversation.chapter.pagesDone', { n: run.pageOrder.length })}</p>;
+          if (it.kind === 'pages') return <Pages key={it.key} run={run} only={it.ids} onSelect={onSelectPage} onPlay={onPlayPage} selected={selected} />;
           if (it.kind === 'error') return <p key={it.key} className="flex items-start gap-1.5 text-[12.5px] leading-relaxed text-seal"><TriangleAlert size={13} className="mt-0.5 shrink-0" aria-hidden />{it.message}</p>;
           return null;
         })}

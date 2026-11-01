@@ -106,6 +106,7 @@ export default {
     checkPassed: '分镜检查通过',
     checkIssues: (v: { reds: number; yellows: number }) => `检查出 ${v.reds} 处要改${v.yellows ? `、${v.yellows} 处提醒` : ''}，导演正在修改`,
     pagesDone: '{n} 页都画好了',
+    pagesRedrawn: '重画了 {n} 页，其余不变',
   },
   bar: {
     revising: '导演在看要改哪几页',
