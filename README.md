@@ -55,6 +55,22 @@ Frametell makes Chinese films just as well; see the <a href="README.zh-CN.md">Ch
 
 Built-in styles: `warm-story`, `study`, `chalkboard`, `whiteboard`, `tech-dark`.
 
+## Edit it by hand
+
+The agent gets a film most of the way. What's left is usually small: a label in the wrong place, a typo, a colour that clashes, a line that shows up too late. Asking the AI again for that is slow and can change things you liked.
+
+So finished films open in an editor. Switch **Preview | Edit** on the workbench and click anything on the picture:
+
+- **Move and resize** it by dragging.
+- **Change the text** in place, or **change its colour** from the film's own palette.
+- **Delete** it.
+- **Show it earlier or later** by dragging it on the timeline.
+- **Ask AI** about what you selected, when the change is bigger than a hand edit.
+
+Hand edits are a layer over the film the agent drew, so nothing is redrawn and they cost no tokens. Each save is a new version in the film's own git history; the **Versions** menu lists them and puts any one back.
+
+<p align="center"><img src="docs/media/editor.jpg" alt="The editor: layers on the left, the picture in the middle, the film on a timeline below" width="100%"></p>
+
 ## Get started
 
 ### Download the app
