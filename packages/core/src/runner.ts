@@ -394,21 +394,25 @@ class Runner {
     } catch {}
   }
 
-  /** Volcengine's voices speak Chinese and English only: a film that turns out to be in another language (the user wrote
-   *  in it, or asked for it) is narrated by an ElevenLabs voice instead, of the same gender, when ElevenLabs is connected.
-   *  Only when the language changes, so a voice the user picks afterwards stays theirs */
+  /** Who narrates which language: Chinese is Volcengine's, every other language (English too) ElevenLabs' (v4 Turbo
+   *  speaks 94). A film whose language turns out other than its voice's service (the user wrote in it, or asked for it)
+   *  takes a narrator of the same gender from the right one, when that service is connected, and says so. Only when the
+   *  language changes, so a voice the user picks afterwards stays theirs */
   private fitVoice(lang: string) {
-    if (/^(zh|en)(-|$)/.test(lang)) return;
     const meta = readMetaAt(this.dir), cfg = this.config.load({ project: this.id });
-    if (meta.voice?.provider !== 'volcengine' || !cfg.tts.elevenlabs) return;
-    const gender = VOLCENGINE_VOICES.find((v) => v.id === meta.voice!.id)?.gender;
-    // a narrator's voice of that gender: Sarah, or George; else the first of the defaults
-    const pick = ELEVENLABS_DEFAULT_VOICES.find((v) => v.id === (gender === 'male' ? 'JBFqnCBsd6RMkjVDRZzb' : 'EXAVITQu4vr4xnSDxMaL')) ?? ELEVENLABS_DEFAULT_VOICES[0];
+    const want = /^zh(-|$)/.test(lang) ? 'volcengine' : 'elevenlabs';
+    if (!meta.voice || meta.voice.provider === want || !(want === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine)) return;
+    const gender = [...VOLCENGINE_VOICES, ...ELEVENLABS_DEFAULT_VOICES].find((v) => v.id === meta.voice!.id)?.gender;
+    // a narrator of that gender: George or Sarah at ElevenLabs, 渊博小叔 or Vivi at Volcengine
+    const ids = want === 'elevenlabs' ? { male: 'JBFqnCBsd6RMkjVDRZzb', female: 'EXAVITQu4vr4xnSDxMaL' } : { male: 'zh_male_yuanboxiaoshu_uranus_bigtts', female: 'zh_female_vv_uranus_bigtts' };
+    const list = want === 'elevenlabs' ? ELEVENLABS_DEFAULT_VOICES : VOLCENGINE_VOICES;
+    const pick = list.find((v) => v.id === ids[gender === 'female' ? 'female' : 'male']) ?? list[0];
     if (!pick) return;
     const name = pick.name.split(' - ')[0];
     const called = (l: string) => { try { return new Intl.DisplayNames([l], { type: 'language' }).of(lang) ?? lang; } catch { return lang; } };
-    this.emit({ type: 'note', text: this.tr(`这部片子是${called('zh')}，火山的音色只会说中文和英文，改用 ElevenLabs 的「${name}」来配音`, `This film is in ${called('en')}, which Volcengine's voices don't speak: ${name} from ElevenLabs narrates it instead.`) });
-    this.switchVoice({ kind: 'voice', label: name, provider: 'elevenlabs', id: pick.id, name });
+    const service = want === 'elevenlabs' ? 'ElevenLabs' : this.tr('火山引擎', 'Volcengine');
+    this.emit({ type: 'note', text: this.tr(`这部片子是${called('zh')}，改用${service}的「${name}」来配音`, `This film is in ${called('en')}: ${name} from ${service} narrates it.`) });
+    this.switchVoice({ kind: 'voice', label: name, provider: want, id: pick.id, name });
   }
 
   private emit = (e: StudioEvent) => {
