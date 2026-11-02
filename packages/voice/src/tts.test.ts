@@ -70,3 +70,22 @@ test('without an address the voices go to the services themselves, as before', a
   await withFakes(r.fetch, () => elevenLabsTts('k').synth('hello', { voice: 'v1', signal: new AbortController().signal }).then(() => {}));
   assert.ok(r.calls[0].url.startsWith('https://api.elevenlabs.io/v1/text-to-speech/v1/'));
 });
+
+test("ElevenLabs is told the film's language, and reads it from the text when the code is not taken", async () => {
+  const ok = JSON.stringify({ audio_base64: Buffer.from('mp3').toString('base64'), alignment: { characters: ['a'], character_start_times_seconds: [0], character_end_times_seconds: [0.1] } });
+  const bodies: Record<string, unknown>[] = [];
+  let refuse = false;
+  const fetch = (_url: string, init: { body: string }) => {
+    const b = JSON.parse(init.body); bodies.push(b);
+    return Promise.resolve(refuse && b.language_code ? new Response('{"detail":"unsupported language"}', { status: 400 }) : new Response(ok, { status: 200 }));
+  };
+  await withFakes(fetch as never, async () => {
+    await elevenLabsTts('k').synth('¿Qué tal?', { voice: 'v1', lang: 'es', signal: new AbortController().signal });
+    refuse = true;
+    await elevenLabsTts('k').synth('Salut', { voice: 'v1', lang: 'xx', signal: new AbortController().signal });
+  });
+  assert.equal(bodies[0].language_code, 'es');
+  assert.equal(bodies[1].language_code, 'xx');
+  assert.equal(bodies[2].language_code, undefined);
+  assert.equal(bodies.length, 3);
+});

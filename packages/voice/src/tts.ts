@@ -15,6 +15,8 @@ export interface SynthOptions {
   /** a tone instruction in the voice's language, e.g. relaxed and sincere, like sharing a find with a friend (Volcengine only) */
   instruction?: string;
   pitch?: number;
+  /** the language of the text (ISO 639-1: es, fr, fa…), so a short line is not taken for another (ElevenLabs only) */
+  lang?: string;
   signal?: AbortSignal;
 }
 
@@ -123,12 +125,15 @@ export function elevenLabsTts(apiKey: string, model = 'eleven_v4_turbo', endpoin
     id: 'elevenlabs',
     synth: (text, o) => retry(async () => {
       const speed = Math.min(1.2, Math.max(0.7, 1 + (o.rate ?? 0) / 100));
-      const res = await fetch(`${base(endpoint, 'https://api.elevenlabs.io')}/v1/text-to-speech/${encodeURIComponent(o.voice)}/with-timestamps?output_format=mp3_44100_128`, {
+      const ask = (lang?: string) => fetch(`${base(endpoint, 'https://api.elevenlabs.io')}/v1/text-to-speech/${encodeURIComponent(o.voice)}/with-timestamps?output_format=mp3_44100_128`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'xi-api-key': apiKey },
-        body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.75, speed } }),
+        body: JSON.stringify({ text, model_id: model, ...(lang ? { language_code: lang } : {}), voice_settings: { stability: 0.5, similarity_boost: 0.75, speed } }),
         signal: deadline(o.signal),
       });
+      let res = await ask(o.lang);
+      // a language the model doesn't take by its code: it tells the language from the text itself
+      if (o.lang && (res.status === 400 || res.status === 422)) res = await ask();
       if (!res.ok) throw new Error(`ElevenLabs ${res.status} ${(await res.text()).slice(0, 200)}`);
       const j = (await res.json()) as { audio_base64: string; alignment?: { characters: string[]; character_start_times_seconds: number[]; character_end_times_seconds: number[] } };
       const a = j.alignment;

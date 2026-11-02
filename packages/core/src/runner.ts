@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createProject, linkProject } from '@frametell/engine/tools/project.mjs';
 import { createCatalog } from '@frametell/models';
-import { elevenLabsTts, volcengineTts } from '@frametell/voice';
+import { ELEVENLABS_DEFAULT_VOICES, VOLCENGINE_VOICES, elevenLabsTts, volcengineTts } from '@frametell/voice';
 import { createWeb, langTag, gatewayDecider, openaiImages, userAssets, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type CreditFacts, type DirectorOptions, type MessageRoute, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
 import type { Config, ConfigStore } from './config.js';
 import { prepareMaterials } from './materials.js';
@@ -390,8 +390,25 @@ class Runner {
     try {
       const lang = langTag((JSON.parse(fs.readFileSync(path.join(this.dir, 'storyboard.json'), 'utf8')) as { lang?: unknown }).lang);
       const meta = readMetaAt(this.dir);
-      if (lang && lang !== meta.lang) writeMeta(this.dir, { ...meta, lang });
+      if (lang && lang !== meta.lang) { writeMeta(this.dir, { ...meta, lang }); this.fitVoice(lang); }
     } catch {}
+  }
+
+  /** Volcengine's voices speak Chinese and English only: a film that turns out to be in another language (the user wrote
+   *  in it, or asked for it) is narrated by an ElevenLabs voice instead, of the same gender, when ElevenLabs is connected.
+   *  Only when the language changes, so a voice the user picks afterwards stays theirs */
+  private fitVoice(lang: string) {
+    if (/^(zh|en)(-|$)/.test(lang)) return;
+    const meta = readMetaAt(this.dir), cfg = this.config.load({ project: this.id });
+    if (meta.voice?.provider !== 'volcengine' || !cfg.tts.elevenlabs) return;
+    const gender = VOLCENGINE_VOICES.find((v) => v.id === meta.voice!.id)?.gender;
+    // a narrator's voice of that gender: Sarah, or George; else the first of the defaults
+    const pick = ELEVENLABS_DEFAULT_VOICES.find((v) => v.id === (gender === 'male' ? 'JBFqnCBsd6RMkjVDRZzb' : 'EXAVITQu4vr4xnSDxMaL')) ?? ELEVENLABS_DEFAULT_VOICES[0];
+    if (!pick) return;
+    const name = pick.name.split(' - ')[0];
+    const called = (l: string) => { try { return new Intl.DisplayNames([l], { type: 'language' }).of(lang) ?? lang; } catch { return lang; } };
+    this.emit({ type: 'note', text: this.tr(`这部片子是${called('zh')}，火山的音色只会说中文和英文，改用 ElevenLabs 的「${name}」来配音`, `This film is in ${called('en')}, which Volcengine's voices don't speak: ${name} from ElevenLabs narrates it instead.`) });
+    this.switchVoice({ kind: 'voice', label: name, provider: 'elevenlabs', id: pick.id, name });
   }
 
   private emit = (e: StudioEvent) => {

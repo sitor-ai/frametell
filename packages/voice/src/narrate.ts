@@ -196,6 +196,8 @@ export async function narrate(dir: string, opts: NarrateOptions): Promise<Narrat
   if (!V.speaker) throw new Error('no voice set (META.voice.speaker)');
   const warnings: string[] = [];
   const en = !/^zh/.test(SCRIPT.META.lang ?? 'zh');
+  // the film's language, told to the voice so a short line is read in it (es, not pt); its region (pt-BR) is the voice's own
+  const lang = (SCRIPT.META.lang ?? 'zh').split('-')[0].toLowerCase();
   const LEXICON: Record<string, string> = { ...(en ? { 'CLAUDE.md': 'claude dot md', 'AGENTS.md': 'agents dot md', 'README.md': 'readme dot md' } : { 'CLAUDE.md': 'claude 点 md', 'AGENTS.md': 'agents 点 md', 'README.md': 'readme 点 md' }), ...(V.lexicon || {}) };
   const respell = (s: string) => Object.entries(LEXICON).reduce((a, [k, v]) => a.split(k).join(v), s);
   const spokenOf = (c: Cue) => respell((typeof c === 'object' && c.say) || text(c));
@@ -227,7 +229,7 @@ export async function narrate(dir: string, opts: NarrateOptions): Promise<Narrat
       const mp3 = base + '.mp3', wj = base + '.json', wav = base + '.wav';
       const has = (rel: string) => fs.existsSync(path.join(dir, rel));
       if (!has(wj)) {
-        const { audio, words } = await opts.tts.synth(utter, { voice: V.speaker, rate: extra.rate, pitch: extra.pitch, instruction, signal: opts.signal });
+        const { audio, words } = await opts.tts.synth(utter, { voice: V.speaker, rate: extra.rate, pitch: extra.pitch, instruction, lang, signal: opts.signal });
         opts.files.write(dir, mp3, audio);
         opts.files.write(dir, wj, JSON.stringify(words));
         made++; cachedPage = false;
