@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-01
+
 ### Added
 
 - A visual editor for finished films. **Preview | Edit** on the workbench's bar opens the film over the whole window: the layers on the picture at this moment, the picture, and the film on a timeline (its pages' frames, the voice, the selected thing's clip). Anything on the picture can be clicked and then dragged, resized from a corner, retyped where it is (double-click), recoloured in one of the style's colours, deleted, or shown earlier or later by dragging its clip; undo and redo cover every step. For anything bigger, **Ask AI** sends a sentence to the director with each selected thing (where it is, what draws it, a frame of the film at that moment) as `thing` references. Hand edits are not a rewrite of the page's code: they are the engine's override layer (`ENGINE.edits`) keyed by each thing's number and what it shows, kept at the end of the page, and the director is told to keep them. Edits go into a draft beside the film (`.studio/draft`, outside its history) and **Save as new version** writes them into the film as a commit of its history; the **Versions** menu lists that history (each step the director finished, each save) and puts any version back as a new commit, so nothing is lost. The editor is off while the film is being made, and needs a window at least 1024 px wide. The core's `Studio` gains `editInfo`, `editPage`, `putEditPage`, `saveEdit`, `dropEdit`, `versions`, `restoreVersion` and `editFile`; the CLI server serves them under `/api/projects/:id/edit…`, `/versions` and the edit-mode preview at `/e/:id/:sig/`, and the desktop app over IPC and `studio://app/e/`. The page is parsed in the browser (`acorn`), never by the core.
@@ -393,7 +395,8 @@ The first release of Frametell: a local, open-source studio that turns an idea o
 - The npm packages are not published yet; install from source (see the README).
 - The Claude Agent SDK and Codex runtimes are in the code but not offered; every film runs on the built-in agent, which works with any provider.
 
-[Unreleased]: https://github.com/sitor-ai/frametell/compare/v0.7.4...HEAD
+[Unreleased]: https://github.com/sitor-ai/frametell/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/sitor-ai/frametell/compare/v0.7.4...v0.8.0
 [0.7.4]: https://github.com/sitor-ai/frametell/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/sitor-ai/frametell/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/sitor-ai/frametell/compare/v0.7.1...v0.7.2
