@@ -205,6 +205,8 @@ This page is new: the film is finished and the user's change adds it. What it sh
 // sibling. Most of a page's time and cost was the model thinking before writing: on the same pages a -high draft took
 // 170–220 s and a -medium one 37–74 s, with no worse a page; at medium a page still wrote ~8k output tokens for ~1k of
 // code, most of it thought, and low draws pages as good for a fraction of it.
+/** the largest picture attached to a page's brief, as the read tool's limit */
+const PICTURE_BYTES_SHOWN = 3_700_000;
 const PAGE_THINKING: Thinking = 'low';
 /** the storyboard, the narration and a change's plan: at the model's own level (medium) a one-minute storyboard thought
  *  12k tokens before writing and 15k more while writing, ~5½ minutes and ~$1 before the user saw anything (2026-10-29);
@@ -1609,7 +1611,7 @@ export class Director {
       const unchanged = () => before !== undefined && this.project.read(`pages/${id}.js`) === before;
       let r: TurnResult | undefined, declined: string | undefined;
       if (!was) {
-        r = await this.send(s, next + pagePrompt(sb, id, t, this.filmLang(), this.replyLang(), !!fix, this.o.brief.brand, this.assetsOn(sb, id), picturePageNote(this.picturesOn(sb, id), this.pictureStyle())) + (fix ? revisionNote(id, fix, this.project.read(`pages/${id}.js`), this.state.firstPage === 'waiting') : added ? addedNote(this.state.revision![id]) : '') + directionsNote(this.directions(`page-${id}`)), undefined, PAGE_THINKING);
+        r = await this.send(s, next + pagePrompt(sb, id, t, this.filmLang(), this.replyLang(), !!fix, this.o.brief.brand, this.assetsOn(sb, id), picturePageNote(this.picturesOn(sb, id), this.pictureStyle())) + (fix ? revisionNote(id, fix, this.project.read(`pages/${id}.js`), this.state.firstPage === 'waiting') : added ? addedNote(this.state.revision![id]) : '') + directionsNote(this.directions(`page-${id}`)), this.picturesSeen(sb, id), PAGE_THINKING);
         if (!this.project.exists(`pages/${id}.js`)) r = await this.send(s, `pages/${id}.js does not exist yet; write it, then stop.`, undefined, PAGE_THINKING);
         if (!this.project.exists(`pages/${id}.js`)) throw new Error(r.error || this.say('没有写出页面文件', 'No page file was written'));
         // the agent found nothing to change (already so, or nothing this page can do): it says why instead of searching
@@ -1919,6 +1921,12 @@ export class Director {
   /** the user's pictures a page places: named by its storyboard, or by the change asked of it. Read from the film's list
    *  now, so a picture added while the film is made is placed by the pages drawn after it */
   private assetsOn(sb: Storyboard, id: string) { return assetsOn(userAssets(this.project.dir), sb.pages, id, this.state.revision?.[id]); }
+  /** the page's pictures as its agent is shown them with its brief, in picturePageNote's order (seen: an agent that only
+   *  read the description drew a second sun beside the one in its scene): a file too large to attach is left to read */
+  private picturesSeen(sb: Storyboard, id: string): string[] | undefined {
+    const files = this.picturesOn(sb, id).map(picturePath).filter((f) => { try { return fs.statSync(this.project.file(f)).size <= PICTURE_BYTES_SHOWN; } catch { return false; } });
+    return files.length ? files : undefined;
+  }
   private picturesOn(sb: Storyboard, id: string) { return picturesOn(picturePlan(sb.look, this.pictureStyle(), this.own()), readPictures(this.o.dir).items, id); }
   /** what each page of a revision changed, in its agent's words */
   private changed = new Map<string, string>();

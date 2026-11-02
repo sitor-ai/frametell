@@ -328,6 +328,7 @@ export function picturePlanNote(style: PictureStyle | undefined, own: string[] =
   return `This style may also use up to ${style.max} generated pictures, listed in \`look.pictures\`: an image model draws them in the style's own look, and the pages place them and draw everything else on top in code.
 \`"pictures": [{ "id": "whale", "kind": "object", "what": "a humpback whale gliding to the left, mouth closed, long white flippers", "shape": "wide", "pages": ["p02", "p05"] }]\`
 - Ask for one only where code would look poor: ${style.kinds.map((k) => ({ scene: 'an illustrated place (`scene`, full frame)', object: 'a real thing such as an animal, a machine or a plant (`object`, cut out on a transparent ground)', character: 'a person or a creature (`character`, cut out)', texture: 'a ground of paper or grain (`texture`)' })[k]).join(', ')}. Never for text, numbers, labels, charts, diagrams, arrows or anything whose parts must move one by one: a picture only moves as a whole (it slides, grows, fades, is revealed), so what the narration points at part by part stays in code.
+- A \`scene\` is the place only: never put in it a thing the page animates or the narration points at (a sun whose light the page splits, a planet it circles, a machine it opens). The page draws that in code on top, and a scene that already shows it ends with two of it on screen. Say in \`what\` that the spot where it stands is left clear (\`"an empty sky in the upper left"\`), or make it an \`object\` of its own.
 - \`what\` describes the subject only (what it is, its pose, what it does), never the style, colours of the look or a camera: the style's own words are added for you. Never ask for writing in a picture.
 - The first picture is drawn at once as the film's sample: the user sees it with the storyboard and confirms the look before the go-ahead, and every other picture is drawn to match it. Put first the one that shows the film's look best.
 - The same character or object in another pose is a picture of its own with \`"like": "<id of the first>"\`, so it is drawn from that one and matches it.
@@ -375,10 +376,11 @@ export function picturePageNote(on: (Picture & PicturePlan)[], style?: PictureSt
   return `
 
 ## This film's pictures on this page
-Drawn for this film by an image model in the film's look (open one with read to see it):
+Drawn for this film by an image model in the film's look. They are attached to this message, in this order (one too large to attach can be opened with read): look at each before you write a line.
 ${on.map((p) => `- \`${picturePath(p)}\` (picture ${p.id}): ${p.kind}, ${p.w}×${p.h}, ${p.alpha ? 'transparent background' : 'opaque'}: ${p.what}\n  \`${pictureCall(p)}\``).join('\n')}
 - Place each where the storyboard's beats show it. A \`scene\` or \`texture\` is a backdrop: under everything, filling its area (\`fit: 'cover'\`); a cut-out stands on the page as it is.
 - Where the style's card places a picture with a call of its own (a host drawn from pictures, \`P.mascot({ who: 'custom', src, moods })\`), use that call with the picture's path instead of \`P.img\`.
+- Go by what each picture shows, not by its description alone. What it already shows (a sun, a tree, a building) is never drawn again in code: a second one beside it reads as a mistake. Where the narration points at something in it, or something comes out of it (light from its sun, a path from its door), draw that on top exactly where it is in the picture, at the picture's scale as placed (\`fit: 'cover'\` crops a side when the shapes differ).
 - A picture moves as a whole only: slide, grow slowly, fade, reveal with a wipe, drift for parallax. Never stretch, squash, crop away its subject, recolour, filter or draw over its face.
 ${style?.words ? "- This style's words are in its pictures: the page writes nothing on top of them (no title, label, note, list or caption)." : '- Everything the narration points at part by part, every label, number and word, is drawn in code on top, at the moment it is spoken, with room around it to read. Keep text off a busy part of a scene, or set it on a quiet patch of it.'}`;
 }

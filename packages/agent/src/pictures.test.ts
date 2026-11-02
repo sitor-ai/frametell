@@ -160,6 +160,21 @@ test('each page is told the pictures the storyboard puts on it, with the call th
   assert.equal(picturePageNote(picturesOn(picturePlan(f.sb.look, STYLE), readPictures(f.dir).items, 'p09')), '');
 });
 
+test('a page\'s agent is shown its pictures with its brief, not only told about them, and is told not to draw them again', async () => {
+  const f = film();
+  await f.d.pictures();
+  const seen = (id: string) => (f.d as unknown as { picturesSeen: (sb: object, id: string) => string[] | undefined }).picturesSeen(f.sb, id);
+  assert.deepEqual(seen('p02')?.map((x) => x.replace(/-[0-9a-f]{10}\.png$/, '')), ['assets/gen/bird', 'assets/gen/whale']);
+  assert.equal(seen('p09'), undefined);
+  // a picture too large to attach is left to read
+  const whale = seen('p02')!.find((x) => x.includes('whale'))!;
+  fs.writeFileSync(path.join(f.dir, whale), Buffer.alloc(3_800_000));
+  assert.equal(seen('p02')?.length, 1);
+  const note = picturePageNote(picturesOn(picturePlan(f.sb.look, STYLE), readPictures(f.dir).items, 'p02'));
+  assert.match(note, /attached to this message/);
+  assert.match(note, /never drawn again in code/);
+});
+
 test('a finished film\'s picture drawn again: from the picture as it is, and its pages point at the new file', async () => {
   const f = film();
   await f.d.pictures();
