@@ -54,7 +54,9 @@ const OWN_SVG = /^assets\/(brand|user)\/[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.svg$/i
  *  style drawn in pictures whose words are drawn in them too (titles, labels, a short list): the pages write nothing */
 export interface PictureStyle { kinds: PictureKind[]; max: number; quality: 'low' | 'medium'; prefix: string; avoid: string; fromLook?: boolean; led?: boolean; cast?: boolean; words?: boolean;
   /** the film is portrait (9:16): a scene drawn in pictures fills a tall frame */
-  portrait?: boolean }
+  portrait?: boolean;
+  /** what a scene is in this style (a vignette on bare paper), instead of a picture that fills the canvas edge to edge */
+  scene?: string }
 
 /** one picture as drawn: the file (its name carries the content's hash, so a picture drawn again is a new file and the
  *  render's segment cache never shows a stale one) and the prompt it was drawn from */
@@ -91,7 +93,7 @@ export function pictureStyle(style: string): PictureStyle | undefined {
   if (!kinds.length || (!prefix && !fromLook)) return undefined;
   const max = typeof raw.max === 'number' && raw.max >= 1 ? Math.min(PICTURES_MAX, Math.floor(raw.max)) : 6;
   const quality = raw.quality === 'low' ? 'low' : 'medium';
-  return { kinds, max, quality, prefix, avoid: typeof raw.avoid === 'string' ? raw.avoid.trim() : '', ...(fromLook ? { fromLook } : {}), ...(raw.led === true ? { led: true } : {}), ...(raw.cast === true && kinds.includes('scene') ? { cast: true } : {}), ...(raw.led === true && raw.words === true ? { words: true } : {}) };
+  return { kinds, max, quality, prefix, avoid: typeof raw.avoid === 'string' ? raw.avoid.trim() : '', ...(fromLook ? { fromLook } : {}), ...(raw.led === true ? { led: true } : {}), ...(raw.cast === true && kinds.includes('scene') ? { cast: true } : {}), ...(raw.led === true && raw.words === true ? { words: true } : {}), ...(typeof raw.scene === 'string' && raw.scene.trim() ? { scene: raw.scene.trim() } : {}) };
 }
 
 /** a designed look's words for the image model: its style card (what it says of the picture, not of type or motion)
@@ -234,7 +236,7 @@ export type RefMode = 'none' | 'look' | 'same' | 'adjust' | 'own' | 'kin' | 'cas
 export function picturePrompt(style: PictureStyle, p: PicturePlan, notes: string[], refs: RefMode, note?: string, uses: PicturePlan[] = []): string {
   return [
     `${style.prefix.replace(/[.\s]+$/, '')}.`,
-    p.base ? BASE_LINE[p.base] + DESIGN_ONLY : style.cast && p.id === CAST ? CAST_LINE : KIND_LINE[p.kind],
+    p.base ? BASE_LINE[p.base] + DESIGN_ONLY : style.cast && p.id === CAST ? CAST_LINE : p.kind === 'scene' && style.scene ? style.scene : KIND_LINE[p.kind],
     `Subject: ${p.what.replace(/[.\s]+$/, '')}.`,
     refs === 'look' ? 'The reference image shows the look of this film: match its style, palette, shading and level of detail exactly, but draw the subject above, not what the reference shows.' : '',
     refs === 'cast' ? "The reference image is this film's cast sheet: everyone in it whom the subject above names is drawn exactly as there (face, hair, glasses, build, clothes and their colours; a creature's shape and markings), in the pose and expression the subject says; match its look, line and palette. Draw the scene the subject describes, not the sheet's line-up or its plain ground, and copy no lettering from the sheet: the only words in this picture are the ones the subject quotes." : '',
