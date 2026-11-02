@@ -133,14 +133,22 @@
 #pv-bar.idle { opacity: 0; }
 #pv-bar button { background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; width: 36px; height: 36px; border-radius: 8px; }
 #pv-bar button:hover { background: rgba(255,255,255,0.15); }
-#pv-bar input { flex: 1; accent-color: #FF9A3C; height: 6px; cursor: pointer; }
+#pv-bar input { flex: 1; min-width: 0; accent-color: #FF9A3C; height: 6px; cursor: pointer; }
 #pv-time { font-variant-numeric: tabular-nums; min-width: 96px; text-align: center; }
 #pv-hint { position: fixed; inset: 0; display: grid; place-items: center; z-index: 98; pointer-events: none; }
 #pv-hint span { background: rgba(0,0,0,0.55); color: #fff; font: 600 22px -apple-system, "PingFang SC", sans-serif; padding: 16px 28px; border-radius: 40px; transition: opacity .3s; }
 #pv-sound { position: fixed; left: 14px; top: 14px; z-index: 100; display: none; align-items: center; gap: 8px; border: 0; border-radius: 40px;
   padding: 12px 20px; background: rgba(0,0,0,0.72); color: #fff; font: 600 18px -apple-system, "PingFang SC", sans-serif; cursor: pointer; }
 #pv-sound.on { display: flex; }
-#viewport { cursor: pointer; }`;
+#viewport { cursor: pointer; }
+/* a narrow player (a portrait film's preview is often under 400 px wide): the bar packs tighter, the seek bar takes what is left */
+@media (max-width: 420px) {
+  #pv-bar { gap: 6px; padding: 8px 8px 10px; font-size: 12px; }
+  #pv-bar button { width: 30px; height: 30px; font-size: 18px; flex: none; }
+  #pv-time { min-width: 0; flex: none; }
+  #pv-hint span { font-size: 15px; padding: 10px 18px; }
+  #pv-sound { font-size: 14px; padding: 8px 14px; }
+}`;
     document.head.appendChild(css);
     const bar = document.createElement('div');
     bar.id = 'pv-bar';
