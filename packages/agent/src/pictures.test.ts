@@ -371,6 +371,10 @@ test('a style drawn in pictures: its designs at the storyboard, its scenes once 
   const [sheet, scene] = picturePlan(ok, LED);
   assert.match(picturePrompt(LED, sheet, [], 'none'), /character model sheet: every character the subject names standing side by side/);
   assert.match(picturePrompt(LED, scene, [], 'cast'), /A full-frame illustration[\s\S]*reference image is this film's cast sheet/);
+  // a style says what its scene is: its words replace the full-frame line
+  const vignette = picturePrompt({ ...LED, scene: 'A vignette on bare paper.' }, scene, [], 'cast');
+  assert.match(vignette, /A vignette on bare paper\./);
+  assert.doesNotMatch(vignette, /full-frame/);
   assert.deepEqual([sheet.shape, scene.shape, pictureSize(scene)], ['film', 'film', '1536x864'], 'a scene drawn in is the frame\'s own 16:9');
 });
 
