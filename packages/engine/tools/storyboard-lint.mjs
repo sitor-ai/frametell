@@ -42,12 +42,13 @@ const ACT_FILLER_EN = /\b(in|out|up|down|on|onto|into|off|away|over|by|one|after
 const TEXTY_EN = /\b(title|text|words?|bullets?|list|captions?|keywords?|quote|slogan|headline|table)\b/i;
 const FACES_EN = /\b(stick ?figure|cartoon (?:man|woman|person|character)|mascot|smiley|face|emoji|robot)\b/i;
 const residueEn = (s, words, filler) => { let r = String(s || '').toLowerCase(); for (const w of words) r = r.replace(new RegExp(`\\b${w}s?\\b`, 'g'), ''); return r.replace(filler, ''); };
-/** a storyboard is English when it says so (lang: "en"), or when no page or beat has a CJK character in it */
-const isEnglish = (sb) => (sb.lang ? sb.lang === 'en' : !/[㐀-鿿]/.test(JSON.stringify(sb.pages)));
+/** a storyboard is counted in words (English, and any language written with spaces) unless it is Chinese or Japanese: by
+ *  its lang, or when it has none, by a CJK character in a page or beat */
+const isEnglish = (sb) => (sb.lang ? !/^(zh|ja)(-|$)/i.test(sb.lang) : !/[㐀-鿿]/.test(JSON.stringify(sb.pages)));
 
 const residue = (s, words, filler) => { let r = String(s || ''); for (const w of words) r = r.split(w).join(''); return r.replace(filler, ''); };
 /** on-screen length: a CJK character counts 1, a run of latin letters or digits counts 1 */
-const wordsIn = (t) => (String(t || '').match(/[A-Za-z]+(?:['’-][A-Za-z]+)*|\d+(?:[.,]\d+)*%?/g) || []).length;
+const wordsIn = (t) => (String(t || '').match(/[\p{L}\p{M}]+(?:['’-][\p{L}\p{M}]+)*|\d+(?:[.,]\d+)*%?/gu) || []).length;
 const textUnits = (t) => (String(t || '').match(/[㐀-鿿]|[A-Za-z]+|\d+(?:[.,]\d+)*%?/g) || []).length;
 const textParts = (t) => String(t || '').split(/\s*[\/／|｜]\s*/).filter((x) => x.trim());
 

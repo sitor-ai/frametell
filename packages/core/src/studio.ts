@@ -233,7 +233,7 @@ export class Studio {
       style: input.style || d.style, durationSec: input.durationSec || d.durationSec, model, pageModel: pages && pages !== model ? pages : undefined,
       reviewModel: reviews && reviews !== (pages || model) ? reviews : undefined,
       runtime: input.runtime || d.runtime, voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
-      lang: input.lang ?? resolveLocale(cfg.locale), topic, notes: topic ? undefined : input.notes,
+      lang: input.lang ?? resolveLocale(cfg.locale), ...(input.langAuto ? { langAuto: true } : {}), topic, notes: topic ? undefined : input.notes,
       styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, look: cleanLook(input.look), brand,
       ...(input.research !== undefined ? { research: input.research } : {}),
     }, files.map((f) => ({ name: f.name, data: Buffer.from(f.data) })));
@@ -325,7 +325,7 @@ export class Studio {
    *  `credits`: a hosted service's credit facts (CreditFacts), checked here, for a question about what is left to pay */
   say(id: string, text: string, refs?: unknown, credits?: unknown) { return this.store.runner(id).say(text, cleanRefs(refs), cleanCredits(credits)); }
   /** save a file the user attached to a message; returns the reference to send with it */
-  attach(id: string, name: string, data: Uint8Array): Promise<UserRef> { const meta = this.store.read(id); return attach(this.store.dir(id), name, data, meta.lang ?? 'zh'); }
+  attach(id: string, name: string, data: Uint8Array): Promise<UserRef> { const meta = this.store.read(id); return attach(this.store.dir(id), name, data, (meta.lang ?? 'zh') === 'zh' ? 'zh' : 'en'); }
 
   // ── the user's pictures for a film (素材): assets/user/, listed in its assets.json ──
   /** the film's pictures, as its list is now */

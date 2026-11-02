@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import { createProject, linkProject } from '@frametell/engine/tools/project.mjs';
 import { createCatalog } from '@frametell/models';
 import { elevenLabsTts, volcengineTts } from '@frametell/voice';
-import { createWeb, gatewayDecider, openaiImages, userAssets, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type CreditFacts, type DirectorOptions, type MessageRoute, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
+import { createWeb, langTag, gatewayDecider, openaiImages, userAssets, Director, findSources, hasSources, offlineWeb, openProjectFile, piRuntime, Project, readFd, writeIn, type AgentRuntime, type CreditFacts, type DirectorOptions, type MessageRoute, type Renderer, type StudioEvent, type Storyboard, type UserRef } from '@frametell/agent';
 import type { Config, ConfigStore } from './config.js';
 import { prepareMaterials } from './materials.js';
 import { applyProxy } from './net.js';
@@ -62,7 +62,7 @@ export class Projects {
   create(input: Omit<ProjectMeta, 'id' | 'createdAt' | 'updatedAt' | 'materials'>, files: { name: string; data: Buffer }[]): ProjectMeta {
     const id = `${new Date().toISOString().slice(0, 10)}-${crypto.randomBytes(6).toString('hex')}`;
     const dir = this.dir(id);
-    createProject(dir, { title: input.title, style: input.style, lang: input.lang });
+    createProject(dir, { title: input.title, style: input.style, lang: input.lang === undefined ? undefined : input.lang === 'zh' ? 'zh' : 'en' });
     fs.mkdirSync(path.join(dir, 'materials'), { recursive: true });
     fs.mkdirSync(path.join(dir, '.studio'), { recursive: true });
     const materials: string[] = [];
@@ -384,7 +384,18 @@ class Runner {
     } catch { /* no state yet */ }
   }
 
+  /** the film's language as its storyboard has it (the director's, from the user's own words, or changed since at their
+   *  asking) into the project's record, which the panel, the exports and a host's mails read */
+  private syncLang() {
+    try {
+      const lang = langTag((JSON.parse(fs.readFileSync(path.join(this.dir, 'storyboard.json'), 'utf8')) as { lang?: unknown }).lang);
+      const meta = readMetaAt(this.dir);
+      if (lang && lang !== meta.lang) writeMeta(this.dir, { ...meta, lang });
+    } catch {}
+  }
+
   private emit = (e: StudioEvent) => {
+    if (e.type === 'approval' || (e.type === 'stage' && e.status === 'done')) this.syncLang();
     // live progress of a response being written goes to whoever is watching, not into the log: it is only "now"
     if (e.type === 'agent' && e.event.type === 'progress') {
       const live = { ...e, seq: this.seq + ++this.tick / 1e4, at: Date.now() } as Logged;
@@ -480,7 +491,7 @@ class Runner {
     try {
       // PDF/Word/PPT/EPUB → Markdown the director can read (skipped when already done); a file that cannot be read is
       // reported but does not stop the run
-      const { files } = await prepareMaterials(path.join(dir, 'materials'), meta.lang ?? 'zh');
+      const { files } = await prepareMaterials(path.join(dir, 'materials'), (meta.lang ?? 'zh') === 'zh' ? 'zh' : 'en');
       for (const f of files) if (f.kind === 'document' && !f.parsedTo) this.emit({ type: 'error', message: this.tr(`资料 ${f.name} 读不了：${f.warning}`, `Couldn't read ${f.name}: ${f.warning}`) });
       // an export reads nothing new
       const plan = o.exporting ? undefined : researchPlan(meta, cfg, this.reach);
@@ -497,7 +508,7 @@ class Runner {
         dir, runtime, pages, reviewer, research: plan && research ? { ...research, ...plan } satisfies DirectorOptions['research'] : undefined,
         style: meta.style, look: meta.look, prices, tts, voice, concurrency: cfg.defaults.concurrency, images: imagesFor(cfg), decide: decideFor(cfg),
         ...(this.wait.waitMs ? { firstPageWaitMs: this.wait.waitMs } : {}), ...(this.wait.storyboardMs ? { storyboardWaitMs: this.wait.storyboardMs } : {}), firstPageSaid: this.logEndsAtWait(), ...(this.wait.pageChecks ? { pageChecks: this.wait.pageChecks } : {}),
-        brief: { durationSec: meta.durationSec, topic: meta.topic, notes: meta.notes, styleNotes: meta.styleNotes, brand: meta.brand, lang: meta.lang ?? 'zh', replyLang: this.replyIn(meta), voice: provider, preferences: cfg.preferences },
+        brief: { durationSec: meta.durationSec, topic: meta.topic, notes: meta.notes, styleNotes: meta.styleNotes, brand: meta.brand, lang: meta.lang ?? 'zh', ...(meta.langAuto ? { langAuto: true } : {}), replyLang: this.replyIn(meta), voice: provider, preferences: cfg.preferences },
         emit: this.emit, signal: this.abort.signal, renderer: this.renderer, review: this.review, exportDir: this.renderer ? undefined : cfg.exportDir,
       });
     } catch (e) {

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { narrate, type TtsProvider } from '@frametell/voice';
 import { Project, childCmd, projectFiles, type LintIssue, type LintKind, type PageTiming, type Storyboard, type Renderer } from './project.js';
-import { FLAG, KIT_CHANGE, ROUTE, VERDICT, fixPrompt, laneNote, kitChangeAsk, kitChangePrompt, kitChangeSystem, kitFixPrompt, kitPrompt, kitReviewNote, kitReviewerPrompt, kitSystem, langNote, voiceNote, pagePrompt, pageSystem, plannerSystem, replyNote, reviewPrompt, reviewerPrompt, reviewerSystem, routeAsk, routeSystem, scriptPrompt, storyboardFixPrompt, storyboardPrompt, verdictAgain, type Brief, type CreditFacts, type FilmFacts, type Problem } from './prompts.js';
+import { FLAG, KIT_CHANGE, langTag, ROUTE, VERDICT, fixPrompt, laneNote, kitChangeAsk, kitChangePrompt, kitChangeSystem, kitFixPrompt, kitPrompt, kitReviewNote, kitReviewerPrompt, kitSystem, langNote, voiceNote, pagePrompt, pageSystem, plannerSystem, replyNote, reviewPrompt, reviewerPrompt, reviewerSystem, routeAsk, routeSystem, scriptPrompt, storyboardFixPrompt, storyboardPrompt, verdictAgain, type Brief, type CreditFacts, type FilmFacts, type Problem } from './prompts.js';
 import { KIT_CHECK_FILE, KIT_FILE, KIT_KEPT, kitCell, kitCheckPage, kitIssues, kitLocate, kitPart, kitPartCheck, kitPlan, kitStage, kitTimes, kitWanted, type KitItem, type KitPart } from './kit.js';
 import { drawingSession, sourceReading } from './anomaly.js';
 import { addUsage, emptyUsage, type AgentRuntime, type AgentSession, type SessionOptions, type Thinking, type TokenUsage, type TurnResult } from './runtime/types.js';
@@ -400,7 +400,7 @@ export class Director {
     let s: AgentSession | undefined;
     try {
       s = await this.session(ROUTE_SESSION, routeSystem, MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [ROUTE] });
-      const r = await this.send(s, routeAsk(text, await this.facts(), credits, this.o.brief.replyLang), undefined, REVIEWER_THINKING);
+      const r = await this.send(s, routeAsk(text, await this.facts(), credits, this.replyLang()), undefined, REVIEWER_THINKING);
       const a = r.answers.find((x) => x.name === ROUTE.name)?.args as { change?: unknown; question?: unknown; go?: unknown; reply?: unknown } | undefined;
       const reply = typeof a?.reply === 'string' && a.reply.trim() ? a.reply.trim() : undefined;
       // only telling the film to go on (「继续」 at the first page's wait): a go-ahead, with nothing to change
@@ -447,7 +447,20 @@ export class Director {
   }
   get usage() { return this.state.usage; }
   /** what the user reads (notes, failures, the film's history), in the user's language */
-  private say(zh: string, en: string) { return this.o.brief.replyLang === 'en' ? en : zh; }
+  /** a line the server writes to the user: in Chinese for a Chinese speaker, else in English */
+  private say(zh: string, en: string) { return this.replyLang() === 'zh' ? zh : en; }
+  /** the film's language: what storyboard.json says once it is written (the planner's, from the user's own words, and
+   *  changed when the user asks for another), else the brief's */
+  filmLang(): string {
+    try { const l = langTag(this.project.storyboard().lang); if (l) return l; } catch {}
+    return this.o.brief.lang ?? 'zh';
+  }
+  /** the language the director writes to the user in: theirs (what they last wrote in, told only as Chinese or not); a
+   *  film in another language than those two that took the language of their request most likely has theirs */
+  private replyLang(): string {
+    const film = this.filmLang(), r = this.o.brief.replyLang;
+    return this.o.brief.langAuto && r !== 'zh' && film !== 'zh' && film !== 'en' ? film : (r ?? film);
+  }
 
   private emit(e: StudioEvent) {
     // whether the log ends at the first page's wait: a step after it (a page, a stage, a pause) moves it on, and a run
@@ -583,7 +596,7 @@ export class Director {
       // paid again
       await this.commit(this.say('调研', 'Research'));
       const { searches, pages, folders } = out.read;
-      const detail = this.o.brief.replyLang === 'en'
+      const detail = this.replyLang() !== 'zh'
         ? [searches && `${searches} searches`, pages && `${pages} pages read`, folders && `${folders} folder${folders > 1 ? 's' : ''} read`, `${out.sources.length} sources`].filter(Boolean).join(', ')
         : [searches && `搜索 ${searches} 次`, pages && `读了 ${pages} 个网页`, folders && `看了 ${folders} 个文件夹`, `引用 ${out.sources.length} 处来源`].filter(Boolean).join('，');
       this.emit({ type: 'stage', stage: 'research', status: 'done', detail });
@@ -619,18 +632,19 @@ export class Director {
       if (now !== draft) { draft = now; void this.commit(this.say('分镜（进行中）', 'Storyboard (in progress)')).catch(() => {}); }
     };
     let r = await this.send(s, carry
-      ? storyboardResumed(begun) + ' ' + replyNote(this.o.brief.replyLang, this.o.brief.lang)
+      ? storyboardResumed(begun) + ' ' + replyNote(this.replyLang(), this.filmLang())
       : storyboardPrompt(this.o.brief, this.o.style, materials, picturePlanNote(this.pictureStyle(), this.own())) + (begun ? storyboardFound : ''), undefined, PLAN_THINKING);
     this.state.planner = s.ref; this.save();
     // a turn can end without the file (seen: a gateway answering a one-token "." mid-turn); ask once more, as for pages
-    if (!this.project.exists('storyboard.json') && r.stopReason !== 'max_turns') r = await this.send(s, 'storyboard.json does not exist yet; write it, then stop and report. ' + replyNote(this.o.brief.replyLang, this.o.brief.lang), undefined, PLAN_THINKING);
+    if (!this.project.exists('storyboard.json') && r.stopReason !== 'max_turns') r = await this.send(s, 'storyboard.json does not exist yet; write it, then stop and report. ' + replyNote(this.replyLang(), this.filmLang()), undefined, PLAN_THINKING);
     if (!this.project.exists('storyboard.json')) this.fail('storyboard', this.say(`没有写出分镜：${r.error || r.text}`, `No storyboard was written: ${r.error || r.text}`));
-    // the film's language and length are the server's to say (the page agents and the checks read them from here): a
-    // planner once raised its own target from 1 minute to 2
+    // the film's length is the server's to say (the page agents and the checks read it from here): a planner once raised
+    // its own target from 1 minute to 2. Its language is the planner's, from the user's own words (langNote): a tag it
+    // can't be read as falls back to the brief's
     const target = this.o.brief.durationSec;
     try {
-      const j = this.project.storyboard();
-      if (j.lang !== (this.o.brief.lang ?? 'zh') || (target && j.durationSec !== target)) this.project.write('storyboard.json', JSON.stringify({ ...j, lang: this.o.brief.lang ?? 'zh', ...(target ? { durationSec: target } : {}) }, null, 2));
+      const j = this.project.storyboard(), lang = this.filmLang();
+      if (j.lang !== lang || (target && j.durationSec !== target)) this.project.write('storyboard.json', JSON.stringify({ ...j, lang, ...(target ? { durationSec: target } : {}) }, null, 2));
     } catch {}
     for (let round = 1; ; round++) {
       const issues = [...this.project.storyboardIssues(), ...this.lookIssues(), ...this.lengthIssues()];
@@ -673,7 +687,7 @@ export class Director {
       // rounds of trimming a pasted script, ~100 credits)
       if (!missing.length) break;
       if (ask === MAX.scriptFix) this.fail('script', this.say(`口播没有写完：分镜里的 ${missing.join('、')} 没有口播`, `The narration is unfinished: ${missing.join(', ')} of the storyboard ha${missing.length > 1 ? 've' : 's'} no narration`) + (r.error ? ` (${r.error})` : ''));
-      r = await this.send(s, `script.js has no narration for ${missing.join(', ')}: every page of storyboard.json needs its entry in PAGES, in the storyboard's order, with the same id. Add the missing pages and keep the ones already written, then run node engine/tools/script.mjs and stop. ` + replyNote(this.o.brief.replyLang, this.o.brief.lang), undefined, PLAN_THINKING);
+      r = await this.send(s, `script.js has no narration for ${missing.join(', ')}: every page of storyboard.json needs its entry in PAGES, in the storyboard's order, with the same id. Add the missing pages and keep the ones already written, then run node engine/tools/script.mjs and stop. ` + replyNote(this.replyLang(), this.filmLang()), undefined, PLAN_THINKING);
     }
     await this.commit(this.say('口播', 'Narration'));
     // a style drawn in pictures plans its scenes now, against the narration's real lines
@@ -690,7 +704,7 @@ export class Director {
     const lines = tl.pages.map((p) => ({ page: p.id, lines: p.cues.map((c) => c.text) }));
     const cues = Object.fromEntries(tl.pages.map((p) => [p.id, p.cues.length])), ids = tl.pages.map((p) => p.id);
     const designs = picturePlan(this.project.storyboard().look, style, this.own()).filter((p) => p.base).length;
-    await this.send(s, picturePlanNote(style, this.own(), lines, designs) + replyNote(this.o.brief.replyLang, this.o.brief.lang), undefined, PLAN_THINKING);
+    await this.send(s, picturePlanNote(style, this.own(), lines, designs) + replyNote(this.replyLang(), this.filmLang()), undefined, PLAN_THINKING);
     for (let ask = 0; ; ask++) {
       let issues: string[];
       try { issues = pictureIssues(this.project.storyboard().look, ids, style, this.own(), cues); } catch (e) { issues = [`storyboard.json can't be read: ${(e as Error).message}`]; }
@@ -744,7 +758,7 @@ export class Director {
     const gl = this.webgl();
     // a film that ends on its brand's sign-off holds longer after its last line, so the logo is seen in silence
     const signOff = (() => { try { return signsOff(this.o.brief.brand, this.project.storyboard().pages); } catch { return false; } })();
-    this.setMeta({ style: this.o.style, lang: this.o.brief.lang ?? 'zh', voice: this.o.voice, gap: 0.8, pace: { maxHold: 1.0, gap: 0.8, ...(signOff ? { tail: SIGN_OFF_HOLD } : {}) }, extras: list, look: this.o.look ?? this.designed()?.look, mark: cornerMark(this.o.brief.brand, signOff) ?? false, ...gl });
+    this.setMeta({ style: this.o.style, lang: this.filmLang(), voice: this.o.voice, gap: 0.8, pace: { maxHold: 1.0, gap: 0.8, ...(signOff ? { tail: SIGN_OFF_HOLD } : {}) }, extras: list, look: this.o.look ?? this.designed()?.look, mark: cornerMark(this.o.brief.brand, signOff) ?? false, ...gl });
   }
 
   /** a style drawn in three.js: the vendors its films load (three, and any the page agents added) */
@@ -781,7 +795,7 @@ export class Director {
   /** the kit's check: its own project (.studio/kit), the check page's timing, and the engine's check of it (lint with
    *  determinism, and a contact sheet of each component once drawn) */
   private async checkKit(items: KitItem[], look: unknown, round: number) {
-    const stage = new Project(kitStage(this.o.dir, { style: this.o.style, lang: this.o.brief.lang ?? 'zh', look, items, kit: this.project.read(KIT_FILE), check: this.project.read(KIT_CHECK_FILE), extras: styleExtras(this.o.style), gl: this.webgl() }), undefined, this.o.signal);
+    const stage = new Project(kitStage(this.o.dir, { style: this.o.style, lang: this.filmLang(), look, items, kit: this.project.read(KIT_FILE), check: this.project.read(KIT_CHECK_FILE), extras: styleExtras(this.o.style), gl: this.webgl() }), undefined, this.o.signal);
     const page = (await stage.timeline()).pages[0];
     const times = kitTimes(page.cues, page.end);
     return { page, times, check: await stage.check('kit', `kit-r${round}`, times, { determinism: true, lintMs: MAX.pageLintMs }) };
@@ -828,7 +842,7 @@ export class Director {
             if (!s) { s = await this.session(`kit-${it.name}`, system, MAX.kitTurns); this.allow(s, MAX.kitBudget); }
             sessions.set(it.name, s);
             const next = k ? `Next, another of this film's components, in the same session: ${group.slice(0, k).map((x) => `\`P.${x.name}\``).join(', ')} ${k > 1 ? 'are' : 'is'} yours and written.\n\n` : '';
-            const r = await this.send(s, next + kitPrompt(sb, items, it, kitCell(i, items.length), this.o.brief.lang, this.o.brief.replyLang), undefined, KIT_THINKING);
+            const r = await this.send(s, next + kitPrompt(sb, items, it, kitCell(i, items.length), this.filmLang(), this.replyLang()), undefined, KIT_THINKING);
             if (!written(it)) await this.send(s, `Write both ${kitPart(it.name)} and ${kitPartCheck(it.name)}, then stop.`, undefined, KIT_THINKING);
             if (!written(it)) this.emit({ type: 'kit', status: 'failed', detail: `${it.name}: ${r.error || 'not written'}`.slice(0, 400) });
           } catch (e) { if (stopped(e)) throw e; this.emit({ type: 'kit', status: 'failed', detail: `${it.name}: ${(e as Error).message}`.slice(0, 400) }); }
@@ -1591,7 +1605,7 @@ export class Director {
       const unchanged = () => before !== undefined && this.project.read(`pages/${id}.js`) === before;
       let r: TurnResult | undefined, declined: string | undefined;
       if (!was) {
-        r = await this.send(s, next + pagePrompt(sb, id, t, this.o.brief.lang, this.o.brief.replyLang, !!fix, this.o.brief.brand, this.assetsOn(sb, id), picturePageNote(this.picturesOn(sb, id), this.pictureStyle())) + (fix ? revisionNote(id, fix, this.project.read(`pages/${id}.js`), this.state.firstPage === 'waiting') : added ? addedNote(this.state.revision![id]) : '') + directionsNote(this.directions(`page-${id}`)), undefined, PAGE_THINKING);
+        r = await this.send(s, next + pagePrompt(sb, id, t, this.filmLang(), this.replyLang(), !!fix, this.o.brief.brand, this.assetsOn(sb, id), picturePageNote(this.picturesOn(sb, id), this.pictureStyle())) + (fix ? revisionNote(id, fix, this.project.read(`pages/${id}.js`), this.state.firstPage === 'waiting') : added ? addedNote(this.state.revision![id]) : '') + directionsNote(this.directions(`page-${id}`)), undefined, PAGE_THINKING);
         if (!this.project.exists(`pages/${id}.js`)) r = await this.send(s, `pages/${id}.js does not exist yet; write it, then stop.`, undefined, PAGE_THINKING);
         if (!this.project.exists(`pages/${id}.js`)) throw new Error(r.error || this.say('没有写出页面文件', 'No page file was written'));
         // the agent found nothing to change (already so, or nothing this page can do): it says why instead of searching
@@ -1721,7 +1735,7 @@ export class Director {
     let timedOut = false;
     try {
       for (let round = 1; round <= (defectsOnly ? 1 : MAX.reviewRounds); round++) {
-        await this.send(s, reviewPrompt(round === 1 ? issues : errorsOf(await this.project.lint()), flagged, this.o.brief.replyLang), [sheet]);
+        await this.send(s, reviewPrompt(round === 1 ? issues : errorsOf(await this.project.lint()), flagged, this.replyLang()), [sheet]);
         // a round that changed nothing found nothing to change: another would see the same
         if (!(await this.commit(this.say(`全片检查：第 ${round} 轮`, `Whole-film check: round ${round}`)))) break;
       }
@@ -1969,7 +1983,7 @@ ${request}
 
 Decide which pages to change and how: change only the pages that need it (usually 1–2, and every page the user's words reach when they ask for more). Touch script.js only when the user asks to change the narration; then change the matching cues and keep their number the same.
 When the user asks for more than a page can hold (everything, more detail, a full review, more examples), add pages instead of packing one: each new page gets an id after the last one, its entry in storyboard.json and its cues in script.js (3–8 short lines, like the others), and goes in the plan with a note of what it shows. Add as many as the request needs; one page per topic is a good measure.
-${[voiceNote('revise', this.o.brief.voice), langNote('revise', this.o.brief.lang, this.o.brief.replyLang).trim()].filter(Boolean).join('\n')}${this.revisionPictureNote()}
+${[voiceNote('revise', this.o.brief.voice), langNote('revise', this.filmLang(), this.replyLang()).trim()].filter(Boolean).join('\n')}${this.revisionPictureNote()}
 Write the decision to ${PLAN_FILE}: { "pages": [{ "id": "p03", "note": "the change for the page agent, down to objects and actions" }] }, with the page ids exactly as in the storyboard, then tell the user in one sentence what you will change.
 Always write the file. When no page's picture changes, write { "pages": [] }: for a change to the narration alone (in script.js), a question, thanks, or something a change can't do here (another style, the voice's speed), which you then tell the user in a sentence or two.
 The storyboard and script.js${named.length ? ' and the code of the pages mentioned' : ''} are given below; don't read them again. Read pages/<id>.js for other pages only if you need to.
@@ -2002,7 +2016,7 @@ ${request}
 Take this as a direction for the whole film, not only its first page, and make the film follow it:
 - When it is about what is said or how (an opening hook, a framing, what is linked or kept apart, what is left out or must be in, the order), change script.js and storyboard.json to match, on every page it reaches. The pages after the first are not drawn yet, so change their storyboard entries and their narration freely; a page's cues may be added or removed. Add pages (ids after the last one, each with its storyboard entry and its cues) only when the request needs more than the pages hold. Keep the ids of the pages that stay.
 - When it is about the picture alone, leave both files as they are.
-${[voiceNote('revise', this.o.brief.voice), langNote('revise', this.o.brief.lang, this.o.brief.replyLang).trim()].filter(Boolean).join('\n')}${this.revisionPictureNote()}
+${[voiceNote('revise', this.o.brief.voice), langNote('revise', this.filmLang(), this.replyLang()).trim()].filter(Boolean).join('\n')}${this.revisionPictureNote()}
 Then write ${PLAN_FILE} with what the first page's agent must change, down to objects and actions: { "pages": [{ "id": "<the first page's id>", "note": "…" }] }. Then tell the user in one or two sentences what you changed: the narration, the plan of the pages, the first page.
 The storyboard and script.js are given below; don't read them again. Don't look into the engine, take screenshots or run tools other than to edit the files.
 

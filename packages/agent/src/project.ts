@@ -27,7 +27,7 @@ export type PageCheck = { issues: LintIssue[]; sheet: string; crash?: undefined 
 export interface Beat { at: string; object: string; action: string; camera?: string; text?: string }
 export interface StoryPage { id: string; section: string; say: string; core?: boolean; beats: Beat[] }
 /** `look`: a designed style's film only, the look the director designed for it (look.ts designedLook) */
-export interface Storyboard { title: string; summary: string; durationSec?: number; style: string; cast: string; lang?: 'zh' | 'en'; look?: unknown; pages: StoryPage[] }
+export interface Storyboard { title: string; summary: string; durationSec?: number; style: string; cast: string; /** a language tag ('zh', 'en', 'es'…) */ lang?: string; look?: unknown; pages: StoryPage[] }
 
 /** what a child of the agent (its shell, the engine tools, git, ffmpeg) may see of this process's environment: what a
  *  shell, Node, Chrome and ffmpeg need, and nothing else. A list of what passes, not of what doesn't: an agent can print

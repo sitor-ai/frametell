@@ -34,7 +34,8 @@ const EDGE = 0.05, TAIL = 0.15, MAXPAUSE = 0.32, SIL_DB = -45;
 const text = (c: Cue) => (typeof c === 'string' ? c : c.t);
 const norm = (s: string) => s.replace(/[\s\p{P}\p{S}]/gu, '');
 // a cue without its own closing mark gets a comma, so the voice pauses but does not end the sentence (English gets ',')
-const withStop = (s: string) => (/[\p{P}]$/u.test(s.trim()) ? s.trim() : s.trim() + (/[A-Za-z0-9]$/.test(s.trim()) ? ',' : '，'));
+/** a line with no closing mark gets a comma: the Chinese one after Chinese (or Japanese), the plain one after any other */
+const withStop = (s: string) => (/[\p{P}]$/u.test(s.trim()) ? s.trim() : s.trim() + (/[\u3400-\u9fff\u3040-\u30ff]$/.test(s.trim()) ? '，' : ','));
 
 /** how a child is started: the command and environment that run `cmd argv` for the project in `dir` */
 export type ChildCmd = (dir: string, cmd: string, argv: string[]) => { cmd: string; argv: string[]; env: Record<string, string | undefined> };
@@ -194,7 +195,7 @@ export async function narrate(dir: string, opts: NarrateOptions): Promise<Narrat
   const V: VoiceMeta = { ...(SCRIPT.META.voice || {}), ...(opts.voice || {}) } as VoiceMeta;
   if (!V.speaker) throw new Error('no voice set (META.voice.speaker)');
   const warnings: string[] = [];
-  const en = SCRIPT.META.lang === 'en';
+  const en = !/^zh/.test(SCRIPT.META.lang ?? 'zh');
   const LEXICON: Record<string, string> = { ...(en ? { 'CLAUDE.md': 'claude dot md', 'AGENTS.md': 'agents dot md', 'README.md': 'readme dot md' } : { 'CLAUDE.md': 'claude 点 md', 'AGENTS.md': 'agents 点 md', 'README.md': 'readme 点 md' }), ...(V.lexicon || {}) };
   const respell = (s: string) => Object.entries(LEXICON).reduce((a, [k, v]) => a.split(k).join(v), s);
   const spokenOf = (c: Cue) => respell((typeof c === 'object' && c.say) || text(c));
@@ -214,9 +215,9 @@ export async function narrate(dir: string, opts: NarrateOptions): Promise<Narrat
     let cachedPage = true;
     for (const [ri, run] of runs.filter((r) => r.cues.length).entries()) {
       const spoken = run.cues.map(spokenOf);
-      // English sentences need a space between them; Chinese ones are joined as they are (the same text as before, so
-      // the same cached audio)
-      const utter = spoken.map(withStop).reduce((a, x) => a + (a && /[,.;:!?]$/.test(a) && /^[A-Za-z0-9"'“‘(]/.test(x) ? ' ' : '') + x, '');
+      // sentences in a language written with spaces need one between them (¿Qué…, Était…, Что…); Chinese ones are joined
+      // as they are (the same text as before, so the same cached audio)
+      const utter = spoken.map(withStop).reduce((a, x) => a + (a && /[,.;:!?]$/.test(a) && /^[\p{L}\p{N}"'“‘(¿¡«]/u.test(x) && !/^[\u3400-\u9fff\u3040-\u30ff]/.test(x) ? ' ' : '') + x, '');
       const instruction = run.solo?.instruction ?? pg.instruction ?? V.instruction;
       const extra = { pitch: run.solo?.pitch ?? V.pitch, rate: run.solo?.rate ?? V.rate ?? 0 };
       const whole = !run.solo && run.cues.length === pg.cues.length;

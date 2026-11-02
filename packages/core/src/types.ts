@@ -50,8 +50,12 @@ export interface ProjectMeta {
   runtime: RuntimeId;
   voice?: VoiceChoice;
   subtitles: boolean;
-  /** the film's language: narration, subtitles and on-screen text (absent in projects from before: Chinese) */
-  lang?: Locale;
+  /** the film's language, a tag ('zh', 'en', 'es', 'fa'…): narration, subtitles and on-screen text (absent in projects
+   *  from before: Chinese). Kept in step with storyboard.json's once the director writes it */
+  lang?: string;
+  /** the language was not chosen: the film takes the language the user wrote their request in, `lang` only when that
+   *  can't be told */
+  langAuto?: boolean;
   topic?: string;
   notes?: string;
   /** notes for the style this film is drawn in (a style the user shaped), read after its style card */
@@ -87,6 +91,8 @@ export interface NewProjectInput {
   subtitles?: boolean;
   /** default: the panel's language */
   lang?: Locale;
+  /** true: the film is in the language of the user's request (their topic, notes, material); `lang` when it can't be told */
+  langAuto?: boolean;
   topic?: string;
   notes?: string;
   /** notes for the style this film is drawn in (a style the user shaped), read after its style card */

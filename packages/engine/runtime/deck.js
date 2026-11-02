@@ -14,7 +14,7 @@
     const L = ENGINE.layout;
     const meta = (window.SCRIPT && SCRIPT.META) || {};
     const ui = q.get('lang');
-    const en = ui === 'en' || ui === 'zh' ? ui === 'en' : meta.lang ? meta.lang === 'en' : !/[㐀-鿿]/.test(meta.title || '');
+    const en = ui === 'en' || ui === 'zh' ? ui === 'en' : meta.lang ? !/^zh/.test(meta.lang) : !/[㐀-鿿]/.test(meta.title || '');
     const say = (zh, english) => (en ? english : zh);
     const EPS = 0.05;
     const F = Math.min(TIMING.FADE, L.gap), D = meta.fadeDelay ?? 0.3, FO = meta.fadeOut ?? TIMING.FADE_OUT;

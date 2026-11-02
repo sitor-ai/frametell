@@ -12,7 +12,7 @@
     // made before it was set: Chinese if its title is)
     const meta = (window.SCRIPT && SCRIPT.META) || {};
     const ui = new URLSearchParams(location.search).get('lang');
-    const en = ui === 'en' || ui === 'zh' ? ui === 'en' : meta.lang ? meta.lang === 'en' : !/[\u3400-\u9fff]/.test(meta.title || '');
+    const en = ui === 'en' || ui === 'zh' ? ui === 'en' : meta.lang ? !/^zh/.test(meta.lang) : !/[\u3400-\u9fff]/.test(meta.title || '');
     const say = (zh, english) => (en ? english : zh);
     let t = Math.min(from, dur), playing = false, t0 = 0, wall = 0;
 

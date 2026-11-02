@@ -65,36 +65,71 @@ export function pageSystem(style: string, extras: string[] = [], preferences?: s
   return [read('PAGE.md'), '---\n# This film\'s style\n\n' + grammar(style), filmCardSection(card), styleNotesSection(styleNotes), '---\n' + read('API.md'), '---\n' + pagePack(style, extras, filmKit), '---\n' + read('LIB.md'), preferencesSection(preferences)].filter(Boolean).join('\n\n');
 }
 
-/** the film's language (narration, on-screen text) and the language the director reports in (the user's) */
-export type Lang = 'zh' | 'en';
-/** `voice`: the service that voices the narration; absent when the film has no voice. `preferences`: what the user
- *  wants in every film (Settings), read by every session. `styleNotes`: the user's notes for the style this film is
- *  drawn in (a style they shaped), read after the style card. `brand`: the brand the film is made for */
-export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief }
+/** a language, as a tag ('zh', 'en', 'es', 'fr', 'fa', 'pt-BR'…): the film's (narration, on-screen text), or the one
+ *  the director reports in (the user's). A film is in the language the user wrote their request in, whatever the
+ *  interface's; Chinese and English have their own rules, any other language the general ones */
+export type Lang = string;
+/** `langAuto`: the film's language is not chosen: the planner takes the language of the user's request (their topic,
+ *  notes, material), `lang` only when that can't be told */
+export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; langAuto?: boolean; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief }
 
-const LANG_NAME: Record<Lang, string> = { zh: 'Simplified Chinese', en: 'English' };
+/** a language tag as a film may carry it: 'es', 'pt-BR', 'zh-Hant'; anything else (a name, a sentence) is not one */
+export function langTag(v: unknown): Lang | undefined {
+  if (typeof v !== 'string') return undefined;
+  const t = v.trim().replace(/_/g, '-');
+  if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(t)) return undefined;
+  try { const [c] = Intl.getCanonicalLocales(t); return c.toLowerCase() === 'zh-cn' || c.toLowerCase() === 'zh-hans' ? 'zh' : c.toLowerCase().startsWith('en-') ? 'en' : c; } catch { return undefined; }
+}
+const NAMES = new Intl.DisplayNames(['en'], { type: 'language' });
+/** the language's name in English, for the prompts ('Spanish', 'Persian') */
+export function langName(l: Lang = 'zh'): string {
+  if (l === 'zh') return 'Simplified Chinese';
+  try { return NAMES.of(l) ?? l; } catch { return l; }
+}
+/** languages written right to left */
+const RTL = /^(ar|fa|he|iw|ur|ps|yi|dv|ckb|sd|ug)(-|$)/i;
+/** languages written without spaces between words: on-screen text is counted in characters */
+const UNSPACED = /^(zh|ja|th|lo|km|my)(-|$)/i;
+
 /** the language everything said to the user is written in: the user's own, never the prompts' */
-export const replyNote = (replyLang?: Lang, lang?: Lang) => `Write everything you say to the user in ${LANG_NAME[replyLang ?? lang ?? 'zh']}.`;
+export const replyNote = (replyLang?: Lang, lang?: Lang) => `Write everything you say to the user in ${langName(replyLang ?? lang ?? 'zh')}.`;
+
+/** what wins over the film's language: the user asking for another (said where a stage can still change it) */
+const ASKED = (name: string) => `If the user asks for the film in another language (in their request, their notes or a message since), that language wins over ${name}: write its code (ISO 639-1, such as "es" or "fr"; "zh" for Chinese) in storyboard.json's "lang" and write the film in it.`;
 
 /** What a stage must know about the language: the film's (narration, on-screen text) and the user's (the reports). It goes
- *  in the user messages, never the system prompts, so every film shares the cached part whatever its language. */
-export function langNote(stage: 'storyboard' | 'script' | 'page' | 'revise', lang: Lang = 'zh', replyLang?: Lang) {
-  const film = {
-    zh: {
-      storyboard: 'Film language: **Chinese**. In storyboard.json write `"lang": "zh"`; write title, summary, section, say and each beat\'s object / action / text in Simplified Chinese: on-screen text at most 8 characters per element, and a beat tied to a word names the Chinese word as spoken (`c2:三十年`).',
-      script: 'Film language: **Chinese**. A cue is one short spoken sentence in Simplified Chinese, at most 16 characters, 4–10 per page; write numbers in Arabic digits and units as they are spoken (年, 元).',
-      page: 'This is a Chinese film: all text on screen (titles, labels, units) is in Simplified Chinese, matching the narration.',
-      revise: 'This is a Chinese film: rewrite narration in Simplified Chinese, keeping the number of cues; your notes to the page agent can be in English.',
-    },
-    en: {
-      storyboard: 'Film language: **English**. In storyboard.json write `"lang": "en"`; write title, summary, section, say and each beat\'s object / action / text in English: on-screen text at most 5 English words per element, and a beat tied to a word names the English word (`c2:thirty`).',
-      script: 'Film language: **English**. A cue is one short spoken English sentence, at most 12 words, 4–10 per page; write numbers in Arabic digits (1,000, 30%) and units as they are spoken (years, dollars).',
-      page: 'This is an English film: all text on screen (titles, labels, units) is in English, matching the narration. English runs longer than Chinese, so leave enough width for text.',
-      revise: 'This is an English film: rewrite narration in English, keeping the number of cues; your notes to the page agent can be in English.',
-    },
-  }[lang][stage];
+ *  in the user messages, never the system prompts, so every film shares the cached part whatever its language.
+ *  `auto`: the storyboard decides the film's language from the user's own words (Brief.langAuto) */
+export function langNote(stage: 'storyboard' | 'script' | 'page' | 'revise', lang: Lang = 'zh', replyLang?: Lang, auto = false) {
+  if (stage === 'storyboard' && auto) {
+    return `\nFilm language: **the language the user wrote their request in** (the topic and their notes; when they only gave material, the material's language), or the one they ask the film to be in. Only when that can't be told, ${langName(lang)}. Write its code in storyboard.json's "lang" (ISO 639-1, such as "en", "es", "fr", "fa"; "zh" for Chinese) and write title, summary, section, say and each beat's object / action / text in that language: on-screen text at most 8 characters per element in Chinese or Japanese, at most 5 words in any other language, and a beat tied to a word names the word as spoken (\`c2:三十年\`, \`c2:thirty\`).
+Write everything you say to the user in the film's language, unless they wrote to you in another.`;
+  }
+  const name = langName(lang), reply = replyNote(replyLang, lang);
+  const film = lang === 'zh' ? {
+    storyboard: 'Film language: **Chinese**. In storyboard.json write `"lang": "zh"`; write title, summary, section, say and each beat\'s object / action / text in Simplified Chinese: on-screen text at most 8 characters per element, and a beat tied to a word names the Chinese word as spoken (`c2:三十年`).',
+    script: 'Film language: **Chinese**. A cue is one short spoken sentence in Simplified Chinese, at most 16 characters, 4–10 per page; write numbers in Arabic digits and units as they are spoken (年, 元).',
+    page: 'This is a Chinese film: all text on screen (titles, labels, units) is in Simplified Chinese, matching the narration.',
+    revise: 'This is a Chinese film: rewrite narration in Simplified Chinese, keeping the number of cues; your notes to the page agent can be in English.',
+  } : lang === 'en' ? {
+    storyboard: 'Film language: **English**. In storyboard.json write `"lang": "en"`; write title, summary, section, say and each beat\'s object / action / text in English: on-screen text at most 5 English words per element, and a beat tied to a word names the English word (`c2:thirty`).',
+    script: 'Film language: **English**. A cue is one short spoken English sentence, at most 12 words, 4–10 per page; write numbers in Arabic digits (1,000, 30%) and units as they are spoken (years, dollars).',
+    page: 'This is an English film: all text on screen (titles, labels, units) is in English, matching the narration. English runs longer than Chinese, so leave enough width for text.',
+    revise: 'This is an English film: rewrite narration in English, keeping the number of cues; your notes to the page agent can be in English.',
+  } : {
+    storyboard: `Film language: **${name}**. In storyboard.json write \`"lang": "${lang}"\`; write title, summary, section, say and each beat's object / action / text in ${name}: on-screen text at most ${UNSPACED.test(lang) ? '10 characters' : '5 words'} per element, and a beat tied to a word names the word as spoken.`,
+    script: `Film language: **${name}**. A cue is one short spoken sentence in ${name}, at most ${UNSPACED.test(lang) ? '20 characters' : '12 words'}, 4–10 per page; write numbers in digits and units as they are spoken in ${name}.`,
+    page: `This is a film in ${name}: all text on screen (titles, labels, units) is in ${name}, matching the narration, spelled with its own letters and accents.${RTL.test(lang) ? ` ${name} is written right to left: give each block of its text \`direction: rtl\` and align it to the right; a number or a Latin word inside it stays as it is.` : ' It often runs longer than English, so leave enough width for text.'}`,
+    revise: `This is a film in ${name}: rewrite narration in ${name}, keeping the number of cues; your notes to the page agent can be in English.`,
+  };
+  const turn = {
+    storyboard: ` ${ASKED(name)}`,
+    script: ` ${ASKED(name)} Then the storyboard's own words (title, summary, sections, say, beats) change to it too.`,
+    page: '',
+    revise: ` Unless the user now asks for the film in another language: then the whole film changes to it. Set storyboard.json's "lang" to its code (ISO 639-1, such as "en" or "es"; "zh" for Chinese), rewrite the title, summary and every page's section and say there, rewrite every cue of script.js in it (keeping each page's number of cues), and put every page in the plan with the note "all on-screen text in <the language>", so every page is drawn again.`,
+  }[stage];
   // the page agent's one sentence is shown to the user too
-  return `\n${film}\n${replyNote(replyLang, lang)}`;
+  return `\n${film[stage]}${turn}\n${reply}`;
 }
 
 /** What a stage must know about the voice. Volcengine reads a tone instruction with each take (ElevenLabs ignores one);
@@ -130,7 +165,7 @@ export function storyboardPrompt(brief: Brief, style: string, materials: string[
     kitPlanNote(!!designedFonts(style)),
     pictures,
     `Material: ${materials.map((m) => 'materials/' + m).join(', ') || '(none; write from the topic)'}`,
-    'Stop and report once storyboard.json is written.' + withVoice('storyboard', brief) + langNote('storyboard', brief.lang, brief.replyLang),
+    'Stop and report once storyboard.json is written.' + withVoice('storyboard', brief) + langNote('storyboard', brief.lang, brief.replyLang, brief.langAuto),
   ].filter(Boolean).join('\n');
 }
 
@@ -454,5 +489,5 @@ ${text}
 The film now:
 ${known.join('\n')}
 ${account.length ? `\nThe account (credits pay for making the film):\n${account.join('\n')}\n` : ''}
-Is this a change or instruction for the film (how it looks, what it says, what to add or leave out), a question or a remark that needs a reply, or both? A change is passed on to the artists as the user wrote it; don't repeat it. For a question, answer it in the reply from the facts above: short, plain, without internal terms (stage names, page ids); when the facts don't say, say so plainly. For a change alone, leave the reply empty.${film.waiting ? ' The film is waiting for the user: a message that only tells it to go on (continue, start, go ahead, fine as it is) is go, not a question; never tell them it is being made while it waits.' : ''} Reply in the language the user wrote in${replyLang ? ` (most likely ${LANG_NAME[replyLang]})` : ''}. Call route.`;
+Is this a change or instruction for the film (how it looks, what it says, what to add or leave out), a question or a remark that needs a reply, or both? A change is passed on to the artists as the user wrote it; don't repeat it. For a question, answer it in the reply from the facts above: short, plain, without internal terms (stage names, page ids); when the facts don't say, say so plainly. For a change alone, leave the reply empty.${film.waiting ? ' The film is waiting for the user: a message that only tells it to go on (continue, start, go ahead, fine as it is) is go, not a question; never tell them it is being made while it waits.' : ''} Reply in the language the user wrote in${replyLang ? ` (most likely ${langName(replyLang)})` : ''}. Call route.`;
 }

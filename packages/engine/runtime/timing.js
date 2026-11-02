@@ -9,12 +9,14 @@
   const END = 2.5;       // the last page holds this long after its last line, so the film ends on a settled picture
   const FADE_OUT = 0.8;  // the film fades to its ground over its final seconds, never a hard cut
 
-  /** Rough spoken length: CJK char = 1 unit, latin words ~ syllables, digits = 1 each. */
+  /** Rough spoken length: a CJK character, kana or Hangul syllable = 1 unit, a word in any other script ~ its syllables,
+   *  digits = 1 each. */
+  const SYLLABIC = /[一-鿿぀-ヿ가-힯]/;
   function units(text) {
     let u = 0;
-    for (const ch of text) if (/[一-鿿]/.test(ch)) u += 1;
-    const latin = text.replace(/[一-鿿]/g, ' ').match(/[A-Za-z_]+/g) || [];
-    for (const w of latin) u += Math.max(1, w.replace(/_/g, '').length / 3.2);
+    for (const ch of text) if (SYLLABIC.test(ch)) u += 1;
+    const words = text.replace(/[一-鿿぀-ヿ가-힯]/g, ' ').match(/[\p{L}\p{M}_]+/gu) || [];
+    for (const w of words) u += Math.max(1, w.replace(/_/g, '').length / 3.2);
     u += (text.match(/\d/g) || []).length * 0.9;
     return u;
   }

@@ -32,7 +32,7 @@ process.env.JPEG_QUALITY = String(JPEG);
 // service); children inherit WATERMARK=1, and marked segments are cached apart from unmarked ones
 const WATERMARK = has('watermark');
 if (WATERMARK) process.env.WATERMARK = '1';
-const FPS = +arg('fps', 60), W = +arg('workers', 12), name = arg('name', META.name || 'video') + (PORTRAIT ? (META.lang === 'en' ? '-portrait' : '-竖版') : '');
+const FPS = +arg('fps', 60), W = +arg('workers', 12), name = arg('name', META.name || 'video') + (PORTRAIT ? (!META.lang || /^zh/.test(META.lang) ? '-竖版' : '-portrait') : '');
 const from = +arg('from', 0), to = +arg('to', L.duration);
 const F0 = Math.round(from * FPS), F1 = Math.round(to * FPS);
 // The film's first frame is its cover: a page settled, at the moment its thumbnail is cut (0.4 s before it ends). Which
@@ -80,7 +80,7 @@ const spawned = (cmd, args) => new Promise((res) => {
   k.on('close', (c) => { kids.delete(k); res(c); });
 });
 const run = (cmd, args) => spawned(cmd, args).then((c) => { if (c) throw new Error(cmd + ' ' + c); });
-const [NO, WITH] = META.lang === 'en' ? ['no-subtitles', 'with-subtitles'] : ['无字幕', '有字幕'];
+const [NO, WITH] = !META.lang || /^zh/.test(META.lang) ? ['无字幕', '有字幕'] : ['no-subtitles', 'with-subtitles'];
 const nosub = path.join(OUT, `${name}-${NO}.mp4`), withsub = path.join(OUT, `${name}-${WITH}.mp4`);
 const subsDir = path.join(OUT, PORTRAIT ? 'subs-portrait' : 'subs');
 const subbed = (g) => g.out.replace(/\.mp4$/, '.subs.mp4');

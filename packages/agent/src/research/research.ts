@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import type { Brief } from '../prompts.js';
+import { langName, type Brief } from '../prompts.js';
 import type { AgentRuntime, RuntimeEvent } from '../runtime/types.js';
 import { cloneRepo, type Sources } from './sources.js';
 import { researchTools, type Handed, type Limits, type Mount } from './tools.js';
@@ -28,7 +28,6 @@ export interface ResearchResult extends Handed {
 const DIR = path.join(path.dirname(createRequire(import.meta.url).resolve('@frametell/agent/package.json')), 'prompts');
 export const researchSystem = () => fs.readFileSync(path.join(DIR, 'RESEARCH.md'), 'utf8');
 
-const LANG = { zh: 'Simplified Chinese', en: 'English' } as const;
 
 export function researchPrompt(brief: Brief, mounts: Mount[], urls: string[], search: boolean): string {
   return [
@@ -37,7 +36,9 @@ export function researchPrompt(brief: Brief, mounts: Mount[], urls: string[], se
     mounts.length ? `Folders you can read (paths start with the folder's name):\n${mounts.map((m) => `- ${m.name}/ — ${m.about}`).join('\n')}` : '',
     urls.length ? `Pages the user pointed at (read each with read_url):\n${urls.map((u) => `- ${u}`).join('\n')}` : '',
     search ? 'You can search the web.' : 'You have no web search here: work from the folders and pages above (and pages they link to).',
-    `Write the brief in ${LANG[brief.lang ?? 'zh']}. Write your short progress notes in ${LANG[brief.replyLang ?? brief.lang ?? 'zh']}.`,
+    brief.langAuto
+      ? `Write the brief in the language the user wrote their request in (only when that can't be told, ${langName(brief.lang)}). Write your short progress notes in it too.`
+      : `Write the brief in ${langName(brief.lang)}. Write your short progress notes in ${langName(brief.replyLang ?? brief.lang)}.`,
   ].filter(Boolean).join('\n\n');
 }
 
