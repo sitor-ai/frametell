@@ -442,12 +442,12 @@
   // ── the studio ─────────────────────────────────────────────────────────────────────────────────────────────
   const AX = { x: new T.Vector3(1, 0, 0), y: new T.Vector3(0, 1, 0), z: new T.Vector3(0, 0, 1) };
   function makeStudio(P, o) {
-    const W = STAGE.w, H = STAGE.h, at0 = o.at ?? 0;
+    const W = STAGE.w, H = STAGE.h, A = STAGE.area, AW = A.x1 - A.x0, AH = A.y1 - A.y0, at0 = o.at ?? 0;
     const model = o.model && MODELS[o.model];
     const axisName = o.axis || (model && model.axis) || 'y';
     const expDir = (o.dir || (model && model.dir)) ? new T.Vector3(...(o.dir || model.dir)).normalize() : AX[axisName];
     let mode = o.labels || (model && model.labels) || 'auto';
-    const boxes = (m) => (m === 'columns' ? [[540, 185, 840, 690], [420, 180, 1080, 700]] : [[170, 275, 1580, 530], [260, 190, 1400, 680]]);
+    const boxes = (m) => (m === 'columns' ? [[W / 2 - 420, A.y0 + 5, 840, AH - 10], [W / 2 - Math.min(1080, AW) / 2, A.y0, Math.min(1080, AW), AH]] : [[A.x0 + 30, A.y0 + 95, AW - 60, AH - 170], [A.x0 + 120, A.y0 + 10, AW - 240, AH - 20]]);
     let box = o.box || boxes(mode)[0], box0 = o.box || boxes(mode)[1];
     const canvas = h('canvas', 'xp-cv', null, P.html);
     canvas.width = W; canvas.height = H; canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
@@ -635,7 +635,7 @@
         gap = Math.max(ext * 1.12, Math.max(s0.x, s0.y, s0.z) * 0.2);
       }
       if (mode === 'auto') {   // labels go where there is room: above/below a row of parts, beside a column of them
-        const Fp = fit(1, [baseYaw], [170, 290, 1580, 490]); pose(0, { e: 1, yaw: baseYaw });
+        const Fp = fit(1, [baseYaw], [A.x0 + 30, A.y0 + 110, AW - 60, AH - 210]); pose(0, { e: 1, yaw: baseYaw });
         const cs = ex.map((p) => new T.Box3().setFromObject(p.outer).getCenter(new T.Vector3()).project(cam));
         const sx = Math.max(...cs.map((v) => v.x)) - Math.min(...cs.map((v) => v.x)), sy = (Math.max(...cs.map((v) => v.y)) - Math.min(...cs.map((v) => v.y))) * (H / W);
         mode = sx * W / 2 > sy * W / 2 * 1.3 ? 'rows' : 'columns'; void Fp;
@@ -772,7 +772,7 @@
         if (!p || !p.outer.visible || (p.away && (p.gh || 0) > 0.6) || k <= 0 || ko <= 0) { hideLab(L); continue; }
         if (!L.w) { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; }
         const r = rects[L.part];
-        if (r.c.x < 60 || r.c.x > W - 60 || r.c.y < 150 || r.c.y > 880) { hideLab(L); continue; }   // its part is off frame (a push-in): no label
+        if (r.c.x < 60 || r.c.x > W - 60 || r.c.y < A.y0 - 30 || r.c.y > A.y1) { hideLab(L); continue; }   // its part is off frame (a push-in): no label
         live.push({ L, p, r, k: k * ko, dim: 1 - (p.gh || 0) * 0.6, hot: HL.some((e) => e.part === L.part && lt >= e.at && lt < e.until) });
       }
       const fb2 = { x0: lerp(box0[0], box[0], eNow), y0: lerp(box0[1], box[1], eNow) }; fb2.x1 = fb2.x0 + lerp(box0[2], box[2], eNow); fb2.y1 = fb2.y0 + lerp(box0[3], box[3], eNow);
@@ -781,12 +781,12 @@
       const cx = (pb.x0 + pb.x1) / 2, cy = (pb.y0 + pb.y1) / 2, side = o.labelSide || 'both';
       // labels only where there is room: never over the product, never over the title or the subtitles
       const mh = Math.max(...live.map((q) => q.L.h)), mw = Math.max(...live.map((q) => q.L.w));
-      const roomT = pb.y0 - 54 - 180, roomB = 872 - pb.y1 - 54, roomL = pb.x0 - 70 - 150, roomR = 1770 - pb.x1 - 70;
+      const roomT = pb.y0 - 54 - A.y0, roomB = A.y1 - 8 - pb.y1 - 54, roomL = pb.x0 - 70 - (A.x0 + 10), roomR = A.x1 - 10 - pb.x1 - 70;
       let lm = mode;
       if (lm === 'rows' && roomT < mh && roomB < mh && (roomL >= mw || roomR >= mw)) lm = 'columns';
       else if (lm === 'columns' && roomL < mw && roomR < mw && (roomT >= mh || roomB >= mh)) lm = 'rows';
       if (lm === 'columns') {
-        const XL = Math.max(160, pb.x0 - 70), XR = Math.min(1760, pb.x1 + 70);
+        const XL = Math.max(A.x0 + 20, pb.x0 - 70), XR = Math.min(A.x1 - 20, pb.x1 + 70);
         live.sort((a, b) => a.p.slot - b.p.slot);
         live.forEach((q, i) => {
           const want = q.L.side || (side === 'left' ? 'l' : side === 'right' ? 'r' : (q.r.c.x < cx - 40 ? 'l' : q.r.c.x > cx + 40 ? 'r' : (i % 2 ? 'l' : 'r')));
@@ -795,12 +795,12 @@
         });
         for (const sd of ['l', 'r']) {
           const g = live.filter((q) => q.side === sd).sort((a, b) => a.r.c.y - b.r.c.y);
-          let prev = 180;
-          g.forEach((q) => { q.y = Math.max(prev, clamp(q.r.c.y - q.L.h / 2, 180, 872 - q.L.h)); prev = q.y + q.L.h + 18; });
-          let lim = 872; for (let i = g.length - 1; i >= 0; i--) { g[i].y = Math.min(g[i].y, lim - g[i].L.h); lim = g[i].y - 18; }
+          let prev = A.y0;
+          g.forEach((q) => { q.y = Math.max(prev, clamp(q.r.c.y - q.L.h / 2, A.y0, A.y1 - 8 - q.L.h)); prev = q.y + q.L.h + 18; });
+          let lim = A.y1 - 8; for (let i = g.length - 1; i >= 0; i--) { g[i].y = Math.min(g[i].y, lim - g[i].L.h); lim = g[i].y - 18; }
           g.forEach((q) => {
             const w = q.L.w;
-            q.x = sd === 'r' ? clamp(XR, 150, 1770 - w) : clamp(XL - w, 150, 1770 - w);
+            q.x = sd === 'r' ? clamp(XR, A.x0 + 10, A.x1 - 10 - w) : clamp(XL - w, A.x0 + 10, A.x1 - 10 - w);
             const ax = sd === 'r' ? lerp(q.r.c.x, q.r.x1, 0.45) : lerp(q.r.c.x, q.r.x0, 0.45);
             q.a = { x: ax, y: q.r.c.y };
             const ty = q.y + (q.L.el.querySelector('.n') ? 44 : 19), ex = sd === 'r' ? q.x - 14 : q.x + w + 14;
@@ -809,16 +809,16 @@
           });
         }
       } else {
-        const YT = clamp(pb.y0 - 54, 180, 900), YB = clamp(pb.y1 + 54, 180, 872);
+        const YT = clamp(pb.y0 - 54, A.y0, STAGE.subs), YB = clamp(pb.y1 + 54, A.y0, A.y1 - 8);
         live.sort((a, b) => a.p.slot - b.p.slot);
         live.forEach((q, i) => { const want = q.L.side || (side === 'top' ? 't' : side === 'bottom' ? 'b' : (i % 2 ? 'b' : 't')); q.side = want[0] === 't' ? 't' : 'b'; if (q.side === 't' && roomT < q.L.h && roomB >= q.L.h) q.side = 'b'; else if (q.side === 'b' && roomB < q.L.h && roomT >= q.L.h) q.side = 't'; });
         for (const sd of ['t', 'b']) {
           const g = live.filter((q) => q.side === sd).sort((a, b) => a.r.c.x - b.r.c.x);
-          let prev = 150;
-          g.forEach((q) => { q.x = Math.max(prev, clamp(q.r.c.x - q.L.w / 2, 150, 1770 - q.L.w)); prev = q.x + q.L.w + 34; });
-          let lim = 1770; for (let i = g.length - 1; i >= 0; i--) { g[i].x = Math.min(g[i].x, lim - g[i].L.w); lim = g[i].x - 34; }
+          let prev = A.x0 + 10;
+          g.forEach((q) => { q.x = Math.max(prev, clamp(q.r.c.x - q.L.w / 2, A.x0 + 10, A.x1 - 10 - q.L.w)); prev = q.x + q.L.w + 34; });
+          let lim = A.x1 - 10; for (let i = g.length - 1; i >= 0; i--) { g[i].x = Math.min(g[i].x, lim - g[i].L.w); lim = g[i].x - 34; }
           g.forEach((q) => {
-            q.y = sd === 't' ? clamp(YT - q.L.h, 180, 872 - q.L.h) : clamp(YB, 180, 872 - q.L.h);
+            q.y = sd === 't' ? clamp(YT - q.L.h, A.y0, A.y1 - 8 - q.L.h) : clamp(YB, A.y0, A.y1 - 8 - q.L.h);
             const ay = sd === 't' ? lerp(q.r.c.y, q.r.y0, 0.4) : lerp(q.r.c.y, q.r.y1, 0.4);
             q.a = { x: q.r.c.x, y: ay };
             const lx = q.x + q.L.w / 2, ey = sd === 't' ? q.y + q.L.h + 12 : q.y - 12;
@@ -938,7 +938,7 @@
     const T0 = this.hud || this, at = o.at ?? 0.05, idx = this.page.index + 1;
     const el = h('div', 'xp-title', `<span class="no" data-n="${String(idx).padStart(2, '0')}"></span><span class="t">${maskLines(str)}</span>`, T0.html);
     const a = riseAct(T0, el, at);
-    return Object.assign(T0.handle(a, el), { box: () => ({ x: 140, y: 66, w: el.offsetWidth, h: 56 }) });
+    return Object.assign(T0.handle(a, el), { box: () => ({ x: STAGE.title.x, y: STAGE.title.y - 12, w: el.offsetWidth, h: 56 }) });
   };
   /** headline(x, y, str, o): a keynote statement beside the product — 2–6 words, big and tight, each line rising from a mask; \n breaks lines. o: { at, size (76), eyebrow (small orange mono line above), color, align 'l'|'r' } */
   B.headline = function (x, y, str, o = {}) {

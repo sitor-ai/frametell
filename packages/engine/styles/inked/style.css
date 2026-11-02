@@ -25,6 +25,7 @@
 /* the kit's controls */
 .cf-title { position: absolute; left: 140px; top: 66px; display: flex; align-items: center; gap: 0.42em; white-space: nowrap;
   font-family: var(--mono); font-weight: 700; color: #231E16; letter-spacing: -0.01em; }
+#frame.portrait .cf-title { left: 70px; top: 158px; }
 .cf-title i { display: block; width: 0.34em; height: 0.34em; border-radius: 50%; background: #EF6A4C; flex: none; }
 .cf-steps { position: absolute; display: flex; flex-direction: column; align-items: flex-start; gap: 0.62em; }
 .cf-steps.row { flex-direction: row; flex-wrap: wrap; }

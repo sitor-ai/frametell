@@ -307,7 +307,7 @@
    *  dark: true for a darker desk on a black board page }. Static: already there when the page cuts in. */
   B.desk = function (o = {}) {
     const r = PV.rng(o.seed ?? 7), dim = o.dim ?? 0.62;
-    const spots = [[-120, -60], [1500, -90], [-160, 640], [1560, 700], [700, 860], [520, -140], [1120, 900]];
+    const W = STAGE.w, H = STAGE.h, spots = [[-120, -60], [W - 420, -90], [-160, H - 440], [W - 360, H - 380], [W / 2 - 260, H - 220], [W / 2 - 440, -140], [W / 2 + 160, H - 180]];
     const tones = ['news', 'old', 'news', 'white', 'kraft', 'news', 'old'];
     spots.forEach(([sx, sy], i) => {
       if (r() < 0.25) return;
@@ -331,6 +331,6 @@
   // the page title becomes a black label strip pinned top left, typed on
   B.title = function (str, o = {}) {
     const T = this.hud || this, at = o.at ?? 0.15;
-    return T.label(140, 64, str, { at, size: o.size ?? 44, rot: -1.2, tone: o.accent === 'red' ? 'red' : 'black' });
+    return T.label(STAGE.title.x, STAGE.title.y - 14, str, { at, size: o.size ?? 44, rot: -1.2, tone: o.accent === 'red' ? 'red' : 'black' });
   };
 })();

@@ -75,7 +75,7 @@ export interface Picture {
   detail?: string;
 }
 /** a picture the storyboard asks for (look.pictures): read loosely, the look is the director's own JSON */
-export interface PicturePlan { id: string; kind: string; what: string; shape: 'wide' | 'tall' | 'square' }
+export interface PicturePlan { id: string; kind: string; what: string; shape: 'wide' | 'tall' | 'square' | 'film' | 'reel' }
 
 export interface RunView {
   seq: number;
@@ -398,12 +398,13 @@ export const plannedPictures = (sb?: Storyboard): PicturePlan[] => {
   if (!Array.isArray(list)) return [];
   return list.filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as { id?: unknown }).id === 'string').map((p) => ({
     id: p.id as string, kind: typeof p.kind === 'string' ? p.kind : 'scene', what: typeof p.what === 'string' ? p.what : '',
-    shape: p.shape === 'tall' || p.shape === 'square' ? p.shape : 'wide',
+    shape: p.shape === 'tall' || p.shape === 'square' || p.shape === 'film' || p.shape === 'reel' ? p.shape : 'wide',
   }));
 };
-/** a picture's width over its height: as drawn, else as its shape is drawn (1536×1024, 1024×1536, 1024²) */
+/** a picture's width over its height: as drawn, else as its shape is drawn (1536×1024, 1024×1536, 1024², a film's
+ *  1536×864, a portrait film's 864×1536) */
 export const pictureRatio = (p: Pick<Picture, 'w' | 'h'> | undefined, shape?: PicturePlan['shape']) =>
-  p?.w && p.h ? p.w / p.h : shape === 'tall' ? 2 / 3 : shape === 'square' ? 1 : 3 / 2;
+  p?.w && p.h ? p.w / p.h : shape === 'tall' ? 2 / 3 : shape === 'square' ? 1 : shape === 'film' ? 16 / 9 : shape === 'reel' ? 9 / 16 : 3 / 2;
 
 /** a project-relative path from an absolute one the core reported (snapshots, video) */
 export const relPath = (abs: string, projectId: string) => { const i = abs.indexOf(projectId + '/'); return i >= 0 ? abs.slice(i + projectId.length + 1) : abs.split('/').slice(-2).join('/'); };

@@ -128,7 +128,7 @@
    *  (45 shows both sides equally; 35 shows the long +y side, 55 the +x side); elevation 40–50 looks down into something open.
    *  Two benches on one page (box: the left / right half) compare two machines. */
   B.bench = function (o = {}) {
-    const self = this, at0 = o.at ?? 0, box = o.box ?? [150, 176, 1620, 630];
+    const self = this, at0 = o.at ?? 0, box = o.box ?? [150, STAGE.area.y0 - 4, STAGE.w - 300, STAGE.area.y1 - STAGE.area.y0 - 70];
     const a = (o.azimuth ?? 45) * RAD, e = (o.elevation ?? 30) * RAD, sA = Math.sin(a), cA = Math.cos(a), sE = Math.sin(e), cE = Math.cos(e);
     const q = (x, y, z) => [x * sA - y * cA, (x * cA + y * sA) * sE - z * cE];
     const view = [cA * cE, sA * cE, sE], light = norm3([-sA, cA, 0]);
@@ -137,7 +137,7 @@
     const add = (it) => { items.push(it); return it; };
     // the canvas is the box and a margin: what the camera pushes past it is cut, like a figure's frame
     // while the camera is pushed in, it grows to the card's drawing area
-    const pad = 30, RECT = { wide: [Math.floor(box[0] - pad), Math.floor(box[1] - pad), Math.ceil(box[2] + 2 * pad), Math.ceil(box[3] + 2 * pad)], close: [78, 132, 1764, 690] };
+    const pad = 30, RECT = { wide: [Math.floor(box[0] - pad), Math.floor(box[1] - pad), Math.ceil(box[2] + 2 * pad), Math.ceil(box[3] + 2 * pad)], close: [78, STAGE.area.y0 - 48, STAGE.w - 156, STAGE.area.y1 - STAGE.area.y0 - 10] };
     let cx0 = 0, cy0 = 0, rectNow = null;
     const canvas = h('canvas', null, null, self.html);
     Object.assign(canvas.style, { position: 'absolute', pointerEvents: 'none' });
@@ -753,7 +753,7 @@
     this.tick((lt) => {
       const txt = `${o.label ? `<small>${o.label}</small>` : ''}<b>${fmt(fn(lt))}${o.unit ? `<em>${o.unit}</em>` : ''}</b>`;
       if (el._t !== txt) { el._t = txt; el.innerHTML = txt; }
-      const w = el.offsetWidth; el.style.left = Math.min(1800 - w, o.align === 'r' ? x - w : o.align === 'c' ? x - w / 2 : x) + 'px'; el.style.top = y - size * 0.75 + 'px';   // never past the card's right edge
+      const w = el.offsetWidth; el.style.left = Math.min(STAGE.w - 120 - w, o.align === 'r' ? x - w : o.align === 'c' ? x - w / 2 : x) + 'px'; el.style.top = y - size * 0.75 + 'px';   // never past the card's right edge
       const k = settle(lt, at, 0.45); el.style.opacity = clamp(k * 1.4).toFixed(3); el.style.transform = `translateY(${((1 - k) * 10).toFixed(1)}px)`;
     });
     return el;

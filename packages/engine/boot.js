@@ -4,9 +4,16 @@
  * META.vendor: ESM-only libs bundled by esbuild into classic IIFE files under engine/vendor/ (e.g. 'three' → vendor/three.js, global THREE).
  * Not ES modules + import map: Chromium blocks module scripts on file:// (CORS, origin null), in preview and in render. */
 (function () {
-  // canvas: landscape 1920×1080 by default; ?portrait → 1080×1920 with pages from pages-portrait/ (same script.js)
-  const portrait = /[?&]portrait(&|=|$)/.test(location.search);
-  window.STAGE = portrait ? { w: 1080, h: 1920, portrait: true } : { w: 1920, h: 1080, portrait: false };
+  const meta0 = (window.SCRIPT && SCRIPT.META) || {};
+  // canvas: landscape 1920×1080 by default. A portrait film (META.portrait) is 1080×1920 and its pages are pages/;
+  // ?portrait on a landscape film draws its portrait twin, pages from pages-portrait/ (same script.js).
+  // The layout (kept in step with tools/canvas.mjs, which the tools and the agents read): `area` is the content area,
+  // below the page title and above the subtitles; nothing but subtitles below `subs`; `title` is where the page title starts.
+  const variant = !meta0.portrait && /[?&]portrait(&|=|$)/.test(location.search);
+  const portrait = !!meta0.portrait || variant;
+  window.STAGE = portrait
+    ? { w: 1080, h: 1920, portrait: true, area: { x0: 70, y0: 300, x1: 1010, y1: 1400 }, subs: 1420, title: { x: 70, y: 170 } }
+    : { w: 1920, h: 1080, portrait: false, area: { x0: 140, y0: 180, x1: 1780, y1: 880 }, subs: 900, title: { x: 140, y: 78 } };
   const KIT = document.currentScript.src.replace(/boot\.js(\?.*)?$/, '');
   // browser libraries and fonts: the project's engine_modules/ link (where npm or pnpm actually installed them), named by
   // <meta name="engine-modules">; falls back to the engine's own node_modules/
@@ -35,7 +42,7 @@
     // an extra the engine ships is named engine/… (the project's link): taken from the engine itself, wherever that is
     .concat((meta.extras || []).map((f) => (f.startsWith('engine/') ? KIT + f.slice(7) : f)))
     .concat(KIT + 'runtime/engine.js')
-    .concat(SCRIPT.PAGES.map((p) => `${portrait ? 'pages-portrait' : 'pages'}/${p.id}.js`))
+    .concat(SCRIPT.PAGES.map((p) => `${variant ? 'pages-portrait' : 'pages'}/${p.id}.js`))
     .concat(KIT + 'runtime/main.js');
   // every script asked for at once: written scripts run in order, and a browser sees the next one only once the one
   // before has run, so without these a far server's round trip was paid once per script (some thirty in a row)

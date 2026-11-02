@@ -10,6 +10,7 @@ import { STYLE_NAME } from '../lib/styles';
 import { Composer, RefChip, Sending, type Sent } from './Composer';
 import { DeckControls, ExportControls, RevealFile } from './Export';
 import { Lightbox, type LightItem } from './Lightbox';
+import { isPortrait } from '../lib/aspect';
 import type { Ref } from '../lib/refs';
 import { track } from '../lib/track';
 import { t, useT } from '../i18n';
@@ -223,8 +224,9 @@ function FirstPage({ it, run, project, active, onOpen }: { it: Extract<FeedItem,
     <div className={`rounded-2xl border bg-surface transition-shadow duration-300 animate-rise ${live ? 'border-accent/50 shadow-[0_0_0_4px_rgb(var(--fs-accent)/0.07)]' : 'border-line'}`}>
       <div className="px-4 pb-3 pt-3.5">
         <h4 className="text-balance text-[14.5px] font-semibold leading-snug">{t('conversation.firstPage.title')}</h4>
-        {/* the page as its check saw it, in a 16:9 box so the card doesn't jump when it arrives; a click opens it */}
-        <button className="group relative mt-3 block aspect-video w-full overflow-hidden rounded-xl border border-line bg-paper-2/60" onClick={() => onOpen(it.page)} aria-label={t('conversation.firstPage.open', { n })}>
+        {/* the page as its check saw it, in a box of the film's shape so the card doesn't jump when it arrives (a portrait
+            page centred, at most 200 px wide, so it doesn't fill the conversation); a click opens it */}
+        <button className={`group relative mt-3 block ${isPortrait(project) ? 'mx-auto aspect-[9/16] w-[min(100%,200px)]' : 'aspect-video w-full'} overflow-hidden rounded-xl border border-line bg-paper-2/60`} onClick={() => onOpen(it.page)} aria-label={t('conversation.firstPage.open', { n })}>
           {still && <img src={client.fileUrl(project, relPath(still, project.id))} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]" />}
           <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-paper/90 px-2.5 py-1 text-[11.5px] text-ink shadow-sm"><Play size={10} className="fill-current" aria-hidden /> {t('conversation.firstPage.open', { n })}</span>
         </button>
@@ -452,8 +454,9 @@ function DoneCard({ run, project, onPlay }: { run: RunView; project: ProjectView
   return (
     <div className="overflow-hidden rounded-2xl border border-jade/30 bg-surface animate-rise">
       {poster && (
-        <button onClick={onPlay} className="group relative block aspect-video w-full overflow-hidden" aria-label={t('conversation.done.play')}>
-          <img src={client.fileUrl(project, relPath(poster, project.id))} alt="" className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]" />
+        <button onClick={onPlay} className={`group relative block aspect-video w-full overflow-hidden ${isPortrait(project) ? 'bg-paper-2' : ''}`} aria-label={t('conversation.done.play')}>
+          {/* a portrait film's poster stands whole in the same 16:9 band, as tall and narrower */}
+          <img src={client.fileUrl(project, relPath(poster, project.id))} alt="" className={`h-full w-full ${isPortrait(project) ? 'object-contain' : 'object-cover'} transition-transform duration-500 ease-out group-hover:scale-[1.02]`} />
           <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/30">
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-paper/90 text-ink shadow-lg"><Play size={20} className="translate-x-px" aria-hidden /></span>
           </span>

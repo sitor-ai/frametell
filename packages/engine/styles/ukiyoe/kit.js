@@ -165,7 +165,7 @@
    *  lt 0, under everything. o: { color ('blue'), to (0.62: how far down the fade reaches, as a share of the frame),
    *  horizon (a colour for a glow above the horizon, e.g. 'redF' or 'yellow'), hy (720: horizon y), at, dur (1.2) } */
   B.sky = function (o = {}) {
-    const at = o.at ?? 0, dur = o.dur ?? 1.2, to = o.to ?? 0.62, hy = o.hy ?? 720, rgb = rgbOf(o.color || 'blue');
+    const at = o.at ?? 0, dur = o.dur ?? 1.2, to = o.to ?? 0.62, hy = o.hy ?? STAGE.area.y1 - 160, rgb = rgbOf(o.color || 'blue');
     const k = (lt) => clamp((lt - at) / dur);
     const draw = (c, lt) => {
       const e = ss(0, 1, k(lt)); if (e <= 0) return;
@@ -231,7 +231,7 @@
    *  keylined block with a bokashi crest; dotted with tiny trees. o: { y (760: top of the near range), ranges (3),
    *  colors (['greenF', 'green', 'purple']), trees (true), at, dur (1.6), seed } */
   B.hills = function (o = {}) {
-    const y = o.y ?? 760, n = o.ranges ?? 3, seed = o.seed ?? seedN++, r = PV.rng(seed);
+    const y = o.y ?? STAGE.area.y1 - 120, n = o.ranges ?? 3, seed = o.seed ?? seedN++, r = PV.rng(seed);
     const colors = o.colors ?? ['#9DB39A', '#6F8E63', '#3F5E45'].slice(3 - n);
     const light = (c) => { const v = rgbOf(c); return '#' + v.map((x) => Math.round(lerp(x, 236, 0.45)).toString(16).padStart(2, '0')).join(''); };
     const blocks = [], lines = [];
@@ -258,7 +258,7 @@
    *  they hide part of what is behind them, which is what makes distance in a woodblock print. o: { y (560: centre of
    *  the band group), bands (3), color ('paper'; 'redF' peach, 'yellow' gold), speed (8 px/s), at, dur (1.2), seed } */
   B.kasumi = function (o = {}) {
-    const y = o.y ?? 560, n = o.bands ?? 3, sp = o.speed ?? 8, at = o.at ?? 0, dur = o.dur ?? 1.2, seed = o.seed ?? seedN++, r = PV.rng(seed);
+    const y = o.y ?? H / 2 + 20, n = o.bands ?? 3, sp = o.speed ?? 8, at = o.at ?? 0, dur = o.dur ?? 1.2, seed = o.seed ?? seedN++, r = PV.rng(seed);
     const color = o.color ?? 'paper';
     const bands = Array.from({ length: n }, (_, i) => ({ x: -200 + r() * 700 + i * 260, y: y + (i - (n - 1) / 2) * 70 + (r() - 0.5) * 30, w: 700 + r() * 700, h: 34 + r() * 26, v: sp * (0.6 + r() * 0.8) * (i % 2 ? -1 : 1) }));
     const draw = (c, lt) => {
@@ -279,7 +279,7 @@
    *  sideways forever. o: { y0 (640: horizon), y1 (1080: nearest row), rows (7), speed (24 px/s), color ('blue'), at,
    *  dur (1.4), seed } */
   B.waves = function (o = {}) {
-    const y0 = o.y0 ?? 640, y1 = o.y1 ?? H, n = o.rows ?? 7, sp = o.speed ?? 24, at = o.at ?? 0, dur = o.dur ?? 1.4;
+    const y0 = o.y0 ?? STAGE.area.y1 - 240, y1 = o.y1 ?? H, n = o.rows ?? 7, sp = o.speed ?? 24, at = o.at ?? 0, dur = o.dur ?? 1.4;
     const deep = rgbOf(o.color || 'blue'), pale = rgbOf('blueF'), paper = rgbOf('paper'), ink = rgbOf('ink');
     const mix = (q) => [0, 1, 2].map((j) => Math.round(lerp(pale[j], deep[j], q)));
     const draw = (c, lt) => {
@@ -558,14 +558,14 @@
   B.title = function (str, o = {}) {
     const at = o.at ?? 0.1, T = this.hud || this, latin = !/[㐀-鿿]/.test(str);
     if (latin) {
-      const size = o.size ?? 46, c = T.cartouche(str, 140, 50, { size, at, dir: 'h', fill: o.fill ?? 'yellow' });
-      if (o.seal !== false) T.seal(140 + c.w + 18, 56, o.seal || '帧言', { size: 52, at: at + 1.2 });
+      const size = o.size ?? 46, c = T.cartouche(str, STAGE.title.x, STAGE.title.y - 28, { size, at, dir: 'h', fill: o.fill ?? 'yellow' });
+      if (o.seal !== false) T.seal(STAGE.title.x + c.w + 18, STAGE.title.y - 22, o.seal || '帧言', { size: 52, at: at + 1.2 });
       return c.text;
     }
     const n = [...String(str).replace(/\s+/g, '')].length, size = o.size ?? (n > 12 ? 40 : n > 9 ? 46 : 52);
-    const pad = size * 0.38, w = size + pad * 2, x = 1800 - w;
-    const c = T.cartouche(str.replace(/\s+/g, ''), x, 70, { size, at, dir: 'v', fill: o.fill ?? 'yellow' });
-    if (o.seal !== false) T.seal(x + (w - 52) / 2, 70 + c.h + 18, o.seal || '帧言', { size: 52, at: at + 1.2 });
+    const pad = size * 0.38, w = size + pad * 2, x = W - 120 - w;
+    const c = T.cartouche(str.replace(/\s+/g, ''), x, STAGE.title.y - 8, { size, at, dir: 'v', fill: o.fill ?? 'yellow' });
+    if (o.seal !== false) T.seal(x + (w - 52) / 2, STAGE.title.y - 8 + c.h + 18, o.seal || '帧言', { size: 52, at: at + 1.2 });
     return c.text;
   };
 

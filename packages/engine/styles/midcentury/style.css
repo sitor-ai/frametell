@@ -31,6 +31,7 @@ svg.ink g.mark path { opacity: 0.35; }
 /* page title: a cream plate with a thin ink rule, the title in display lettering over a mustard plate */
 .mc-title { position: absolute; left: 120px; top: 52px; z-index: 5; display: flex; align-items: center; gap: 22px; white-space: nowrap;
   font-family: var(--display); font-weight: 900; font-size: 54px; line-height: 1.1; color: #2B2420; transform-origin: 0 50%; }
+#frame.portrait .mc-title { left: 50px; top: 144px; }
 .mc-title .star { width: 44px; height: 44px; flex: none; }
 .mc-title .kick { display: block; font-family: var(--hand); font-weight: 700; font-size: 26px; letter-spacing: 0.3em; color: #D9553A; text-transform: uppercase; margin-bottom: 6px; }
 

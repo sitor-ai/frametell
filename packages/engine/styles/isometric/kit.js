@@ -90,7 +90,7 @@
    *  S.move / S.cyl / S.tree / S.person / S.bars / S.pipe / S.label; S.pt(x, y, z) → [px, py] page coordinates of a grid point (for your own
    *  labels and numbers). Things are depth-sorted every frame. Typical: unit 70–76 with grid 12×9 (the plate's front tip may dip under the subtitles; its back corner sits near the title); fill the plate densely (most cells hold something). */
   B.iso = function (o = {}) {
-    const self = this, u = o.unit ?? 72, cx = o.x ?? 960, cy = o.y ?? 570, grid = o.grid ?? [12, 9];
+    const self = this, u = o.unit ?? 72, cx = o.x ?? W / 2, cy = o.y ?? (STAGE.area.y0 + STAGE.area.y1) / 2 + 40, grid = o.grid ?? [12, 9];
     const gx0 = grid[0] / 2, gy0 = grid[1] / 2, at0 = o.at ?? 0;
     const pt = (x, y, z = 0) => [cx + ((x - gx0) - (y - gy0)) * u * C30, cy + ((x - gx0) + (y - gy0)) * u * S30 - z * u];
     const items = [];   // { layer: 0 ground | 1 objects | 2 overhead, depth(lt), draw(c, lt), pts() }

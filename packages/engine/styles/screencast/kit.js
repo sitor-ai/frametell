@@ -10,6 +10,7 @@
   const { col, clamp, lerp, ease, Builder, h } = PV;
   const B = Builder.prototype;
   const W = STAGE.w, H = STAGE.h;
+  const BOT = STAGE.area.y1 + 16;   // the lowest a box reaches: just above the subtitles (896 in landscape)
   const isZh = () => { const l = window.SCRIPT?.META?.lang; return l ? /^zh/.test(l) : !/^en/.test(document.documentElement.lang || 'zh'); };
   const L = (zh, en) => (isZh() ? zh : en);
   const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
@@ -182,8 +183,8 @@
     const self = this;
     o = Object.assign({}, appDefaults(self), o);
     const side = Array.isArray(o.sidebar) ? o.sidebar : null;
-    const x = clamp(num(o.x, 80), 20, W - 640), y = clamp(num(o.y, 92), 20, 600);
-    const w = clamp(num(o.w, 1760), 620, W - x - 20), hh = clamp(num(o.h, 804), 360, 896 - y);
+    const x = clamp(num(o.x, 80), 20, W - 640), y = clamp(num(o.y, STAGE.title.y + 14), 20, BOT - 296);
+    const w = clamp(num(o.w, W - 160), 620, W - x - 20), hh = clamp(num(o.h, BOT - STAGE.title.y - 14), 360, BOT - y);
     const app = Object.assign({ name: L('工作台', 'Workspace'), icon: 'grid', color: 'ink' }, typeof o.app === 'string' ? { name: o.app } : (o.app || {}));
     app.color = col(app.color);
     const root = h('div', 'sc-win', null, self.html);
@@ -817,7 +818,7 @@
     const at = num(o.at, 1), gap = 0.12, rel = at + (keys.length - 1) * gap + 0.45, out = num(o.out, at + 1.8);
     const el = h('div', 'sc-keys', keys.map((k) => `<div class="sc-key${k.length === 1 && /[A-Za-z0-9]/.test(k) ? '' : ''}">${keyFace(k)}</div>`).join('') + (o.say ? `<div class="say">${esc(o.say)}</div>` : ''), T.html);
     const ew = el.offsetWidth, eh = el.offsetHeight;
-    const cx = clamp(num(o.x, 960), ew / 2 + 40, W - ew / 2 - 40), cy = clamp(num(o.y, 790), eh / 2 + 30, 896 - eh / 2);
+    const cx = clamp(num(o.x, W / 2), ew / 2 + 40, W - ew / 2 - 40), cy = clamp(num(o.y, STAGE.area.y1 - 90), eh / 2 + 30, BOT - eh / 2);
     el.style.left = (cx - ew / 2) + 'px'; el.style.top = (cy - eh / 2) + 'px';
     const ks = [...el.querySelectorAll('.sc-key')];
     T.tick((lt) => {
@@ -843,7 +844,7 @@
     const el = h('div', 'sc-step', `<div class="n">${esc(n)}</div>${text ? `<div class="c">${rich(text)}</div>` : ''}`, this.html);
     const ew = el.offsetWidth, eh = el.offsetHeight;
     let side = o.side;
-    if (!side) side = r.w > 520 ? 'top' : r.x + r.w + 22 + ew < 1860 ? 'right' : r.x - 22 - ew > 60 ? 'left' : 'bottom';
+    if (!side) side = r.w > 520 ? 'top' : r.x + r.w + 22 + ew < W - 60 ? 'right' : r.x - 22 - ew > 60 ? 'left' : 'bottom';
     if (side === 'left') el.classList.add('flip');
     const [mx, my] = mid(r);
     let lx, ly;
@@ -851,7 +852,7 @@
     else if (side === 'left') { lx = r.x - 18 - ew; ly = my - eh / 2; }
     else if (side === 'top') { lx = r.w > 520 ? r.x + 40 : mx - 28; ly = r.y - 14 - eh; }
     else { lx = r.w > 520 ? r.x + 40 : mx - 28; ly = r.y + r.h + 16; }
-    lx = clamp(lx, 40, W - ew - 40); ly = clamp(ly, 30, 896 - eh);
+    lx = clamp(lx, 40, W - ew - 40); ly = clamp(ly, 30, BOT - eh);
     Object.assign(el.style, { left: lx + 'px', top: ly + 'px' });
     const nEl = el.firstChild, cEl = el.children[1];
     const dx = side === 'left' ? 14 : side === 'right' ? -14 : 0;

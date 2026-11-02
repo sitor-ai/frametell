@@ -37,10 +37,12 @@
 .tt-step { position: absolute; left: 64px; top: 40px; display: flex; align-items: center; gap: 18px; font-size: 40px; font-weight: 700; color: var(--ink); }
 .tt-step b { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; background: var(--acc); color: #0C0A09; font-size: 32px; }
 .tt-step b:empty { display: none; }
+#frame.portrait .tt-step { top: 132px; }
 .tt-step em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 28px; }
 .tt-note { position: absolute; max-width: 540px; padding: 18px 24px; border-radius: 16px; background: rgba(24, 21, 19, 0.94);
   border: 2px solid var(--acc); font-size: 30px; font-weight: 600; line-height: 1.35; color: var(--ink); }
 .tt-note .k { display: block; font-size: 24px; color: var(--acc); margin-bottom: 4px; }
 .tt-note b { color: var(--acc); }
 .tt-card { position: absolute; left: 160px; right: 160px; top: 380px; text-align: center; font-size: 88px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+#frame.portrait .tt-card { left: 70px; right: 70px; top: 800px; }
 .tt-card small { display: block; margin-top: 28px; font-size: 38px; font-weight: 500; color: var(--soft); }

@@ -10,7 +10,7 @@
   const B = Builder.prototype;
   const W = STAGE.w, H = STAGE.h;
   const TAU = Math.PI * 2, D2R = Math.PI / 180;
-  const SAFE = { x0: 150, y0: 190, x1: 1770, y1: 868 };
+  const A = STAGE.area, SAFE = { x0: A.x0 + 10, y0: A.y0 + 10, x1: A.x1 - 10, y1: A.y1 - 12 };
   const lang = () => (window.SCRIPT?.META?.lang === 'en' ? 'en' : 'zh');
   const need = () => {
     if (!window.THREE) throw new Error('3D Cosmos draws with three.js: set META.vendor: [\'three\'] and META.webgl: true');
@@ -350,7 +350,7 @@
     sp.ctx = ov.getContext('2d');
     // the scene fills the frame: a transparent marker tells the page check it is content, not a backdrop
     const mark = PV.s('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;pointer-events:none' }, this.html);
-    PV.s('rect', { x: 230, y: 210, width: 1460, height: 640, fill: 'transparent' }, mark);
+    PV.s('rect', { x: A.x0 + 90, y: A.y0 + 30, width: A.x1 - A.x0 - 180, height: A.y1 - A.y0 - 60, fill: 'transparent' }, mark);
     sp.cam0 = cam0;
     this.tick((lt) => drawHud(sp, lt));
     Object.assign(sp, API);
@@ -929,8 +929,8 @@
         return { pos: (lt) => { const p = body.pos(lt), s = R * body.grow(lt); return [p[0] + s * rm * Math.cos(el) * -Math.cos(phi), p[1] + s * rm * Math.sin(el), p[2] + s * rm * Math.cos(el) * Math.sin(phi)]; }, r: () => 0 };
       };
       if (o.labels) {
-        const n = L.length, top = 540 - (n - 1) * 62;
-        L.forEach((ly, i) => sp.label(layer(i), ly.name, { at: o.labels[i] ?? open + 1.2 + i * 0.8, sub: ly.sub, color: ly.glow > 0.6 ? 'yellow' : 'blue', size: 34, fixed: [1330, top + i * 124 - 30] }));
+        const n = L.length, top = H / 2 - (n - 1) * 62;
+        L.forEach((ly, i) => sp.label(layer(i), ly.name, { at: o.labels[i] ?? open + 1.2 + i * 0.8, sub: ly.sub, color: ly.glow > 0.6 ? 'yellow' : 'blue', size: 34, fixed: [W - 590, top + i * 124 - 30] }));
       }
       return { body, layer, layers: L };
     },

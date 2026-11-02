@@ -28,6 +28,7 @@ svg.ink g.mark path { opacity: 0.45; mix-blend-mode: multiply; }
 .mg-sfx.brush { font-family: 'Ma Shan Zheng', 'Noto Sans SC Variable', serif; font-weight: 400; }
 .mg-label { position: absolute; font-family: var(--gothic); font-weight: 900; text-align: center; white-space: nowrap; }
 .mg-title { position: absolute; left: 96px; top: 42px; z-index: 5; display: flex; align-items: stretch; transform-origin: 0 50%; }
+#frame.portrait .mg-title { left: 26px; top: 134px; }
 .mg-title .no { background: #FFF; color: #111; border: 4px solid #111; font: 900 26px/1 'Inter Tight Variable', sans-serif;
   padding: 0 14px; display: flex; align-items: center; letter-spacing: 0.04em; }
 .mg-title .t { background: #111; color: #FFF; font-family: 'Noto Sans SC Variable', 'Inter Tight Variable', sans-serif; font-weight: 900;

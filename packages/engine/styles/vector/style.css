@@ -31,4 +31,5 @@ svg.ink g.mark path { opacity: 0.3; }
   transform-origin: 50% 50%; box-shadow: 0 6px 18px rgba(3, 0, 20, 0.35); }
 .vtitle { position: absolute; left: 140px; top: 74px; display: flex; align-items: center; gap: 18px; white-space: nowrap;
   font-family: var(--hand); font-weight: 800; color: #F6F3FF; letter-spacing: -0.01em; }
+#frame.portrait .vtitle { left: 70px; top: 166px; }
 .vtitle i { display: block; width: 18px; height: 18px; border-radius: 50%; flex: none; }

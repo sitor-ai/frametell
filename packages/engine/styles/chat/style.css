@@ -28,6 +28,7 @@ svg.ink g.mark path { opacity: 0.35; }
 /* ── kit ── (every text node here renders at ≥ 24 px; smaller chrome is drawn on canvas as .cs-lab) */
 .cs-lab { display: block; flex: none; }
 .cs-ground { position: absolute; left: -320px; top: -320px; width: 2560px; height: 1720px; pointer-events: none; }
+#frame.portrait .cs-ground { width: 1720px; height: 2560px; }
 .cs-blob { position: absolute; border-radius: 50%; }
 .cs-mk { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .cs-phone { position: absolute; transform-origin: 50% 50%; font-family: var(--ui); color: #1B2232; }
@@ -195,6 +196,7 @@ svg.ink g.mark path { opacity: 0.35; }
 .cs-tap i { position: absolute; border-radius: 50%; display: block; }
 .cs-title { position: absolute; left: 140px; top: 64px; display: flex; align-items: center; gap: 16px; white-space: nowrap; font-family: var(--ui); font-weight: 800;
   color: #1B2232; letter-spacing: -0.01em; }
+#frame.portrait .cs-title { left: 70px; top: 156px; }
 .cs-title svg { flex: none; }
 .cs-line { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .cs-say .cs-b.hl { box-shadow: 0 0 0 6px #F8C81C, 0 16px 36px rgba(24, 36, 64, 0.16); }

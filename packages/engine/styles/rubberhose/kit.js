@@ -418,7 +418,7 @@
    *  — for "the voices in your head"), 'sunburst' (rotating rays behind a centre — for big moments). o: { floor (y of
    *  the ground line, default 860), tint (the dominant colour name), at (it cuts in at this moment), out (cuts away) }. */
   B.scene = function (kind, o = {}) {
-    const PADX = 260, PADY = 160, w = W + PADX * 2, hh = H + PADY * 2, floor = (o.floor ?? 860) + PADY;
+    const PADX = 260, PADY = 160, w = W + PADX * 2, hh = H + PADY * 2, floor = (o.floor ?? STAGE.area.y1 - 20) + PADY;
     return mountCanvas(this, w, hh, (lt) => {
       const tq = step(lt);
       if (o.at != null && tq < o.at) return null;
@@ -433,9 +433,9 @@
           g.fillStyle = col('green'); g.beginPath(); g.moveTo(0, floor - 10); g.bezierCurveTo(w * 0.3, floor - 70, w * 0.6, floor + 30, w, floor - 30); g.lineTo(w, hh); g.lineTo(0, hh); g.fill(); inkS(g, 5); g.stroke();
           g.fillStyle = 'rgba(27,21,18,0.12)'; for (let k = 0; k < 60; k++) { const r = PV.rng(k + 7), x = r() * w, y = floor + 20 + r() * (hh - floor - 20); g.beginPath(); g.ellipse(x, y, 10, 3, 0, 0, 7); g.fill(); }
         }), 0, 0);
-        sunFace(c, PADX + 1500, PADY + 230, 82, tq);
+        sunFace(c, PADX + W - 420, PADY + 230, 82, tq);
         cloud(c, PADX + 260 + (tq * 14) % 200, PADY + 150, 1.2, tq, 0.2); cloud(c, PADX + 900 + (tq * 10) % 160, PADY + 90, 0.9, tq, 0.7);
-        tree(c, PADX + 190, floor - 40, 1.3, tq, 0.25); tree(c, PADX + 1760, floor - 70, 1.05, tq, 0.75);
+        tree(c, PADX + 190, floor - 40, 1.3, tq, 0.25); tree(c, PADX + W - 160, floor - 70, 1.05, tq, 0.75);
       } else if (kind === 'room') {
         c.drawImage(cached('room' + floor + (o.tint || ''), w, hh, (g) => {
           g.fillStyle = '#F1E2C0'; g.fillRect(0, 0, w, hh);
@@ -448,7 +448,7 @@
           const vg = g.createRadialGradient(w / 2, hh * 0.45, 300, w / 2, hh * 0.5, 1300); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(60,40,20,0.35)'); g.fillStyle = vg; g.fillRect(0, 0, w, hh);
         }), 0, 0);
         // window with the sun outside
-        const wx = PADX + 1240, wy = PADY + 120, ww = 420, wh = 340;
+        const wx = PADX + W - 680, wy = PADY + 120, ww = 420, wh = 340;
         c.save(); c.beginPath(); c.rect(wx, wy, ww, wh); c.clip(); c.fillStyle = '#F8EFD8'; c.fillRect(wx, wy, ww, wh);
         c.fillStyle = col('greenF'); c.beginPath(); c.moveTo(wx, wy + wh - 60); c.quadraticCurveTo(wx + ww / 2, wy + wh - 130, wx + ww, wy + wh - 70); c.lineTo(wx + ww, wy + wh); c.lineTo(wx, wy + wh); c.fill(); inkS(c, 4); c.stroke();
         sunFace(c, wx + ww * 0.66, wy + 110, 46, tq); cloud(c, wx + 110 + (tq * 12) % 80, wy + 90, 0.7, tq, 0.4);

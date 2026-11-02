@@ -28,6 +28,7 @@ svg.ink [filter="url(#wc)"] { filter: none; }
 /* the page title: a graphics-desk headline */
 .gtitle { position: absolute; left: 140px; top: 62px; white-space: nowrap; font-family: var(--hand); color: #EEF3FB;
   text-shadow: 0 0 8px rgba(4, 10, 28, 0.95), 0 0 22px rgba(4, 10, 28, 0.85), 0 0 44px rgba(4, 10, 28, 0.6); }
+#frame.portrait .gtitle { left: 70px; top: 154px; }
 .gtitle em { display: block; width: 56px; height: 5px; border-radius: 3px; margin-bottom: 14px; }
 .gtitle i { display: block; font-style: normal; font-family: var(--mono); font-weight: 500; font-size: 25px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
 .gtitle span { display: block; font-size: 44px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; }
@@ -64,3 +65,4 @@ svg.ink [filter="url(#wc)"] { filter: none; }
 .glegend .sw { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
 .glegend .sw em { display: block; width: 34px; height: 5px; border-radius: 3px; }
 .gsource { position: absolute; left: 140px; top: 846px; font-family: var(--mono); font-weight: 500; font-size: 25px; color: #7C8AA8; letter-spacing: 0.01em; white-space: nowrap; text-shadow: 0 0 6px rgba(4, 10, 28, 0.95), 0 0 16px rgba(4, 10, 28, 0.8); }
+#frame.portrait .gsource { left: 70px; top: 1366px; }

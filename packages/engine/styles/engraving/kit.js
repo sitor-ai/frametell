@@ -684,13 +684,13 @@
   B.title = function (str, o = {}) {
     const at = o.at ?? 0.1, T = this.hud || this, zh = isZh(str), s = String(str).replace(/[\s\u3000]*(Pl|PL|Plate|PLATE)\.?\s*[IVXLC\d]+\.?\s*$/, '').trim();   // the plate number is added below
     const size = o.size ?? (zh ? ([...s].length > 14 ? 40 : 46) : s.length > 34 ? 32 : 38);
-    const t = T.text(s, { x: W / 2, y: 74, size, at, cps: o.cps ?? (zh ? 12 : 22), align: 'c', w: 1500, cls: zh ? 'eg-zh' : 'eg-cap', color: 'ink', lh: 1.15, pen: false });
-    const tw = Math.min(1400, PV.tw(s, size) * (zh ? 1.3 : 1.25)), half = Math.max(120, tw * 0.32), ry = 74 + size * 1.3 + 6, ink = new Ink(), ta = at + 0.3;
+    const t = T.text(s, { x: W / 2, y: STAGE.title.y - 4, size, at, cps: o.cps ?? (zh ? 12 : 22), align: 'c', w: W - 420, cls: zh ? 'eg-zh' : 'eg-cap', color: 'ink', lh: 1.15, pen: false });
+    const tw = Math.min(W - 520, PV.tw(s, size) * (zh ? 1.3 : 1.25)), half = Math.max(120, tw * 0.32), ry = STAGE.title.y - 4 + size * 1.3 + 6, ink = new Ink(), ta = at + 0.3;
     stroke(ink, [[W / 2, ry], [W / 2 - half, ry]], { w: 1.9, taper: 40 }, 'a'); stroke(ink, [[W / 2, ry], [W / 2 + half, ry]], { w: 1.9, taper: 40 }, 'a');
     stroke(ink, [[W / 2, ry + 6], [W / 2 - half * 0.6, ry + 6]], { w: 0.9, taper: 30 }, 'a'); stroke(ink, [[W / 2, ry + 6], [W / 2 + half * 0.6, ry + 6]], { w: 0.9, taper: 30 }, 'a');
     ink.schedule('a', ta, ta + 0.7, 4);
     mount(T, [W / 2 - half - 10, ry - 10, W / 2 + half + 10, ry + 16], {}, (c, lt) => ink.draw(c, lt, col('ink')), (lt) => Math.min(lt, ta + 0.8).toFixed(3));
-    if (o.plate !== false) T.text(o.plate || `Pl. ${roman((this.page.index ?? 0) + 1)}.`, { x: 1800, y: 78, size: 28, at: at + 0.2, cps: 14, align: 'r', w: 300, cls: 'eg-it', color: 'soft', pen: false });
+    if (o.plate !== false) T.text(o.plate || `Pl. ${roman((this.page.index ?? 0) + 1)}.`, { x: W - 120, y: STAGE.title.y, size: 28, at: at + 0.2, cps: 14, align: 'r', w: 300, cls: 'eg-it', color: 'soft', pen: false });
     return t;
   };
 

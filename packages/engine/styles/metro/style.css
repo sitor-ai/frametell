@@ -28,6 +28,7 @@ svg.ink g.mark path { opacity: 0.35; }
 
 /* ── kit */
 .mt-root { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+#frame.portrait .mt-root { width: 1080px; height: 1920px; }
 .mt-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .mt-lab { position: absolute; white-space: nowrap; line-height: 1.08; color: #1B1E23; font-family: var(--hand); font-weight: 600; }
 .mt-lab .s { display: block; font-weight: 500; color: #4A4F57; font-size: max(24px, 0.78em); margin-top: 4px; letter-spacing: 0; }
@@ -50,6 +51,7 @@ svg.ink g.mark path { opacity: 0.35; }
 .mt-zl { position: absolute; white-space: nowrap; font-family: var(--hand); font-weight: 700; font-size: 28px; letter-spacing: 0.08em; color: #9AA0A6; }
 .mt-rv { position: absolute; white-space: nowrap; font-family: var(--hand); font-style: italic; font-weight: 500; font-size: 28px; letter-spacing: 0.04em; color: #5E95C4; }
 .mt-tt { position: absolute; left: 140px; top: 64px; display: flex; align-items: center; gap: 22px; white-space: nowrap; }
+#frame.portrait .mt-tt { left: 70px; top: 156px; }
 .mt-tt .no { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 28px; flex: none; font-family: 'Inter Tight Variable', sans-serif; letter-spacing: -0.02em; }
 .mt-tt .t { font-family: var(--hand); font-weight: 800; font-size: 50px; letter-spacing: -0.01em; color: #1B1E23; line-height: 1; }
 .mt-tt .bars { display: flex; gap: 6px; margin-left: 10px; }

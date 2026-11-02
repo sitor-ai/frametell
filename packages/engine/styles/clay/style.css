@@ -26,6 +26,7 @@ svg.ink g.mark path { opacity: 0.35; }
     0 14px 18px -6px rgba(110, 55, 35, 0.32), 0 4px 0 rgba(170, 120, 95, 0.55);
   text-shadow: 1px 2px 0 rgba(255, 255, 255, 0.9), -1px -1px 0 rgba(120, 70, 50, 0.25);
   transform-origin: 20% 100%; }
+#frame.portrait .cl-title { left: 58px; top: 138px; }
 .cl-title .sub { display: block; font-size: 0.46em; font-weight: 800; letter-spacing: 0.12em; color: #E5594B; margin-top: 4px; }
 .cl-title.latin { font-family: var(--latin); font-weight: 400; letter-spacing: 0.01em; }
 

@@ -22,7 +22,7 @@ window.STYLE = {
   },
   // warm off-white with the 12-column grid printed almost invisibly, plus a fine print grain
   background: (stage) => {
-    const m = 140, g = 24, cw = (stage.w - 2 * m - 11 * g) / 12;
+    const m = stage.area.x0, g = 24, cw = (stage.w - 2 * m - 11 * g) / 12;
     const cols = Array.from({ length: 12 }, (_, i) => `<rect x="${(m + i * (cw + g)).toFixed(1)}" y="0" width="${cw.toFixed(1)}" height="${stage.h}" fill="#000" fill-opacity="0.018"/>`).join('');
     const grid = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${stage.w}" height="${stage.h}">${cols}</svg>`);
     const grain = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="9" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0.06 0"/></filter><rect width="300" height="300" filter="url(#n)"/></svg>');

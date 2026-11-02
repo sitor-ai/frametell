@@ -38,9 +38,11 @@ svg.ink [filter="url(#wc)"] { filter: none; }
   box-shadow: 0 0 10px rgba(140, 230, 255, 0.8); }
 .mtitle { position: absolute; left: 140px; top: 70px; display: flex; align-items: center; gap: 18px; white-space: nowrap;
   font-family: var(--hand); font-weight: 600; color: #EAF6F8; letter-spacing: 0.02em; text-shadow: 0 1px 10px rgba(0, 10, 14, 0.8); }
+#frame.portrait .mtitle { left: 70px; top: 162px; }
 .mtitle i { display: block; width: 4px; height: 1.05em; background: #5CC8FF; box-shadow: 0 0 12px rgba(92, 200, 255, 0.9); flex: none; }
 .mscale { position: absolute; left: 150px; top: 836px; display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-weight: 500;
   font-size: 26px; color: rgba(214, 240, 245, 0.9); text-shadow: 0 1px 6px rgba(0, 10, 14, 0.9); }
+#frame.portrait .mscale { left: 80px; top: 1356px; }
 .mscale b { display: block; height: 4px; background: rgba(214, 240, 245, 0.9); border-left: 2px solid #fff; border-right: 2px solid #fff; }
 .mnum { position: absolute; white-space: nowrap; font-family: var(--latin); font-weight: 600; line-height: 1; letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums; text-shadow: 0 0 30px rgba(0, 10, 14, 0.85); }

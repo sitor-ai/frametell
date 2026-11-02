@@ -258,8 +258,8 @@
    *  bottom ('yellow'), y (520: how far down it reaches), x0 (150), x1 (1770), tone (0.55), clouds (3), from ('left' |
    *  'right'), seed } */
   B.sky = function (o = {}) {
-    const at = o.at ?? 0, dur = o.dur ?? 1.6, yb = o.y ?? 520, tone = o.tone ?? 0.55, seed = o.seed ?? seedN++;
-    const x0 = o.x0 ?? 150, x1 = o.x1 ?? 1770, y0 = o.y0 ?? 150;
+    const at = o.at ?? 0, dur = o.dur ?? 1.6, yb = o.y ?? STAGE.area.y0 + 340, tone = o.tone ?? 0.55, seed = o.seed ?? seedN++;
+    const x0 = o.x0 ?? STAGE.area.x0 + 10, x1 = o.x1 ?? STAGE.area.x1 - 10, y0 = o.y0 ?? STAGE.area.y0 - 30;
     const top = rgbOf(o.top || 'blue'), bot = rgbOf(o.bottom || 'yellow'), r = PV.rng(seed * 7 + 3), fromR = o.from === 'right';
     const clouds = Array.from({ length: o.clouds ?? 3 }, (_, i) => ({ x: lerp(x0 + 200, x1 - 200, (i + 0.3 + r() * 0.4) / (o.clouds ?? 3)), y: y0 + 60 + r() * (yb - y0) * 0.35, rx: 110 + r() * 150, ry: 34 + r() * 30, s: r() * 10 }));
     const shape = [];
@@ -302,8 +302,8 @@
    *  colors (['blue', 'green', 'orange'] far→near), tone (0.6), x0 (140), x1 (1780), at, dur (1.0 per range), gap
    *  (0.45), seed } */
   B.hills = function (o = {}) {
-    const y = o.y ?? 700, Hh = o.height ?? 280, n = o.layers ?? 3, at = o.at ?? 0, dur = o.dur ?? 1.0, gap = o.gap ?? 0.45, seed = o.seed ?? seedN++;
-    const x0 = o.x0 ?? 140, x1 = o.x1 ?? 1780;
+    const y = o.y ?? STAGE.area.y1 - 180, Hh = o.height ?? 280, n = o.layers ?? 3, at = o.at ?? 0, dur = o.dur ?? 1.0, gap = o.gap ?? 0.45, seed = o.seed ?? seedN++;
+    const x0 = o.x0 ?? STAGE.area.x0, x1 = o.x1 ?? STAGE.area.x1;
     const colors = o.colors || ['blue', 'green', 'orange'], tone = o.tone ?? 0.6, hs = [];
     for (let i = 0; i < n; i++) {
       const q = n === 1 ? 1 : i / (n - 1), base = y - (1 - q) * Hh * 0.7, amp = Hh * lerp(0.4, 0.8, q), band = 150 + q * 120;
@@ -498,9 +498,9 @@
   // ── the page title: hand-lettered, with a loose wash stripe laid under it ──
   B.title = function (str, o = {}) {
     const at = o.at ?? 0.15, T = this.hud || this, size = o.size ?? 58;
-    const w = Math.min(1500, PV.tw(str, size) * (/[㐀-鿿]/.test(str) ? 1.02 : 0.9));
-    T.wash([[132, 112], [132 + w + 40, 104], [132 + w + 56, 162], [126, 170]], { at, dur: 0.9, color: o.accent || 'yellow', tone: 0.5, wobble: 5, from: [140, 140], grain: 0.6 });
-    return T.text(str, { x: 150, y: 78, size, weight: 700, at: at + 0.2, cps: o.cps ?? 12, color: 'ink' });
+    const w = Math.min(W - 420, PV.tw(str, size) * (/[㐀-鿿]/.test(str) ? 1.02 : 0.9)), TX = STAGE.title.x, TY = STAGE.title.y;
+    T.wash([[TX - 8, TY + 34], [TX - 8 + w + 40, TY + 26], [TX - 8 + w + 56, TY + 84], [TX - 14, TY + 92]], { at, dur: 0.9, color: o.accent || 'yellow', tone: 0.5, wobble: 5, from: [TX, TY + 62], grain: 0.6 });
+    return T.text(str, { x: TX + 10, y: TY, size, weight: 700, at: at + 0.2, cps: o.cps ?? 12, color: 'ink' });
   };
 
   PV.WC = { paint, wobble, blobPts, noise, fbm, grainTile };

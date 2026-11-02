@@ -208,7 +208,7 @@
      *  years. A year placard counts in the top right (counter: false hides it; sub = its caption). The signature move. */
     D.grow = (from, to, at, dur, g = {}) => {
       spec.grow = { from, to, at, dur: dur ?? 8, ...g };
-      if (g.counter !== false) self.placard(g.x ?? 1780, g.y ?? 200, (lt) => Math.round(lerp(from, to, clamp((lt - at) / (dur ?? 8)))), { align: 'r', size: 92, sub: g.sub, at: Math.min(at, at0 + 0.3), fmt: (v) => String(v) });
+      if (g.counter !== false) self.placard(g.x ?? STAGE.area.x1, g.y ?? STAGE.area.y0 + 20, (lt) => Math.round(lerp(from, to, clamp((lt - at) / (dur ?? 8)))), { align: 'r', size: 92, sub: g.sub, at: Math.min(at, at0 + 0.3), fmt: (v) => String(v) });
       return D;
     };
     /** D.zone(area, kind='park'|'forest'|'farm'|'lot'|'sand', { at }): a patch of land use — a park with round trees, a pine
@@ -732,7 +732,7 @@
       ctx.clearRect(0, 0, W, H); ctx.drawImage(R.domElement, 0, 0);
       let fx0 = 1e9, fy0 = 1e9, fx1 = -1e9, fy1 = -1e9;
       for (const [x, y, z] of [[0, 0.4, 0], [GX, 0.4, 0], [0, 0.4, GZ], [GX, 0.4, GZ], [GX / 2, 3, GZ / 2]]) { const v = S.tmp.set(x, y + S.root.position.y, z).project(S.camera); const px = (v.x + 1) / 2 * W, py = (1 - v.y) / 2 * H; fx0 = Math.min(fx0, px); fx1 = Math.max(fx1, px); fy0 = Math.min(fy0, py); fy1 = Math.max(fy1, py); }
-      fx0 = clamp(fx0, 175, W - 175); fx1 = clamp(fx1, 175, W - 175); fy0 = clamp(fy0, 195, 875); fy1 = clamp(fy1, 195, 875);
+      fx0 = clamp(fx0, 175, W - 175); fx1 = clamp(fx1, 175, W - 175); fy0 = clamp(fy0, STAGE.area.y0 + 15, STAGE.area.y1 - 5); fy1 = clamp(fy1, STAGE.area.y0 + 15, STAGE.area.y1 - 5);
       Object.assign(foot.style, { left: fx0 + 'px', top: fy0 + 'px', width: Math.max(1, fx1 - fx0) + 'px', height: Math.max(1, fy1 - fy0) + 'px' });
       layoutLabels(lt);
     }
@@ -790,8 +790,8 @@
         let cx = clamp(side === 'r' ? ax - 10 : ax - w + 10, 130, W - 130 - w);
         const cands = [ay - pinH - hh, ay - pinH - hh * 2 - 14, ay - pinH - hh * 3 - 28, ay + 46, ay + 46 + hh + 14];
         const hit = (yy) => placed.some(([px, py, pw, ph]) => cx < px + pw + 10 && cx + w + 10 > px && yy < py + ph + 10 && yy + hh + 10 > py);
-        let cy = null; for (const c of cands) { if (c >= 190 && c + hh <= 870 && !hit(c)) { cy = c; break; } }
-        if (cy == null) cy = clamp(cands[0], 190, 870 - hh);
+        let cy = null; for (const c of cands) { if (c >= STAGE.area.y0 + 10 && c + hh <= STAGE.area.y1 - 10 && !hit(c)) { cy = c; break; } }
+        if (cy == null) cy = clamp(cands[0], STAGE.area.y0 + 10, STAGE.area.y1 - 10 - hh);
         placed.push([cx, cy, w, hh]);
         const op = clamp(k * 1.5).toFixed(3), sc = ((1 - clamp(k)) * 12).toFixed(1);
         Object.assign(F.card.style, { left: cx + 'px', top: cy + 'px', opacity: op, transform: `translateY(${sc}px)` });

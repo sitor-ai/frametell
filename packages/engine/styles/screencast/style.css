@@ -27,9 +27,11 @@ svg.ink [filter="url(#wc)"] { filter: none; }
 
 /* ── kit ── (every text node renders at ≥ 26 px at 1×) */
 .sc-desk { position: absolute; left: -300px; top: -300px; width: 2520px; height: 1680px; pointer-events: none; }
+#frame.portrait .sc-desk { width: 1680px; height: 2520px; }
 .sc-mk { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .sc-title { position: absolute; left: 84px; top: 32px; display: flex; align-items: center; gap: 16px; font-size: 34px; font-weight: 700;
   letter-spacing: -0.01em; color: #151823; white-space: nowrap; font-family: var(--ui); }
+#frame.portrait .sc-title { top: 124px; }
 .sc-title.dark { color: #F3F5F9; }
 .sc-title svg { flex: none; display: block; }
 

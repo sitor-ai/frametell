@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { loadEpisode, OUT, PORTRAIT, EP } from './lib.mjs';
+import { loadEpisode, OUT, PORTRAIT, TWIN, PAGES_DIR, EP } from './lib.mjs';
 import { mixTrack } from './mix.mjs';
 import { FFMPEG, HW_ENCODE, probe } from './bins.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -23,8 +23,9 @@ if (META.voice) {
   const missing = L.pages.flatMap((p) => p.cues.filter((c) => !c.audio).map((c) => `${p.id}「${c.text}」`));
   if (missing.length) { console.error(`✗ these lines have no narration yet; voice them first:\n${missing.join('\n')}`); process.exit(1); }
 }
-// --portrait: 1080×1920 from pages-portrait/, files get a portrait tag; children inherit PORTRAIT=1
-if (PORTRAIT) process.env.PORTRAIT = '1';
+// --portrait: a landscape film's portrait twin, 1080×1920 from pages-portrait/, files get a portrait tag; children
+// inherit PORTRAIT=1. A portrait film (META.portrait) is 1080×1920 from pages/ with no flag, its files named as any film's
+if (TWIN) process.env.PORTRAIT = '1';
 if (has('hw')) process.env.HW = '1';
 const JPEG = +arg('jpeg-quality', 92);
 process.env.JPEG_QUALITY = String(JPEG);
@@ -32,7 +33,7 @@ process.env.JPEG_QUALITY = String(JPEG);
 // service); children inherit WATERMARK=1, and marked segments are cached apart from unmarked ones
 const WATERMARK = has('watermark');
 if (WATERMARK) process.env.WATERMARK = '1';
-const FPS = +arg('fps', 60), W = +arg('workers', 12), name = arg('name', META.name || 'video') + (PORTRAIT ? (!META.lang || /^zh/.test(META.lang) ? '-竖版' : '-portrait') : '');
+const FPS = +arg('fps', 60), W = +arg('workers', 12), name = arg('name', META.name || 'video') + (TWIN ? (!META.lang || /^zh/.test(META.lang) ? '-竖版' : '-portrait') : '');
 const from = +arg('from', 0), to = +arg('to', L.duration);
 const F0 = Math.round(from * FPS), F1 = Math.round(to * FPS);
 // The film's first frame is its cover: a page settled, at the moment its thumbnail is cut (0.4 s before it ends). Which
@@ -54,7 +55,7 @@ const COVER = (() => {
   const p = L.pages.find((q) => q.id === cover?.page) ?? L.pages[0];
   return p ? Math.round(Math.max(p.start, p.end - 0.4) * 100) / 100 : undefined;
 })();
-const chunkDir = path.join(OUT, PORTRAIT ? 'chunks-portrait' : 'chunks');
+const chunkDir = path.join(OUT, TWIN ? 'chunks-portrait' : 'chunks');
 fs.mkdirSync(chunkDir, { recursive: true });
 
 // one render per episode at a time: two runs share out/chunks (the segment cache)
@@ -82,7 +83,7 @@ const spawned = (cmd, args) => new Promise((res) => {
 const run = (cmd, args) => spawned(cmd, args).then((c) => { if (c) throw new Error(cmd + ' ' + c); });
 const [NO, WITH] = !META.lang || /^zh/.test(META.lang) ? ['无字幕', '有字幕'] : ['no-subtitles', 'with-subtitles'];
 const nosub = path.join(OUT, `${name}-${NO}.mp4`), withsub = path.join(OUT, `${name}-${WITH}.mp4`);
-const subsDir = path.join(OUT, PORTRAIT ? 'subs-portrait' : 'subs');
+const subsDir = path.join(OUT, TWIN ? 'subs-portrait' : 'subs');
 const subbed = (g) => g.out.replace(/\.mp4$/, '.subs.mp4');
 /** a segment with the subtitles over it (re-encoded): its part of the subtitle track, trimmed to its frames */
 const subtitle = (g) => run(FFMPEG, ['-y', '-loglevel', 'error', '-i', g.out, '-f', 'concat', '-safe', '0', '-i', path.join(subsDir, 'list.txt'),
@@ -160,7 +161,7 @@ if (!has('skip-video')) {
     // at the stage's size, where it was short and the bottom rows came out black)
     'capture-2',
   );
-  const pageKey = Object.fromEntries(L.pages.map((p) => [p.id, digest(p, read(path.join(EP, PORTRAIT ? 'pages-portrait' : 'pages', p.id + '.js')).toString())]));
+  const pageKey = Object.fromEntries(L.pages.map((p) => [p.id, digest(p, read(path.join(EP, PAGES_DIR, p.id + '.js')).toString())]));
   // each page: a short piece at either end (where a neighbour's cross-fade reaches), the middle in pieces of ≤ SEG s;
   // so a changed page costs its neighbours only those short end pieces
   const EDGE = MARGIN + 0.2;
@@ -245,7 +246,7 @@ if (!has('skip-subs') && segs.length && segs.every((g) => fs.existsSync(subbed(g
 } else if (!has('skip-subs')) {
   console.time('subs');
   await run(process.execPath, [path.join(dir, 'subs.mjs'), String(from), String(to)]);
-  await run(FFMPEG, ['-y', '-loglevel', 'error', '-i', nosub, '-f', 'concat', '-safe', '0', '-i', path.join(OUT, (PORTRAIT ? 'subs-portrait' : 'subs') + '/list.txt'),
+  await run(FFMPEG, ['-y', '-loglevel', 'error', '-i', nosub, '-f', 'concat', '-safe', '0', '-i', path.join(OUT, (TWIN ? 'subs-portrait' : 'subs') + '/list.txt'),
     '-filter_complex', `[1:v]fps=${FPS},format=rgba[s];[0:v][s]overlay=0:0:format=auto:shortest=1,format=yuv420p[v]`,
     '-map', '[v]', '-map', '0:a?', '-c:a', 'copy', ...(has('hw') ? HW_ENCODE : ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '16']), '-r', String(FPS), '-movflags', '+faststart', withsub]);
   console.timeEnd('subs');

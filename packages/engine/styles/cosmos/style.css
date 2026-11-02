@@ -32,6 +32,7 @@ svg.ink g.mark path { opacity: 0.28; }
 
 /* ── kit ── */
 .cs-title { position: absolute; left: 140px; top: 66px; display: flex; align-items: baseline; gap: 20px; white-space: nowrap; text-shadow: 0 0 18px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9); }
+#frame.portrait .cs-title { left: 70px; top: 158px; }
 .cs-title .no { font-family: var(--mono); font-size: 26px; letter-spacing: 0.16em; color: var(--sun); }
 .cs-title .t { font-family: var(--hand); font-weight: 600; font-size: 42px; letter-spacing: 0.01em; line-height: 1; color: #F2F5FA; }
 .cs-title .rule { position: absolute; left: 0; top: 62px; height: 1px; width: 360px; transform-origin: 0 50%;
@@ -46,5 +47,6 @@ svg.ink g.mark path { opacity: 0.28; }
 .cs-num .u { font-weight: 500; font-size: 0.36em; letter-spacing: 0.02em; margin-left: 0.22em; color: #B9C3D6; }
 .cs-num .cap { display: block; font-family: var(--mono); font-weight: 500; font-size: 24px; letter-spacing: 0.14em; color: #7FD4FF; margin-bottom: 14px; text-transform: uppercase; }
 .cs-counter { position: absolute; right: 140px; top: 60px; text-align: right; white-space: nowrap; }
+#frame.portrait .cs-counter { right: 70px; top: 152px; }
 .cs-counter .k { font-family: var(--mono); font-size: 26px; letter-spacing: 0.16em; color: #7FD4FF; text-transform: uppercase; }
 .cs-counter .v { font-family: var(--hand); font-weight: 300; font-size: 64px; line-height: 1.05; color: #F2F5FA; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }

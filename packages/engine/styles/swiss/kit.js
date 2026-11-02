@@ -11,9 +11,9 @@
   const f2 = (n) => n.toFixed(2);
 
   // ── the grid: 12 columns between x 140 and 1780, 24px gutters
-  const M = 140, G = 24, CW = (1640 - 11 * G) / 12;
+  const A = STAGE.area, M = A.x0, G = 24, CW = (A.x1 - A.x0 - 11 * G) / 12;
   /** PV.gx(i): x of the left edge of grid column i (0–11; 12 = the right margin, 1780). Place everything on these. */
-  PV.gx = (i) => (i >= 12 ? 1780 : M + i * (CW + G));
+  PV.gx = (i) => (i >= 12 ? A.x1 : M + i * (CW + G));
   /** PV.gw(n): width of n grid columns including their gutters (12 = 1640). */
   PV.gw = (n) => n * CW + (n - 1) * G;
 
@@ -229,7 +229,7 @@
     const colors = o.colors || ['red', 'ink'], dur = o.dur ?? 0.6, dir = o.dir || 'l', n = colors.length;
     const horiz = dir === 'l' || dir === 'r';
     colors.forEach((c, i) => {
-      const el = svgBox(this.html, 2120, 1280, col(c));
+      const el = svgBox(this.html, STAGE.w + 200, STAGE.h + 200, col(c));
       Object.assign(el.style, { left: '-100px', top: '-100px', zIndex: 30 + i });
       const d0 = at + i * 0.06, half = dur / 2;
       this.tick((lt) => {
@@ -249,7 +249,7 @@
   /** flood(color, o): the whole page ground turns one colour (a red page, a black page) by a wipe — o: { at, dir ('u'), out }.
    *  Then set text to 'paper'. A red or black flooded page is the loudest move in this style: one per film, for the thesis. */
   B.flood = function (color, o = {}) {
-    const hnd = this.block(-200, -200, 2320, 1480, { color, at: o.at, dir: o.dir || 'u', dur: o.dur ?? 0.45, out: o.out });
+    const hnd = this.block(-200, -200, STAGE.w + 400, STAGE.h + 400, { color, at: o.at, dir: o.dir || 'u', dur: o.dur ?? 0.45, out: o.out });
     // the fixed title (and the band behind it when the camera pushes in) turns to the flood colour, its text to paper
     const hud = (this.hud || this).host, at = (o.at ?? 0) + (o.dur ?? 0.45) * 0.5, c = col(color);
     const rgb = /^#[0-9a-f]{6}$/i.test(c) ? [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)) : [0, 0, 0];
@@ -331,6 +331,11 @@
     const idx = this.page.index + 1, tot = (window.SCRIPT?.PAGES || []).length;
     const pg = h('div', 'sw-pg', `${String(idx).padStart(2, '0')} / ${String(tot).padStart(2, '0')}`, T.html);
     const sq = wrap.querySelector('.sq'), t = wrap.querySelector('.t');
+    // placed from STAGE.title (the CSS holds the landscape numbers: 140, 66, 138, 1640, right 140, 76)
+    const TT = STAGE.title;
+    Object.assign(wrap.style, { left: TT.x + 'px', top: TT.y - 12 + 'px' });
+    Object.assign(rule.style, { left: TT.x + 'px', top: TT.y + 60 + 'px', width: STAGE.w - 2 * TT.x + 'px' });
+    Object.assign(pg.style, { right: TT.x + 'px', top: TT.y - 2 + 'px' });
     const a = T.act({ at, dur: 0.7, g: wrap, kind: 'show', pen: false, apply: (k, lt, vis) => {
       const e = expo(k);
       wrap.style.opacity = f2((lt >= at ? 1 : 0) * vis);
@@ -340,6 +345,6 @@
       rule.style.opacity = f2(vis);
       pg.style.opacity = f2(clamp((k - 0.4) * 3) * vis);
     } });
-    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: 140, y: 66, w: wrap.offsetWidth, h: 44 }) });
+    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: TT.x, y: TT.y - 12, w: wrap.offsetWidth, h: 44 }) });
   };
 })();

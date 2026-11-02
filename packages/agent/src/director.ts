@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { narrate, type TtsProvider } from '@frametell/voice';
 import { Project, childCmd, projectFiles, type LintIssue, type LintKind, type PageTiming, type Storyboard, type Renderer } from './project.js';
-import { FLAG, KIT_CHANGE, langTag, ROUTE, VERDICT, fixPrompt, laneNote, kitChangeAsk, kitChangePrompt, kitChangeSystem, kitFixPrompt, kitPrompt, kitReviewNote, kitReviewerPrompt, kitSystem, langNote, voiceNote, pagePrompt, pageSystem, plannerSystem, replyNote, reviewPrompt, reviewerPrompt, reviewerSystem, routeAsk, routeSystem, scriptPrompt, storyboardFixPrompt, storyboardPrompt, verdictAgain, type Brief, type CreditFacts, type FilmFacts, type Problem } from './prompts.js';
+import { FLAG, canvasSection, KIT_CHANGE, langTag, ROUTE, VERDICT, fixPrompt, laneNote, kitChangeAsk, kitChangePrompt, kitChangeSystem, kitFixPrompt, kitPrompt, kitReviewNote, kitReviewerPrompt, kitSystem, langNote, voiceNote, pagePrompt, pageSystem, plannerSystem, replyNote, reviewPrompt, reviewerPrompt, reviewerSystem, routeAsk, routeSystem, scriptPrompt, storyboardFixPrompt, storyboardPrompt, verdictAgain, type Brief, type CreditFacts, type FilmFacts, type Problem } from './prompts.js';
 import { KIT_CHECK_FILE, KIT_FILE, KIT_KEPT, kitCell, kitCheckPage, kitIssues, kitLocate, kitPart, kitPartCheck, kitPlan, kitStage, kitTimes, kitWanted, type KitItem, type KitPart } from './kit.js';
 import { drawingSession, sourceReading } from './anomaly.js';
 import { addUsage, emptyUsage, type AgentRuntime, type AgentSession, type SessionOptions, type Thinking, type TokenUsage, type TurnResult } from './runtime/types.js';
@@ -619,7 +619,7 @@ export class Director {
     // only what the agent can read: md/txt/images. PDF/Word/PPT/EPUB are parsed beforehand into x.md (or x.pdf.md)
     const all = fs.existsSync(this.project.file('materials')) ? fs.readdirSync(this.project.file('materials')).filter((f) => !f.startsWith('.')) : [];
     const materials = all.filter((f) => /\.(md|markdown|txt|png|jpe?g|webp|gif)$/i.test(f));
-    const s = await this.session('planner', plannerSystem(this.o.style, this.o.brief.preferences, this.o.brief.styleNotes, this.o.brief.brand, userAssets(this.project.dir)), MAX.planTurns, carry ? ref : undefined);
+    const s = await this.session('planner', plannerSystem(this.o.style, this.o.brief.preferences, this.o.brief.styleNotes, this.o.brief.brand, userAssets(this.project.dir)) + this.canvas('planner'), MAX.planTurns, carry ? ref : undefined);
     // the transcript is named before the first turn, not once the exchange is over (it was: a run lost mid-exchange had
     // nothing to carry on from)
     this.state.planner = s.ref; this.save();
@@ -668,7 +668,7 @@ export class Director {
     this.emit({ type: 'stage', stage: 'script', status: 'start' });
     this.state.stage = 'script'; this.save();
     this.serverMeta();
-    const s = await this.session('planner', plannerSystem(this.o.style, this.o.brief.preferences, this.o.brief.styleNotes, this.o.brief.brand, userAssets(this.project.dir)), MAX.planTurns, this.here(this.state.planner));
+    const s = await this.session('planner', plannerSystem(this.o.style, this.o.brief.preferences, this.o.brief.styleNotes, this.o.brief.brand, userAssets(this.project.dir)) + this.canvas('planner'), MAX.planTurns, this.here(this.state.planner));
     let r = await this.send(s, scriptPrompt(feedback, this.o.brief) + this.unseen('planner'), undefined, PLAN_THINKING);
     this.state.planner = s.ref; this.save();
     let check: Awaited<ReturnType<Project['scriptCheck']>>;
@@ -758,7 +758,7 @@ export class Director {
     const gl = this.webgl();
     // a film that ends on its brand's sign-off holds longer after its last line, so the logo is seen in silence
     const signOff = (() => { try { return signsOff(this.o.brief.brand, this.project.storyboard().pages); } catch { return false; } })();
-    this.setMeta({ style: this.o.style, lang: this.filmLang(), voice: this.o.voice, gap: 0.8, pace: { maxHold: 1.0, gap: 0.8, ...(signOff ? { tail: SIGN_OFF_HOLD } : {}) }, extras: list, look: this.o.look ?? this.designed()?.look, mark: cornerMark(this.o.brief.brand, signOff) ?? false, ...gl });
+    this.setMeta({ style: this.o.style, lang: this.filmLang(), portrait: this.o.brief.portrait || undefined, voice: this.o.voice, gap: 0.8, pace: { maxHold: 1.0, gap: 0.8, ...(signOff ? { tail: SIGN_OFF_HOLD } : {}) }, extras: list, look: this.o.look ?? this.designed()?.look, mark: cornerMark(this.o.brief.brand, signOff) ?? false, ...gl });
   }
 
   /** a style drawn in three.js: the vendors its films load (three, and any the page agents added) */
@@ -795,7 +795,7 @@ export class Director {
   /** the kit's check: its own project (.studio/kit), the check page's timing, and the engine's check of it (lint with
    *  determinism, and a contact sheet of each component once drawn) */
   private async checkKit(items: KitItem[], look: unknown, round: number) {
-    const stage = new Project(kitStage(this.o.dir, { style: this.o.style, lang: this.filmLang(), look, items, kit: this.project.read(KIT_FILE), check: this.project.read(KIT_CHECK_FILE), extras: styleExtras(this.o.style), gl: this.webgl() }), undefined, this.o.signal);
+    const stage = new Project(kitStage(this.o.dir, { style: this.o.style, lang: this.filmLang(), portrait: this.o.brief.portrait, look, items, kit: this.project.read(KIT_FILE), check: this.project.read(KIT_CHECK_FILE), extras: styleExtras(this.o.style), gl: this.webgl() }), undefined, this.o.signal);
     const page = (await stage.timeline()).pages[0];
     const times = kitTimes(page.cues, page.end);
     return { page, times, check: await stage.check('kit', `kit-r${round}`, times, { determinism: true, lintMs: MAX.pageLintMs }) };
@@ -833,7 +833,7 @@ export class Director {
       return parts;
     };
     try {
-      const system = kitSystem(this.o.style, styleExtras(this.o.style), this.o.brief.styleNotes, designed?.card);
+      const system = kitSystem(this.o.style, styleExtras(this.o.style), this.o.brief.styleNotes, designed?.card) + this.canvas('artist');
       await Promise.all(kitGroups(items, KIT_PER_SESSION).map(async (group) => {
         let s: AgentSession | undefined;
         for (const [k, it] of group.entries()) {
@@ -842,7 +842,7 @@ export class Director {
             if (!s) { s = await this.session(`kit-${it.name}`, system, MAX.kitTurns); this.allow(s, MAX.kitBudget); }
             sessions.set(it.name, s);
             const next = k ? `Next, another of this film's components, in the same session: ${group.slice(0, k).map((x) => `\`P.${x.name}\``).join(', ')} ${k > 1 ? 'are' : 'is'} yours and written.\n\n` : '';
-            const r = await this.send(s, next + kitPrompt(sb, items, it, kitCell(i, items.length), this.filmLang(), this.replyLang()), undefined, KIT_THINKING);
+            const r = await this.send(s, next + kitPrompt(sb, items, it, kitCell(i, items.length, !!this.o.brief.portrait), this.filmLang(), this.replyLang(), !!this.o.brief.portrait), undefined, KIT_THINKING);
             if (!written(it)) await this.send(s, `Write both ${kitPart(it.name)} and ${kitPartCheck(it.name)}, then stop.`, undefined, KIT_THINKING);
             if (!written(it)) this.emit({ type: 'kit', status: 'failed', detail: `${it.name}: ${r.error || 'not written'}`.slice(0, 400) });
           } catch (e) { if (stopped(e)) throw e; this.emit({ type: 'kit', status: 'failed', detail: `${it.name}: ${(e as Error).message}`.slice(0, 400) }); }
@@ -871,7 +871,7 @@ export class Director {
           sheet = c.sheet;
           // the sheet is kept with the film's, so the panel can show it
           try { fs.mkdirSync(this.project.file('out/snap'), { recursive: true }); fs.copyFileSync(c.sheet, this.project.file(`out/snap/kit-r${round}.jpg`)); sheet = this.project.file(`out/snap/kit-r${round}.jpg`); } catch {}
-          reviewer ??= await this.session('check-kit', reviewerSystem(this.o.style, this.o.brief.styleNotes, designed?.card), MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [VERDICT] });
+          reviewer ??= await this.session('check-kit', reviewerSystem(this.o.style, this.o.brief.styleNotes, designed?.card) + this.canvas('reviewer'), MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [VERDICT] });
           const v = await this.verdict(reviewer, kitReviewerPrompt(ready, times, round), c.sheet);
           const lint = errorsOf(c.issues).map((i) => ({ name: at(i.local), what: i.msg, fix: 'fix it in the component' }));
           const seen = (v?.pass === false ? v.problems : []).map((p) => ({ name: ready.find((x) => p.what.includes(x.name))?.name ?? at(p.at), what: p.what, fix: p.fix }));
@@ -927,7 +927,8 @@ export class Director {
   // ── this film's generated pictures (pictures.ts) ─────────────────────────────────────────────
   /** the style's words for the image model, when the style allows pictures and there is a service to draw them */
   private pictureStyle() {
-    const s = this.o.images ? pictureStyle(this.o.style) : undefined;
+    const found = this.o.images ? pictureStyle(this.o.style) : undefined;
+    const s = found && this.o.brief.portrait ? { ...found, portrait: true } : found;
     if (!s?.fromLook) return s;
     // a designed style's film: its pictures are drawn in the look the director designed (none yet while it is planned)
     const d = this.designed();
@@ -1158,6 +1159,9 @@ export class Director {
     return redrawn;
   }
 
+  /** a portrait film: what its planners, artists and reviewers are told of the tall stage ('' for a landscape film) */
+  private canvas(who: 'planner' | 'artist' | 'reviewer') { return canvasSection(this.o.brief.portrait, who); }
+
   /** Server-owned META fields, rewritten in place in script.js (the planner must not change them). */
   private setMeta(fields: Record<string, unknown>) {
     let src = this.project.read('script.js');
@@ -1328,7 +1332,7 @@ export class Director {
     const sessions = new Map<string, AgentSession>();
     let reviewer: AgentSession | undefined, ok = false, sheet: string | undefined, why = '';
     try {
-      const system = kitSystem(this.o.style, styleExtras(this.o.style), this.o.brief.styleNotes, designed?.card);
+      const system = kitSystem(this.o.style, styleExtras(this.o.style), this.o.brief.styleNotes, designed?.card) + this.canvas('artist');
       await Promise.all(names.map(async (n) => {
         const s = await this.session(`kit-${n}`, system, MAX.kitTurns);
         this.allow(s, MAX.kitBudget);
@@ -1351,7 +1355,7 @@ export class Director {
         else {
           sheet = c.sheet;
           try { fs.copyFileSync(c.sheet, this.project.file(`out/snap/kit-change-r${round}.jpg`)); sheet = this.project.file(`out/snap/kit-change-r${round}.jpg`); } catch {}
-          reviewer ??= await this.session('check-kit', reviewerSystem(this.o.style, this.o.brief.styleNotes, designed?.card), MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [VERDICT] });
+          reviewer ??= await this.session('check-kit', reviewerSystem(this.o.style, this.o.brief.styleNotes, designed?.card) + this.canvas('reviewer'), MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [VERDICT] });
           const v = await this.verdict(reviewer, kitReviewerPrompt(items, times, round) + `\n\nThe user asked for this change to ${names.join(', ')}: ${change}\nFail those if they don't show it.`, c.sheet);
           const at = (t: number) => items[Math.max(0, page.cues.filter((q) => q.abs <= t + page.start + 0.01).length - 1)]?.name;
           problems = [...errorsOf(c.issues).map((i) => ({ name: at(i.local), what: i.msg, fix: 'fix it in the component' })),
@@ -1585,7 +1589,7 @@ export class Director {
     this.setPage(id, st);
     let s: AgentSession | undefined;
     try {
-      const system = pageSystem(this.o.style, styleExtras(this.o.style), this.o.brief.preferences, this.o.brief.styleNotes, this.designed()?.card, this.filmKit());
+      const system = pageSystem(this.o.style, styleExtras(this.o.style), this.o.brief.preferences, this.o.brief.styleNotes, this.designed()?.card, this.filmKit()) + this.canvas('artist');
       if (lane) { lane.cur = `page-${id}`; s = lane.s ??= await this.session(lane.name, system, MAX.pageTurns, lane.resume, undefined, { answers: [FLAG] }, () => lane.cur); }
       // a page picked up in its checks resumes its conversation; a lane's is shared, so it goes on in a copy
       else s = await this.session(`page-${id}`, system, MAX.pageTurns, was?.ref && this.lanesOn() ? this.fork(was.ref, `page-${id}`) : was?.ref, undefined, { answers: [FLAG] });
@@ -1654,7 +1658,7 @@ export class Director {
           this.setPage(id, { ...st, issues: issues.map(fromLint) }, { sheet: c.sheet });
           const change = unchanged() ? fix : undefined;
           if (!hard) {
-            reviewer ??= await this.session(`check-${id}`, reviewerSystem(this.o.style, this.o.brief.styleNotes, this.designed()?.card) + kitReviewNote(this.kitItems()), MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [VERDICT] });
+            reviewer ??= await this.session(`check-${id}`, reviewerSystem(this.o.style, this.o.brief.styleNotes, this.designed()?.card) + kitReviewNote(this.kitItems()) + this.canvas('reviewer'), MAX.reviewerTurns, undefined, undefined, { tools: 'none', answers: [VERDICT] });
             verdict = await this.verdict(reviewer, reviewerPrompt(sb, id, t, round, issues, times, change, this.o.brief.brand, this.assetsOn(sb, id), pictureReviewNote(this.picturesOn(sb, id)), this.directions()), c.sheet);
           }
           const errors = mustFix(issues), problems = verdict?.pass === false ? verdict.problems : [];
@@ -1730,7 +1734,7 @@ export class Director {
     const limit = defectsOnly ? new AbortController() : undefined;
     const timer = limit && setTimeout(() => limit.abort(), MAX.reviewDefectsMs);
     const signal = limit ? AbortSignal.any([limit.signal, ...(this.o.signal ? [this.o.signal] : [])]) : this.o.signal;
-    const s = await this.session('review', pageSystem(this.o.style, styleExtras(this.o.style), this.o.brief.preferences, this.o.brief.styleNotes, this.designed()?.card, this.filmKit()), MAX.pageTurns, this.drewAll ? this.fork(this.drewAll, 'review') : undefined, signal, this.drewAll ? { answers: [FLAG] } : {});
+    const s = await this.session('review', pageSystem(this.o.style, styleExtras(this.o.style), this.o.brief.preferences, this.o.brief.styleNotes, this.designed()?.card, this.filmKit()) + this.canvas('artist'), MAX.pageTurns, this.drewAll ? this.fork(this.drewAll, 'review') : undefined, signal, this.drewAll ? { answers: [FLAG] } : {});
     // (carrying on from the pages' conversation, it keeps their tools: a transcript that used flag is refused without it)
     let timedOut = false;
     try {
@@ -1944,7 +1948,7 @@ export class Director {
    * they can act on.
    */
   private async planRevision(request: string, named: string[], first?: string): Promise<{ plan: RevisionPlan } | { why: string }> {
-    const system = plannerSystem(this.o.style, this.o.brief.preferences, this.o.brief.styleNotes, this.o.brief.brand, userAssets(this.project.dir));
+    const system = plannerSystem(this.o.style, this.o.brief.preferences, this.o.brief.styleNotes, this.o.brief.brand, userAssets(this.project.dir)) + this.canvas('planner');
     // a fresh, small session per change: resuming the planner would carry the whole making of the film (slow, and every
     // token of it re-read); the files hold everything this decision needs
     let s = await this.session('reviser', system, MAX.planTurns);

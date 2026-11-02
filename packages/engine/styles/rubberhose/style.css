@@ -22,6 +22,7 @@ svg.ink g.mark path { opacity: 0.35; }
   font-variation-settings: 'SOFT' 100, 'WONK' 1;
   border: 5px solid #1B1512; border-radius: 16px; box-shadow: 0 0 0 5px #FBF2DC, 0 0 0 9px #1B1512, 8px 12px 0 9px rgba(27, 21, 18, 0.9);
   transform-origin: 30% 0; }
+#frame.portrait .rh-title { left: 62px; top: 136px; }
 .rh-title::before, .rh-title::after { content: ''; position: absolute; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%;
   background: #D0452F; border: 4px solid #1B1512; }
 .rh-title::before { left: 14px; } .rh-title::after { right: 14px; }

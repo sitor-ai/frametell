@@ -7,7 +7,7 @@
 (function () {
   const { col, clamp, lerp, ease, Builder, h } = PV;
   const B = Builder.prototype;
-  const W = STAGE.w, H = STAGE.h;
+  const W = STAGE.w, H = STAGE.h, SA = STAGE.area;
   const D2R = Math.PI / 180, TAU = Math.PI * 2;
   // the country shapes live in world.js next to this file: load it right after the kit (both are parser-inserted scripts)
   const SELF = document.currentScript && document.currentScript.src;
@@ -321,13 +321,13 @@
 
   function makeGlobe(P, o) {
     const T = THREE;
-    const g = { P, keys: [], items: [], labels: [], cx: o.cx ?? 960, cy: o.cy ?? 500, r: o.r ?? 360, spin: o.spin ?? 1.2, at: o.at ?? 0, pitch: o.pitch ?? 26 };
+    const g = { P, keys: [], items: [], labels: [], cx: o.cx ?? W / 2, cy: o.cy ?? H / 2 - 40, r: o.r ?? 360, spin: o.spin ?? 1.2, at: o.at ?? 0, pitch: o.pitch ?? 26 };
     const v0 = o.view != null ? place(o.view) : { lat: o.lat ?? 20, lon: o.lon ?? 100 };
     g.view0 = { lat: v0.lat, lon: v0.lon, zoom: o.zoom ?? 1 };
     const G = geo();
     const setup = (TT, S) => {
       S.camera.near = 0.01; S.camera.far = 100;
-      S.camera.setViewOffset(W, H, 960 - g.cx, 540 - g.cy, W, H);
+      S.camera.setViewOffset(W, H, W / 2 - g.cx, H / 2 - g.cy, W, H);
       S.camera.updateProjectionMatrix();
       const sc = S.scene;
       g.mats = { ocean: surfMat('#173462', '#091634', { rim: '#3E86F0', rimK: 0.75 }), land: surfMat(o.land || '#D3DCEA', '#5E6D8C', { rim: '#9CC2FF', rimK: 0.25 }) };
@@ -400,7 +400,7 @@
     const n = v3.clone().normalize(), toCam = g.cam.p.clone().sub(v3).normalize();
     return { x: (p.x + 1) / 2 * W, y: (1 - p.y) / 2 * H, face: n.dot(toCam) };
   }
-  const SAFE = { x0: 40, y0: 150, x1: W - 40, y1: 872 };
+  const SAFE = { x0: 40, y0: SA.y0 - 30, x1: W - 40, y1: SA.y1 - 8 };
   function layoutLabels(g, lt) {
     const c = g.lines.getContext('2d');
     c.clearRect(0, 0, W, H);
@@ -410,7 +410,7 @@
       const k = (L.alpha ? L.alpha(lt) : 1);
       const pt = proj(g, typeof L.p3 === 'function' ? L.p3(lt) : L.p3, cam);
       // a label whose point has left the frame (or sits under the subtitles) fades out instead of hanging on a long leader
-      const inside = clamp(Math.min(pt.x - 30, W - 30 - pt.x, pt.y - 140, 880 - pt.y) / 40 + 1);
+      const inside = clamp(Math.min(pt.x - 30, W - 30 - pt.x, pt.y - (SA.y0 - 40), SA.y1 - pt.y) / 40 + 1);
       const face = clamp((pt.face - 0.08) / 0.15) * inside;
       const a = k * face;
       if (a <= 0.01) { if (L.el.style.display !== 'none') L.el.style.display = 'none'; continue; }
@@ -785,14 +785,14 @@
    *  naming what each arc colour means. */
   B.glegend = function (x, y, o = {}) {
     const at = o.at ?? 0, el = h('div', 'glegend', null, this.html);
-    el.style.left = (x ?? 140) + 'px'; el.style.top = (y ?? 790) + 'px';
+    el.style.left = (x ?? SA.x0) + 'px'; el.style.top = (y ?? SA.y1 - 90) + 'px';
     let s = o.title ? `<p>${o.title}</p>` : '';
     if ((o.kind || (o.items ? 'flows' : 'heat')) === 'heat') {
       const cs = (o.colors || HEAT).map(hexOf);
       s += `<div class="ramp" style="background:linear-gradient(90deg,${cs.join(',')})"></div><div class="ends"><span>${o.min ?? ''}</span><span>${o.max ?? ''}${o.unit ? ' ' + o.unit : ''}</span></div>`;
     } else s += (o.items || []).map(([c, t]) => `<div class="sw"><em style="background:${hexOf(c)};box-shadow:0 0 12px ${hexOf(c)}"></em>${t}</div>`).join('');
     el.innerHTML = s;
-    markBox(this, x ?? 140, y ?? 790, 300, 44 + (o.title ? 36 : 0) + (o.items ? o.items.length * 38 : 30));
+    markBox(this, x ?? SA.x0, y ?? SA.y1 - 90, 300, 44 + (o.title ? 36 : 0) + (o.items ? o.items.length * 38 : 30));
     this.tick((lt) => { el.style.opacity = (ease.out(K(lt, at, 0.5)) * outK(lt, o.out)).toFixed(3); });
     return el;
   };

@@ -35,6 +35,7 @@ svg.ink [filter="url(#wc)"] { filter: none; }
 .xp-lab.r { text-align: right; } .xp-lab.c { text-align: center; }
 .xp-lab.hot .n { color: #FF5A1F; } .xp-lab.hot .t { color: #16181C; }
 .xp-title { position: absolute; left: 140px; top: 66px; display: flex; align-items: baseline; gap: 20px; white-space: nowrap; }
+#frame.portrait .xp-title { left: 70px; top: 158px; }
 .xp-title .no { position: relative; padding-left: 18px; }
 .xp-title .no::after { content: attr(data-n); font-family: var(--mono); font-weight: 500; font-size: 19px; letter-spacing: 0.14em; color: #868C96; }
 .xp-title .no::before { content: ''; position: absolute; left: 0; top: 50%; width: 8px; height: 8px; margin-top: -5px; border-radius: 50%; background: #FF5A1F; }

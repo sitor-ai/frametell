@@ -38,4 +38,5 @@ svg.ink [filter="url(#wc)"] { filter: none; }
 .diotitle { position: absolute; left: 120px; top: 62px; display: flex; align-items: center; gap: 16px; white-space: nowrap;
   font-family: var(--hand); font-weight: 800; color: #1E2A33; letter-spacing: -0.01em; background: rgba(255, 255, 255, 0.9);
   border-radius: 14px; padding: 14px 28px 16px 20px; box-shadow: 0 10px 28px rgba(20, 30, 40, 0.2); }
+#frame.portrait .diotitle { left: 50px; top: 154px; }
 .diotitle svg { display: block; flex: none; }

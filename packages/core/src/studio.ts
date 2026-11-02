@@ -236,6 +236,7 @@ export class Studio {
       lang: input.lang ?? resolveLocale(cfg.locale), ...(input.langAuto ? { langAuto: true } : {}), topic, notes: topic ? undefined : input.notes,
       styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, look: cleanLook(input.look), brand,
       ...(input.research !== undefined ? { research: input.research } : {}),
+      ...(input.portrait ? { portrait: true } : {}),
     }, files.map((f) => ({ name: f.name, data: Buffer.from(f.data) })));
     // the brand's files, under the names its brief gives them (plain names, checked there), through the project's own
     // file rules like everything else written into it

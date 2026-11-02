@@ -11,7 +11,7 @@
   const { col, clamp, lerp, ease, h, Builder } = PV;
   const B = Builder.prototype;
   const W = STAGE.w, H = STAGE.h;
-  const CLOTH = { x0: 56, y0: 112, x1: W - 56, y1: H - 172 };
+  const CLOTH = { x0: 56, y0: 112, x1: W - 56, y1: STAGE.subs + 8 };
   const DEG = Math.PI / 180;
   const isKeys = (v) => Array.isArray(v) && v.length && Array.isArray(v[0]);
   const val = (v, lt, d) => {
@@ -236,9 +236,9 @@
       const K = o.keys;
       level = (lt) => { let v = K[0][1]; for (let i = 1; i < K.length; i++) { const [t, x] = K[i]; if (lt < t) break; v = lerp(v, x, ss(t, t + 0.8, lt)); } return v; };
     } else level = (lt) => { const k = clamp((lt - at) / dur); return lerp(from, to, ease.inOut(k)) + (to > from ? Math.sin(Math.PI * k) * 0.12 * (1 - k) : 0); };
-    REG.lamps.set(this.page.id, { level, x: o.x ?? W / 2, y: o.y ?? 430 });
+    REG.lamps.set(this.page.id, { level, x: o.x ?? W / 2, y: o.y ?? H / 2 - 110 });
   };
-  const lampAt = (page, lt) => { const L = REG.lamps.get(page.id); return { x: L ? val(L.x, lt, W / 2) : W / 2, y: L ? val(L.y, lt, 430) : 430 }; };
+  const lampAt = (page, lt) => { const L = REG.lamps.get(page.id); return { x: L ? val(L.x, lt, W / 2) : W / 2, y: L ? val(L.y, lt, H / 2 - 110) : H / 2 - 110 }; };
 
   // ───────────────────────── mounting a piece on the cloth ─────────────────────────
   // A canvas (or a wrapper) placed on the stage. Life: pressed on at `at` (large, blurred → sharp), optionally lifted
@@ -1009,7 +1009,7 @@
    *  coin holes, tufts of grass). Put it first on a page with figures. o: { y (top of the strip, 846), color ('brown'),
    *  x0, x1, at, enter } */
   B.ground = function (o = {}) {
-    const y = o.y ?? 846, x0 = o.x0 ?? CLOTH.x0 - 20, x1 = o.x1 ?? CLOTH.x1 + 20, w = x1 - x0, key = `ground|${o.color}|${w}`;
+    const y = o.y ?? STAGE.area.y1 - 34, x0 = o.x0 ?? CLOTH.x0 - 20, x1 = o.x1 ?? CLOTH.x1 + 20, w = x1 - x0, key = `ground|${o.color}|${w}`;
     if (!SCCACHE.has(key)) SCCACHE.set(key, piece([0, -24, w, 44], 1, (g) => {
       const top = []; for (let x = 0; x <= w; x += 16) top.push([x, Math.sin(x * 0.013) * 4 + Math.sin(x * 0.047) * 2]); top.push([w, 40], [0, 40]);
       region(g, o.color || 'brown', Pl(top), () => { meander(g, 0, 32, w, 5, 1.6); for (let x = 30; x < w; x += 46) coin(g, x, 14, 4.2); }, 2);

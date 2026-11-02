@@ -73,11 +73,12 @@
   B.title = function (str, o = {}) {
     const T = this.hud || this, at = o.at ?? 0.15, size = o.size ?? 56;
     const kicker = o.kicker ?? this.page.section;
-    const bar = s('rect', { x: 140, y: 52, width: 0, height: 7, fill: col('red') }, T.svg);
+    const TX = STAGE.title.x, TY = STAGE.title.y, TR = STAGE.w - STAGE.title.x;
+    const bar = s('rect', { x: TX, y: TY - 26, width: 0, height: 7, fill: col('red') }, T.svg);
     T.tick((lt) => bar.setAttribute('width', f2(64 * K(lt, at, 0.35, quint))));
-    if (kicker) fade(T, tx(T, kicker, { x: 222, y: 37, size: 26, cls: 'kicker', color: 'red' }), at + 0.1, { dy: 0, dx: -12 });
-    const t = T.text(str, { x: 140, y: 74, size, cls: 'serif', weight: 800, at: at + 0.15, cps: o.cps ?? 26, mode: 'words', pen: false, color: o.color || 'ink', lh: 1.25 });
-    drawLine(T, 140, 74 + size * 1.25 + 10, 1780, 74 + size * 1.25 + 10, { color: 'ink', sw: 1.4, at: at + 0.2, dur: 0.8, opacity: 0.55 });
+    if (kicker) fade(T, tx(T, kicker, { x: TX + 82, y: TY - 41, size: 26, cls: 'kicker', color: 'red' }), at + 0.1, { dy: 0, dx: -12 });
+    const t = T.text(str, { x: TX, y: TY - 4, size, cls: 'serif', weight: 800, at: at + 0.15, cps: o.cps ?? 26, mode: 'words', pen: false, color: o.color || 'ink', lh: 1.25 });
+    drawLine(T, TX, TY - 4 + size * 1.25 + 10, TR, TY - 4 + size * 1.25 + 10, { color: 'ink', sw: 1.4, at: at + 0.2, dur: 0.8, opacity: 0.55 });
     return t;
   };
 
@@ -85,22 +86,23 @@
    *  in big serif, a dateline row (left · centre · right). For an opening page instead of P.title.
    *  o: { name ('经济周报'), left ('第 1024 期'), date ('2005年 · 星期一'), right ('定价 ¥2.00'), y (40), size (110), at (0.1) } */
   B.masthead = function (o = {}) {
-    const y = o.y ?? 40, size = o.size ?? 110, at = o.at ?? 0.1;
+    const y = o.y ?? STAGE.title.y - 38, size = o.size ?? 110, at = o.at ?? 0.1;
     const yName = y + 28, yRow = yName + size * 1.18 + 14;
-    drawLine(this, 960, y, 140, y, { sw: 6, at, dur: 0.5 }); drawLine(this, 960, y, 1780, y, { sw: 6, at, dur: 0.5 });
-    drawLine(this, 960, y + 12, 140, y + 12, { sw: 1.4, at: at + 0.08, dur: 0.5 }); drawLine(this, 960, y + 12, 1780, y + 12, { sw: 1.4, at: at + 0.08, dur: 0.5 });
-    fade(this, tx(this, o.name ?? '经济周报', { x: 960, y: yName, w: 1640, align: 'c', size, cls: 'serif', weight: 900, ls: '0.06em' }), at + 0.25, { dy: 14, dur: 0.6 });
-    drawLine(this, 140, yRow, 1780, yRow, { sw: 1.4, at: at + 0.45, dur: 0.6 });
-    drawLine(this, 140, yRow + 48, 1780, yRow + 48, { sw: 1.4, at: at + 0.5, dur: 0.6 });
+    const L = STAGE.title.x, R = STAGE.w - STAGE.title.x, C = STAGE.w / 2;
+    drawLine(this, C, y, L, y, { sw: 6, at, dur: 0.5 }); drawLine(this, C, y, R, y, { sw: 6, at, dur: 0.5 });
+    drawLine(this, C, y + 12, L, y + 12, { sw: 1.4, at: at + 0.08, dur: 0.5 }); drawLine(this, C, y + 12, R, y + 12, { sw: 1.4, at: at + 0.08, dur: 0.5 });
+    fade(this, tx(this, o.name ?? '经济周报', { x: C, y: yName, w: R - L, align: 'c', size, cls: 'serif', weight: 900, ls: '0.06em' }), at + 0.25, { dy: 14, dur: 0.6 });
+    drawLine(this, L, yRow, R, yRow, { sw: 1.4, at: at + 0.45, dur: 0.6 });
+    drawLine(this, L, yRow + 48, R, yRow + 48, { sw: 1.4, at: at + 0.5, dur: 0.6 });
     const row = (str, x, align) => str && fade(this, tx(this, str, { x, y: yRow + 10, w: 520, align, size: 24, cls: 'label', color: 'soft' }), at + 0.7, { dy: 0 });
-    row(o.left ?? '第 1024 期', 150, 'l'); row(o.date, 960, 'c'); row(o.right ?? '定价 ¥2.00', 1770, 'r');
+    row(o.left ?? '第 1024 期', L + 10, 'l'); row(o.date, C, 'c'); row(o.right ?? '定价 ¥2.00', R - 10, 'r');
     return { bottom: yRow + 48 };
   };
 
   /** headline(str, o): a big serif headline anywhere on the page, wiped in line by line, with an optional kicker above and
    *  a sans deck (sub-headline) below. o: { x, y, w (1200), size (84), align, color, kicker, deck, deckSize (34), at, out } */
   B.headline = function (str, o = {}) {
-    const x = o.x ?? 140, y = o.y ?? 260, w = o.w ?? 1200, size = o.size ?? 84, at = o.at ?? 0, align = o.align || 'l';
+    const x = o.x ?? STAGE.area.x0, y = o.y ?? STAGE.area.y0 + 80, w = o.w ?? 1200, size = o.size ?? 84, at = o.at ?? 0, align = o.align || 'l';
     let top = y;
     if (o.kicker) { fade(this, tx(this, o.kicker, { x, y: top, w, align, size: Math.round(size * 0.3), cls: 'kicker', color: 'red' }), at, { dy: 0, out: o.out }); top += size * 0.5; }
     const el = tx(this, str, { x, y: top, w, align, size, cls: 'serif', weight: 900, lh: 1.12, color: o.color });
@@ -170,7 +172,7 @@
    *  h (700), size (300), spark ([values]: a ghost line of the data drawn behind the figure), text (a word instead of a
    *  number, when value is omitted), at (when the band wipes in; default land - 1.4), out (wipe off) } */
   B.splash = function (o = {}) {
-    const land = o.land ?? 1.4, at = o.at ?? land - 1.4, y = o.y ?? 190, hh = o.h ?? 700, size = o.size ?? 300, d = o.decimals ?? 0;
+    const land = o.land ?? 1.4, at = o.at ?? land - 1.4, y = o.y ?? STAGE.area.y0 + 10, hh = o.h ?? STAGE.area.y1 - STAGE.area.y0, size = o.size ?? 300, d = o.decimals ?? 0;
     const box = h('div', null, null, this.html);
     Object.assign(box.style, { position: 'absolute', left: '-40px', top: y + 'px', width: (STAGE.w + 80) + 'px', height: hh + 'px', background: col(o.color || 'red'), clipPath: 'inset(0 100% 0 0)' });
     const grain = h('div', null, null, box);
@@ -188,7 +190,7 @@
       pa.setAttribute('stroke-dasharray', `${len} ${len}`);
       this.tick((lt) => pa.setAttribute('stroke-dashoffset', f2(len * (1 - smooth5((lt - at - 0.3) / Math.max(0.6, land - at))))));
     }
-    const ln = o.line ? tx(this, o.line, { x: 180, y: hh - 130, w: 1500, size: 48, cls: 'serif', color: paper, parent: box, lh: 1.3 }) : null;
+    const ln = o.line ? tx(this, o.line, { x: 180, y: hh - 130, w: STAGE.w - 420, size: 48, cls: 'serif', color: paper, parent: box, lh: 1.3 }) : null;
     this.tick((lt) => {
       const kin = K(lt, at, 0.55, quint), kout = o.out != null ? K(lt, o.out, 0.45, quint) : 0;
       box.style.clipPath = `inset(0 ${f2((1 - kin) * 100)}% 0 ${f2(kout * 100)}%)`;
@@ -205,7 +207,7 @@
   /** quote(text, o): a pull quote — giant claret quotation mark, the words in large serif, a hairline and the attribution
    *  in small caps. o: { x (240), y (300), w (1300), size (64), by ('— 凯恩斯，1923'), at, cps (16: written word by word), out } */
   B.quote = function (text, o = {}) {
-    const x = o.x ?? 240, y = o.y ?? 300, w = o.w ?? 1300, size = o.size ?? 64, at = o.at ?? 0;
+    const x = o.x ?? STAGE.area.x0 + 100, y = o.y ?? STAGE.area.y0 + 120, w = o.w ?? 1300, size = o.size ?? 64, at = o.at ?? 0;
     const qm = s('text', { x: x - size * 0.2, y: y + size * 1.5, 'font-size': size * 3.4, fill: col('red'), 'font-family': "'Fraunces Variable', serif", 'font-weight': 800, opacity: 0 }, this.svg);
     qm.textContent = '“';
     this.tick((lt) => { const k = K(lt, at, 0.45) * outOf(o)(lt); qm.setAttribute('opacity', f2(k)); qm.setAttribute('transform', `translate(0 ${f2((1 - k) * 20)})`); });
@@ -555,9 +557,9 @@
    *  badge bottom-right (o.badge, e.g. '示意数据' when the numbers are illustrative). o: { at, badge, out } */
   B.source = function (text, o = {}) {
     const at = o.at ?? 0.6;
-    fade(this, tx(this, text, { x: 140, y: o.y ?? 846, size: 24, cls: 'label', color: 'muted' }), at, { dy: 0, out: o.out });
+    fade(this, tx(this, text, { x: STAGE.area.x0, y: o.y ?? STAGE.area.y1 - 34, size: 24, cls: 'label', color: 'muted' }), at, { dy: 0, out: o.out });
     if (o.badge) {
-      const el = tx(this, o.badge, { x: 1780, y: (o.y ?? 846) - 4, align: 'r', size: 24, cls: 'label', color: 'red' });
+      const el = tx(this, o.badge, { x: STAGE.area.x1, y: (o.y ?? STAGE.area.y1 - 34) - 4, align: 'r', size: 24, cls: 'label', color: 'red' });
       Object.assign(el.style, { border: `2px solid ${col('red')}`, padding: '2px 10px', borderRadius: '3px' });
       fade(this, el, at + 0.1, { dy: 0, out: o.out });
     }

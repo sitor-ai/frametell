@@ -95,7 +95,7 @@
    *  F.pt(x, y, z) → [px, py] page point of a model point (for P.push, P.stat, P.note). Two figures side by side: two boxes. */
   B.figure = function (o = {}, draw) {
     if (typeof o === 'function') { draw = o; o = {}; }
-    const self = this, box = o.box ?? [380, 150, 1260, 740], [W, Dd, Hh] = o.size ?? [60, 60, 60], at0 = o.at ?? 0;
+    const self = this, box = o.box ?? [STAGE.area.x0 + 240, STAGE.area.y0 - 30, STAGE.area.x1 - STAGE.area.x0 - 380, STAGE.area.y1 - STAGE.area.y0 + 40], [W, Dd, Hh] = o.size ?? [60, 60, 60], at0 = o.at ?? 0;
     const cs = []; for (const x of [0, W]) for (const y of [0, Dd]) for (const z of [0, Hh]) cs.push([(x - y) * C30, (x + y) * S30 - z]);
     const xs = cs.map((p) => p[0]), ys = cs.map((p) => p[1]);
     const bw = Math.max(...xs) - Math.min(...xs) || 1, bh = Math.max(...ys) - Math.min(...ys) || 1;
@@ -376,7 +376,7 @@
   B.steps = function (labels, o = {}) {
     const T = this.hud || this, at = o.at ?? 0.3, press = o.press || [], size = o.size ?? 26;
     const wrap = h('div', 'tx cf-steps' + (o.dir === 'row' ? ' row' : ''), null, T.html);
-    Object.assign(wrap.style, { left: (o.x ?? 140) + 'px', top: (o.y ?? 200) + 'px', fontSize: size + 'px' });
+    Object.assign(wrap.style, { left: (o.x ?? STAGE.area.x0) + 'px', top: (o.y ?? STAGE.area.y0 + 20) + 'px', fontSize: size + 'px' });
     const els = labels.map((t) => { const e = h('div', 'cf-step', null, wrap); e.textContent = strip(t); return e; });
     T.tick((lt) => {
       els.forEach((e, i) => {

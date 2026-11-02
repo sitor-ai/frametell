@@ -9,7 +9,7 @@
 (function () {
   const { col, clamp, lerp, ease, Builder, h } = PV;
   const B = Builder.prototype;
-  const SW = STAGE.w, SH = STAGE.h;
+  const SW = STAGE.w, SH = STAGE.h, AR = STAGE.area;
   const TAU = Math.PI * 2, DEG = Math.PI / 180;
   const U = 100;                                   // px per world unit on the focus plane of the opening camera
   const FOV = 35;
@@ -451,10 +451,10 @@
   // ── swarm: many small copies of one molecule ──────────
   class Swarm extends Obj {
     constructor(M, spec, o) {
-      super(M, Object.assign({ x: 960, y: 540 }, o), 1);
+      super(M, Object.assign({ x: SW / 2, y: SH / 2 }, o), 1);
       const T = THREE, G = gl(), d = molData(spec), n = o.n ?? 24, rpx = o.r ?? 46;
       this.d = d; this.n = n; this.k = (rpx / U) / d.bound;
-      const box = o.box || [200, 220, 1720, 860], depth = (o.depth ?? 600) / U;
+      const box = o.box || [AR.x0 + 60, AR.y0 + 40, AR.x1 - 60, AR.y1 - 20], depth = (o.depth ?? 600) / U;
       const rnd = PV.rng(1000 + this.seed * 31);
       this.home = []; for (let i = 0; i < n; i++) this.home.push(toW(lerp(box[0], box[2], rnd()), lerp(box[1], box[3], rnd()), (rnd() - 0.5) * depth * U).sub(this.p0));
       this.ph = Array.from({ length: n }, () => [rnd() * TAU, rnd() * TAU, rnd() * TAU, 0.5 + rnd()]);
@@ -604,7 +604,7 @@
     }
     /** the membrane folds inward round x (px) from `at`: a pit that deepens and wraps whatever sits on it (how a cell
      *  swallows a virus or a drop). o: { x, z (px), depth (px, 420), width (px, 360), dur (4) } */
-    dip(at, o = {}) { this.dips.push({ at, dur: o.dur ?? 4, x: ((o.x ?? 960) - SW / 2) / U, z: (o.z ?? 0) / U, depth: (o.depth ?? 420) / U, w: (o.width ?? 360) / U / 2 }); return this; }
+    dip(at, o = {}) { this.dips.push({ at, dur: o.dur ?? 4, x: ((o.x ?? SW / 2) - SW / 2) / U, z: (o.z ?? 0) / U, depth: (o.depth ?? 420) / U, w: (o.width ?? 360) / U / 2 }); return this; }
     /** surface height (local y) at local (x, z) */
     hAt(x, z, lt) {
       let y = -this.bend * x * x - this.bend * 0.5 * (z - this.z0) * (z - this.z0) * 0.3;
@@ -643,7 +643,7 @@
     constructor(M, mem, o) {
       super(M, Object.assign({ at: mem.at, float: 0, spin: 0 }, o), (o.size ?? 170) / U);
       const T = THREE, G = gl();
-      this.mem = mem; this.lx = ((o.x ?? 960) - SW / 2) / U; this.lz = (o.z ?? 0) / U;
+      this.mem = mem; this.lx = ((o.x ?? SW / 2) - SW / 2) / U; this.lz = (o.z ?? 0) / U;
       const m = gloss(o.color || '#B48CFF', { rough: 0.3, rim: 0.6 }); this.mats.push(m);
       const R = this.R, s = 77 + this.seed;
       const head = new T.Mesh(bodyGeo(6, (x, y, z) => 1 + 0.12 * noise3(x * 2, y * 2, z * 2, s) - 0.35 * Math.exp(-((Math.acos(clamp(y)) / 0.5) ** 2))), m);
@@ -1124,7 +1124,7 @@
         if (ob instanceof Membrane) { x0 = Math.min(x0, 0); x1 = Math.max(x1, SW); y0 = Math.min(y0, pp.y - 320); y1 = Math.max(y1, SH); continue; }
         x0 = Math.min(x0, pp.x - rp); y0 = Math.min(y0, pp.y - rp); x1 = Math.max(x1, pp.x + rp); y1 = Math.max(y1, pp.y + rp);
       }
-      x0 = Math.max(150, x0); y0 = Math.max(180, y0); x1 = Math.min(1770, x1); y1 = Math.min(875, y1);
+      x0 = Math.max(AR.x0 + 10, x0); y0 = Math.max(AR.y0, y0); x1 = Math.min(AR.x1 - 10, x1); y1 = Math.min(AR.y1 - 5, y1);
       if (x1 > x0 && y1 > y0) Object.assign(foot.style, { display: 'block', left: x0 + 'px', top: y0 + 'px', width: (x1 - x0) + 'px', height: (y1 - y0) + 'px' });
       else foot.style.display = 'none';
     });
@@ -1168,7 +1168,7 @@
       let x = side === 'r' ? a.x + dx : side === 'l' ? a.x - dx - L.w : a.x - L.w / 2, y = side === 'up' ? a.y - 130 - L.hh : side === 'down' ? a.y + 110 : a.y + dy - L.hh / 2;
       live.push({ L, a, x, y, k, side });
     }
-    const clampB = (b) => { b.x = clamp(b.x, 150, 1770 - b.L.w); b.y = clamp(b.y, 180, 815 - b.L.hh); };
+    const clampB = (b) => { b.x = clamp(b.x, AR.x0 + 10, AR.x1 - 10 - b.L.w); b.y = clamp(b.y, AR.y0, AR.y1 - 65 - b.L.hh); };
     live.forEach(clampB);
     for (let it = 0; it < 8; it++) for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) {
       const A = live[i], Bb = live[j], ox = Math.min(A.x + A.L.w, Bb.x + Bb.L.w) - Math.max(A.x, Bb.x) + 16, oy = Math.min(A.y + A.L.hh, Bb.y + Bb.L.hh) - Math.max(A.y, Bb.y) + 12;
@@ -1195,7 +1195,7 @@
       const txt = fmt(val(v, lt)) + (o.unit ? `<small>${o.unit}</small>` : '');
       if (el._t !== txt) { el._t = txt; el.innerHTML = txt; }
       const w = el.offsetWidth, x0 = o.align === 'l' ? x : o.align === 'r' ? x - w : x - w / 2;
-      el.style.left = clamp(x0, 150, 1770 - w) + 'px'; el.style.top = clamp(y - size / 2, 180, 880 - size) + 'px';
+      el.style.left = clamp(x0, AR.x0 + 10, AR.x1 - 10 - w) + 'px'; el.style.top = clamp(y - size / 2, AR.y0, AR.y1 - size) + 'px';
       el.style.opacity = k.toFixed(3); el.style.transform = `scale(${(0.9 + 0.1 * ease.back(k)).toFixed(3)})`;
     } };
     N.hide = (t) => { o.out = t; return N; };

@@ -130,9 +130,10 @@
   Builder.prototype.title = function (str, o = {}) {
     const at = o.at ?? 0.15;
     const T = this.hud || this;   // the page title lives on the hud: camera moves never cut it
-    const t = T.text(str, { x: 140, y: 78, size: o.size ?? 56, weight: 700, at, cps: o.cps ?? 11, color: 'ink' });
-    const w = o.uw ?? Math.min(760, t.spans.length * (o.size ?? 56) * 0.78);
-    T.underline(142, 160, w, { color: o.accent || 'orange', at: at + t.a.dur * 0.8, dur: 0.6, sw: 3.4 });
+    const { x, y } = STAGE.title || { x: 140, y: 78 };
+    const t = T.text(str, { x, y, size: o.size ?? 56, weight: 700, at, cps: o.cps ?? 11, color: 'ink', ...(STAGE.portrait ? { w: STAGE.w - 2 * x } : {}) });
+    const w = o.uw ?? Math.min(STAGE.portrait ? STAGE.w - 2 * x : 760, t.spans.length * (o.size ?? 56) * 0.78);
+    T.underline(x + 2, y + 82, w, { color: o.accent || 'orange', at: at + t.a.dur * 0.8, dur: 0.6, sw: 3.4 });
     return t;
   };
 

@@ -57,5 +57,6 @@ svg.ink { position: absolute; left: 0; top: 0; overflow: visible; }
 
 /* portrait canvas (?portrait): 1080×1920; subtitles sit above the platforms' bottom caption area */
 #frame.portrait { width: 1080px; height: 1920px; }
+#frame.portrait .hud::before { height: 300px; }
 #frame.portrait .subs { bottom: 320px; }
 #frame.portrait .subs span { max-width: 960px; font-size: 50px; }

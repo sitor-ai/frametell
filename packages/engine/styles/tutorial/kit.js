@@ -44,7 +44,8 @@
   /** shot(src, { at, x=320, y=135, w=1280, url }): a real 2× screenshot of the studio (1600×900 CSS px, e.g.
    *  'materials/02-before.jpg') in a browser window. Returns the window: pass it to swap / cursor / spot / zoom / typing. */
   B.shot = function (src, o = {}) {
-    const x = num(o.x, 320), y = num(o.y, 135), w = num(o.w, 1280);
+    const w0 = Math.min(1280, STAGE.area.x1 - STAGE.area.x0);   // 1280 in landscape, the content width in portrait
+    const x = num(o.x, (W - w0) / 2), y = num(o.y, STAGE.area.y0 - 45), w = num(o.w, w0);
     const k = (w - 8) / SHOT_W, hh = 54 + SHOT_H * k + 6;
     const at = num(o.at, 0);
     // B.browser draws its frame, divider, lights and the address pill as rough strokes (draw-on, sketchy). A UI style wants
@@ -210,7 +211,7 @@
     const T = this.hud || this, at = num(o.at, 0.8);
     const el = h('div', 'tt-note', `${o.kicker ? `<span class="k">${esc(o.kicker)}</span>` : ''}${rich(text)}`, T.html);
     const w = el.offsetWidth || 380, hh = el.offsetHeight || 90;
-    Object.assign(el.style, { left: clamp(num(o.x, 1500) - w / 2, 60, W - 60 - w) + 'px', top: clamp(num(o.y, 780) - hh / 2, 150, 885 - hh) + 'px' });
+    Object.assign(el.style, { left: clamp(num(o.x, W - 420) - w / 2, 60, W - 60 - w) + 'px', top: clamp(num(o.y, STAGE.area.y1 - 100) - hh / 2, STAGE.area.y0 - 30, STAGE.area.y1 + 5 - hh) + 'px' });
     marker(el, w, hh);
     T.tick((lt) => { const k = fin(lt, at, 0.4) * outK(lt, o.out); set(el, 'opacity', k.toFixed(3)); set(el, 'transform', `translateY(${((1 - k) * 12).toFixed(1)}px)`); });
     return { el };
@@ -221,7 +222,7 @@
   B.card = function (text, o = {}) {
     const at = num(o.at, 0.3);
     const el = h('div', 'tt-card', `${rich(text)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}`, this.html);
-    marker(el, W - 320, 300);
+    marker(el, W - (STAGE.portrait ? 140 : 320), 300);   // the card's width (style.css: left/right 160, 70 in portrait)
     this.tick((lt) => { const k = fin(lt, at, 0.5); set(el, 'opacity', k.toFixed(3)); set(el, 'transform', `translateY(${((1 - k) * 16).toFixed(1)}px)`); });
     return { el };
   };

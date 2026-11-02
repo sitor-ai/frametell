@@ -46,13 +46,13 @@ const OPENING = {
 };
 
 /** Scaffold a new project from the template; `lang` is the film's language (zh or en, default zh). */
-export function createProject(dir, { title, style = 'study', lang = 'zh' } = {}) {
+export function createProject(dir, { title, style = 'study', lang = 'zh', portrait = false } = {}) {
   const { title: untitled, ...words } = OPENING[lang] ?? OPENING.zh;
   fs.mkdirSync(path.join(dir, 'pages'), { recursive: true });
   for (const f of ['index.html', 'script.js', 'pages/p01.js']) {
     let src = fs.readFileSync(path.join(ENGINE_DIR, 'template', f), 'utf8');
     for (const [k, v] of Object.entries(words)) src = src.replaceAll(k, v);
-    fs.writeFileSync(path.join(dir, f), src.replaceAll('__TITLE__', title || untitled).replace("  const META = {", `  const META = {\n    style: '${style}',`));
+    fs.writeFileSync(path.join(dir, f), src.replaceAll('__TITLE__', title || untitled).replace("  const META = {", `  const META = {\n    style: '${style}',${portrait ? '\n    portrait: true,' : ''}`));
   }
   fs.writeFileSync(path.join(dir, '.gitignore'), 'engine\nengine_modules\nout/\n.studio/\n');
   linkProject(dir);

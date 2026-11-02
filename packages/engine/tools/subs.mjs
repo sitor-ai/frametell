@@ -2,9 +2,9 @@
 // Usage (from a project dir): node engine/tools/subs.mjs <from> <to>
 import fs from 'fs';
 import path from 'path';
-import { openStage, OUT, PORTRAIT, finish } from './lib.mjs';
+import { openStage, OUT, TWIN, finish } from './lib.mjs';
 const [from, to] = [+process.argv[2], +process.argv[3]];
-const sd = path.join(OUT, PORTRAIT ? 'subs-portrait' : 'subs');
+const sd = path.join(OUT, TWIN ? 'subs-portrait' : 'subs');
 fs.rmSync(sd, { recursive: true, force: true });
 fs.mkdirSync(sd, { recursive: true });
 const { page } = await openStage('render&subs&only=none');

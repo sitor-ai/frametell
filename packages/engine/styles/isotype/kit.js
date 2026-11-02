@@ -210,7 +210,7 @@
   //    whole drawing (figures, keys, captions, close-ups, the page's own marks) is measured and, as one piece, scaled up
   //    (≤ 1.45×) and centred to fill the content area x 140–1780, y 190–880; a drawing already as wide as the area but
   //    leaving more than a quarter of it empty below is moved down to the centre. A page may only get bigger.
-  const CA = { x0: 140, y0: 190, x1: 1780, y1: 880 };
+  const CA = { x0: STAGE.area.x0, y0: STAGE.area.y0 + 10, x1: STAGE.area.x1, y1: STAGE.area.y1 };
   const SHIFT = { r: [-1, -0.5], m: [0, -0.5], c: [-0.5, 0], rt: [-1, 0] };
   function fitPage(m) {
     m.fitted = true;
@@ -253,7 +253,7 @@
     clampCams(m, B2, sc, tx, ty);
     if (sc === 1 && Math.abs(ty) < 4 && Math.abs(tx) < 4) return;
     const wrap = h('div', 'is-fit', null, null);
-    Object.assign(wrap.style, { position: 'absolute', left: '0px', top: '0px', width: '1920px', height: '1080px', transformOrigin: '0 0', transform: `translate(${f2(tx)}px, ${f2(ty)}px) scale(${sc.toFixed(4)})` });
+    Object.assign(wrap.style, { position: 'absolute', left: '0px', top: '0px', width: STAGE.w + 'px', height: STAGE.h + 'px', transformOrigin: '0 0', transform: `translate(${f2(tx)}px, ${f2(ty)}px) scale(${sc.toFixed(4)})` });
     while (cam.firstChild) wrap.appendChild(cam.firstChild);
     cam.appendChild(wrap);
     m.fit = { sc, tx, ty };
@@ -266,8 +266,8 @@
       if (!k || k.x == null || !(k.s > 1.001)) continue;
       const x = sc * k.x + tx, y = sc * k.y + ty;   // keys were aimed at the unfitted drawing
       let sk = Math.min(k.s, (CA.x1 - CA.x0) / bw, (CA.y1 - CA.y0) / bh);
-      if (sk < 1.02) { k.s = 1; k.x = 960; k.y = 540; continue; }
-      const xl = b.x1 - (CA.x1 - 960) / sk, xh = b.x0 + (960 - CA.x0) / sk, yl = b.y1 - (CA.y1 - 540) / sk, yh = b.y0 + (540 - CA.y0) / sk;
+      if (sk < 1.02) { k.s = 1; k.x = STAGE.w / 2; k.y = STAGE.h / 2; continue; }
+      const xl = b.x1 - (CA.x1 - STAGE.w / 2) / sk, xh = b.x0 + (STAGE.w / 2 - CA.x0) / sk, yl = b.y1 - (CA.y1 - STAGE.h / 2) / sk, yh = b.y0 + (STAGE.h / 2 - CA.y0) / sk;
       k.s = sk; k.x = clamp(x, Math.min(xl, xh), Math.max(xl, xh)); k.y = clamp(y, Math.min(yl, yh), Math.max(yl, yh));
     }
   }
@@ -455,7 +455,7 @@
     }
     const n = units.length;
     if (o.cols) A.cols = o.cols;
-    else { const w = o.w ?? 1640; A.cols = Math.max(1, Math.floor((w + (A.px - A.wMax)) / A.px)); }
+    else { const w = o.w ?? CA.x1 - CA.x0; A.cols = Math.max(1, Math.floor((w + (A.px - A.wMax)) / A.px)); }
     A.rows = o.rows || Math.max(1, Math.ceil(Math.max(n, o.cap || 0) / A.cols));
     if (A.order === 'col' && !o.cols) A.cols = Math.ceil(Math.max(n, o.cap || 0) / A.rows);
     // counting cadence: a few figures are counted one by one, a crowd arrives quicker
@@ -558,8 +558,8 @@
    *  unit (word after the tally, e.g. '百万人') }. Returns a handle with .recolor .move .dim .undim .hide .slot .box. Typical: P.array(null, null, { n: 26, key: '8000万人', land: P.cw(0, '26') }). */
   B.array = function (x, y, o = {}) {
     const n = Math.max(unitCount(o), o.cap || 0), r = glyphR(o);
-    const ax = o.area ? o.area.x : x ?? 140, ay = o.area ? o.area.y : y ?? 190;
-    const aw = o.area ? o.area.w : o.w ?? 1780 - ax, ah = (o.area ? o.area.h : o.maxH ?? 880 - ay) - (o.key ? 84 : 0);
+    const ax = o.area ? o.area.x : x ?? CA.x0, ay = o.area ? o.area.y : y ?? CA.y0;
+    const aw = o.area ? o.area.w : o.w ?? CA.x1 - ax, ah = (o.area ? o.area.h : o.maxH ?? CA.y1 - ay) - (o.key ? 84 : 0);
     let hh, cols = o.cols;
     if (o.like) hh = (o.like.A || o.like).hh;
     else if (o.fixed && o.h) hh = o.h;
@@ -598,12 +598,12 @@
    *  the widest row and the height (up to 170 px), labels 32 px, values 40–64 px; at (first row; later rows follow 0.25 s after the one
    *  before unless they have their own at), tally (true: running counts on every row), unit }. Returns { rows: [A…], box }. */
   B.rows = function (x, y, rows, o = {}) {
-    x = x ?? 140;
+    x = x ?? CA.x0;
     const lw = o.labelW ?? 240, fx = x + lw;
-    const avail = o.w ?? (1740 - fx - (o.tally || rows.some((r) => r.value || r.tally) ? 190 : 0));
+    const avail = o.w ?? (CA.x1 - 40 - fx - (o.tally || rows.some((r) => r.value || r.tally) ? 190 : 0));
     const maxN = Math.max(...rows.map((r) => Math.ceil(r.groups ? r.groups.reduce((a, g) => a + g.n, 0) : r.n || 0)), 1);
     const wMax = Math.max(...rows.map((r) => gw(r.glyph || o.glyph || 'man')));
-    const areaH = (o.maxH ?? 880 - (y ?? 190)) - (o.key ? 84 : 0);
+    const areaH = (o.maxH ?? CA.y1 - (y ?? CA.y0)) - (o.key ? 84 : 0);
     // one figure size for every row: as big as the widest row and the height allow (≤ 170 px)
     // a long row may break into 2–3 lines when that lets every figure be clearly bigger (few rows, much height)
     const sizeFor = (L) => {
@@ -618,7 +618,7 @@
     const hh = Math.floor(best.hh), across = lines > 1 ? best.across : 1000;
     const rowH = o.rowH ?? Math.max(hh * (lines * 1.26 + 0.16), Math.min(hh * (lines * 1.26 + 0.84), (areaH + hh * 0.42) / rows.length));
     const totalH = rows.length * rowH - (rowH - hh * (lines * 1.26 - 0.26));
-    if (y == null) y = 190 + (areaH - totalH) / 2;
+    if (y == null) y = CA.y0 + (areaH - totalH) / 2;
     let t = o.at ?? 0;
     const list = [];
     rows.forEach((r, i) => {
@@ -653,17 +653,17 @@
    *  Returns { cols: [A…], box }. A column's handle is a target for A.move. */
   B.columns = function (x, y, cols, o = {}) {
     const per = o.per ?? 5, gapB = o.gap ?? 110;
-    if (y == null) y = o.key ? 740 : 800;
-    const W = o.w ?? (x == null ? 1640 : 1780 - x);
+    if (y == null) y = o.key ? CA.y1 - 140 : CA.y1 - 80;
+    const W = o.w ?? (x == null ? CA.x1 - CA.x0 : CA.x1 - x);
     const r = Math.max(...cols.map((c) => gw(c.glyph || o.glyph || 'man'))) / 100;
     const maxRows = Math.max(...cols.map((c) => Math.ceil(Math.max(unitCount(c), c.cap || 0) / per)), 1);
-    const availH = y - 200 - (o.tally ? 64 : 0);
+    const availH = y - (CA.y0 + 10) - (o.tally ? 64 : 0);
     let hh = o.fixed && o.h ? o.h : Math.min(200, availH / (maxRows * 1.26 - 0.26));
     if (!(o.fixed && o.h)) while (hh > 22 && cols.length * (per * (r * hh + Math.max(4, hh * 0.14)) - Math.max(4, hh * 0.14)) + (cols.length - 1) * gapB > W) hh -= 2;
     hh = Math.floor(hh);
     const wMax = r * hh;
     const pxx = wMax + Math.max(4, hh * 0.14), totalW = cols.length * (per * pxx - (pxx - wMax)) + (cols.length - 1) * gapB;
-    if (x == null) x = 140 + (W - totalW) / 2;
+    if (x == null) x = CA.x0 + (W - totalW) / 2;
     let cx = x, t = o.at ?? 0;
     const outA = [];
     const px = wMax + Math.max(4, hh * 0.14);
@@ -862,7 +862,7 @@
     const t = h('span', 't', null, wrap); t.textContent = str;
     if (o.kick) { const k = h('span', 'k', null, wrap); k.textContent = o.kick; }
     const rule = h('div', 'is-rule', null, T.html);
-    Object.assign(rule.style, { left: '140px', top: o.kick ? '168px' : '128px', width: '1640px', height: '3px' });
+    Object.assign(rule.style, { left: STAGE.title.x + 'px', top: STAGE.title.y + (o.kick ? 90 : 50) + 'px', width: STAGE.w - 2 * STAGE.title.x + 'px', height: '3px' });
     const a = T.act({ at, dur: 0.7, g: wrap, kind: 'show', pen: false, apply: (k, lt, vis) => {
       const on = lt >= at ? 1 : 0;
       wrap.style.opacity = f2(on * clamp(k * 2.5) * vis);
@@ -870,6 +870,6 @@
       rule.style.transform = `scaleX(${(on * out(k)).toFixed(4)})`;
       rule.style.opacity = f2(vis);
     } });
-    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: 140, y: 62, w: wrap.offsetWidth, h: 46 }) });
+    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: STAGE.title.x, y: STAGE.title.y - 16, w: wrap.offsetWidth, h: 46 }) });
   };
 })();

@@ -44,9 +44,12 @@ svg.ink g.mark path { opacity: 0.45; }
 .ne-node { position: absolute; }
 .ne-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .ne-tt { position: absolute; left: 140px; top: 62px; display: flex; align-items: baseline; gap: 18px; white-space: nowrap; }
+#frame.portrait .ne-tt { left: 70px; top: 154px; }
 .ne-tt .no { font-family: var(--mono); font-size: 24px; letter-spacing: 0.12em; }
 .ne-tt .t { font-family: var(--display); font-weight: 700; font-size: 44px; letter-spacing: -0.01em; line-height: 1; color: #F2EEFF; }
 .ne-pg { position: absolute; right: 140px; top: 72px; font-family: var(--mono); font-size: 24px; letter-spacing: 0.12em; color: #6F6893; }
+#frame.portrait .ne-pg { right: 70px; top: 164px; }
 .ne-pg i { font-style: normal; display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 12px; vertical-align: 1px; }
 .ne-rule { position: absolute; left: 140px; top: 132px; height: 3px; width: 1640px; transform-origin: 0 50%; border-radius: 3px; }
+#frame.portrait .ne-rule { left: 70px; top: 224px; width: 940px; }
 .ne-cell { position: absolute; font-family: var(--mono); font-size: 26px; letter-spacing: 0.06em; white-space: nowrap; text-shadow: none; }

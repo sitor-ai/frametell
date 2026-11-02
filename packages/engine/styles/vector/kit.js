@@ -270,7 +270,7 @@
       gr.addColorStop(0, g[0]); gr.addColorStop(0.55, g[1]); gr.addColorStop(1, g[2]);
       c.fillStyle = gr; c.fillRect(-300, -300, W + 600, H + 600);
       if (o.nebula ?? mood === 'space') {
-        glow(c, 1400, 260, 760, '#6B2FD6', 0.4); glow(c, 380, 780, 620, '#D6338C', 0.28); glow(c, 900 + Math.sin(lt * 0.2) * 30, 520, 500, '#2A6BE0', 0.16);
+        glow(c, W - 520, 260, 760, '#6B2FD6', 0.4); glow(c, 380, H - 300, 620, '#D6338C', 0.28); glow(c, W / 2 - 60 + Math.sin(lt * 0.2) * 30, H / 2 - 20, 500, '#2A6BE0', 0.16);
       }
       if (starry) for (const [x, y, r, ph, sp] of stars) {
         const tw = 0.55 + 0.45 * Math.sin(lt * sp + ph);
@@ -281,7 +281,7 @@
         c.fillStyle = 'rgba(255,255,255,0.14)'; c.fill(circle(x + Math.sin(lt * 0.6 + ph) * 12, yy, r));
       }
       if (o.hills) {
-        const hc = col(o.hills.color || (mood === 'day' ? '#4EA83F' : mood === 'forest' ? '#1E7A4E' : '#2B1F86')), hy = o.hills.y ?? 760;
+        const hc = col(o.hills.color || (mood === 'day' ? '#4EA83F' : mood === 'forest' ? '#1E7A4E' : '#2B1F86')), hy = o.hills.y ?? STAGE.area.y1 - 120;
         const ridge = (x, j) => hy - (2 - j) * 70 + Math.sin(x * (0.0026 + j * 0.0011) + j * 2.1) * (52 - j * 8) + Math.sin(x * 0.009 + j) * 16;
         for (let j = 0; j < 3; j++) {
           const cc = j === 2 ? hc : mix(hc, g[1], 0.62 - j * 0.28);
@@ -297,7 +297,7 @@
       }
       if (o.clouds) { const rr = PV.rng(77); for (let i = 0; i < (o.clouds === true ? 5 : o.clouds); i++) { const x = ((rr() * (W + 600) + lt * (10 + rr() * 14)) % (W + 600)) - 300; cloud(c, x, 120 + rr() * 300, 0.6 + rr() * 0.9, { alpha: mood === 'day' ? 1 : 0.25 }); } }
       if (o.horizon) {
-        const hc = col(o.horizon.color || '#2F7FE0'), top = o.horizon.y ?? 860, R = 2600;
+        const hc = col(o.horizon.color || '#2F7FE0'), top = o.horizon.y ?? STAGE.area.y1 - 20, R = 2600;
         glow(c, W / 2, top + R, R + 140, o.horizon.glow || '#7FD7FF', 0.0);
         c.fillStyle = rgba(hex(o.horizon.glow || '#7FD7FF'), 0.35); c.fill(circle(W / 2, top + R, R + 26));
         c.fillStyle = rgba(hex(o.horizon.glow || '#7FD7FF'), 0.25); c.fill(circle(W / 2, top + R, R + 60));
@@ -382,15 +382,16 @@
   B.vfore = function (o = {}) {
     const kind = o.kind || 'rocks', at = o.at ?? 0, base = col(o.color || { rocks: '#2A1F6E', crater: '#4A3F8E', plants: '#123F3A', reef: '#7A2A6E', dunes: '#C27A3A', clouds: '#E8E4FF' }[kind]);
     const mk = PV.s('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;pointer-events:none' }, this.html);
-    PV.s('rect', { x: 0, y: 820, width: 400, height: 60, fill: 'transparent' }, mk);
+    const yb = H - 1080, xr = W - 1920;   // the foreground hugs the bottom corners of the stage
+    PV.s('rect', { x: 0, y: 820 + yb, width: 400, height: 60, fill: 'transparent' }, mk);
     return stageCanvas(this, (c, lt) => {
       const k = ease.out(clamp((lt - at) / 0.7)), dy = (1 - k) * 260;
       if (k <= 0) return;
-      c.save(); c.translate(0, dy);
+      c.save(); c.translate(0, dy + yb);
       const sw = Math.sin(lt * 0.9) * 0.025;
       if (kind === 'rocks') {
         blob(c, 120, 1060, 300, base, { seed: 3, lumps: 8, wobble: 0.16, squash: 0.7 });
-        blob(c, 1860, 1100, 360, mix(base, '#000', 0.1), { seed: 8, lumps: 8, wobble: 0.15, squash: 0.62 });
+        blob(c, 1860 + xr, 1100, 360, mix(base, '#000', 0.1), { seed: 8, lumps: 8, wobble: 0.15, squash: 0.62 });
         blob(c, 380, 1110, 160, mix(base, '#fff', 0.08), { seed: 13, lumps: 7, wobble: 0.2, squash: 0.7 });
       } else if (kind === 'crater') {
         const R = 3400, cy0 = 880 + R;
@@ -400,7 +401,7 @@
       } else if (kind === 'plants' || kind === 'reef') {
         const leaf = (x, y, len, a, cc) => { c.save(); c.translate(x, y); c.rotate(a + sw * (1 + len / 400)); const p = new Path2D(); p.moveTo(0, 0); p.quadraticCurveTo(len * 0.35, -len * 0.22, len, 0); p.quadraticCurveTo(len * 0.35, len * 0.22, 0, 0); flat(c, p, cc, null, null, [0, 10], [0, 4]); c.restore(); };
         const c1 = base, c2 = mix(base, kind === 'reef' ? '#FF8A5B' : '#2FA35A', 0.35);
-        for (const [x, y, len, a, cc] of [[-40, 1120, 520, -1.0, c1], [40, 1140, 460, -0.6, c2], [-60, 980, 380, -0.25, c1], [1960, 1120, 540, -2.2, c1], [1880, 1160, 440, -2.6, c2], [1980, 960, 360, -2.95, c1]]) leaf(x, y, len, a, cc);
+        for (const [x, y, len, a, cc] of [[-40, 1120, 520, -1.0, c1], [40, 1140, 460, -0.6, c2], [-60, 980, 380, -0.25, c1], [1960 + xr, 1120, 540, -2.2, c1], [1880 + xr, 1160, 440, -2.6, c2], [1980 + xr, 960, 360, -2.95, c1]]) leaf(x, y, len, a, cc);
         if (kind === 'reef') for (let i = 0; i < 5; i++) blob(c, 200 + i * 360 + (i % 2) * 120, 1080, 70 + (i % 3) * 30, ['#FF5D73', '#FFA62B', '#A07CFF'][i % 3], { seed: 20 + i, lumps: 9, wobble: 0.35 });
       } else if (kind === 'dunes') {
         for (let j = 0; j < 2; j++) { c.fillStyle = mix(base, '#000', j * 0.12); c.beginPath(); c.moveTo(-50, 1100); for (let x = -50; x <= W + 50; x += 30) c.lineTo(x, 930 + j * 60 + Math.sin(x * 0.003 + j * 2) * 50); c.lineTo(W + 50, 1100); c.fill(); }
@@ -486,11 +487,12 @@
       for (let i = 1; i < keys.length; i++) if (lt < keys[i][0]) { const [t0, u0] = keys[i - 1], [t1, u1] = keys[i]; return lerp(u0, u1, ease.inOut(clamp((lt - t0) / (t1 - t0)))); }
       return keys[keys.length - 1][1];
     };
-    const cx = W / 2, cy = (o.cy ?? 500), fill = o.fill ?? 1.25;
+    const cx = W / 2, cy = (o.cy ?? H / 2 - 40), fill = o.fill ?? 1.25;
     const V = Object.assign({}, PV.V);
     // the journey fills the frame: a transparent marker tells the page check it is content, not a backdrop
     const mark = PV.s('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;pointer-events:none' }, this.html);
-    PV.s('rect', { x: 220, y: 200, width: 1480, height: 660, fill: 'transparent' }, mark);
+    const A = STAGE.area;
+    PV.s('rect', { x: A.x0 + 80, y: A.y0 + 20, width: A.x1 - A.x0 - 160, height: A.y1 - A.y0 - 40, fill: 'transparent' }, mark);
     return stageCanvas(this, (c, lt) => {
       const k0 = fadeK(lt, o.at ?? 0, 0.4);
       const u = clamp(levelAt(lt), 0, levels.length - 1), Z = Math.pow(f, u);
@@ -524,7 +526,7 @@
         const near = clamp(1 - Math.abs(Math.log10(sc)) * 2.2);
         if (levels[i].name && near > 0.02) {
           c.globalAlpha = k0 * near;
-          pill(c, cx + (origin[i][0] - cam[0]) / Z * fill, Math.min(858, cy + (origin[i][1] - cam[1]) / Z * fill + 330 * fill * Math.min(1, sc) + 24), levels[i].name, { size: 32, color: '#F6F3FF' });
+          pill(c, cx + (origin[i][0] - cam[0]) / Z * fill, Math.min(A.y1 - 22, cy + (origin[i][1] - cam[1]) / Z * fill + 330 * fill * Math.min(1, sc) + 24), levels[i].name, { size: 32, color: '#F6F3FF' });
         }
       }
       c.globalAlpha = k0;
@@ -533,8 +535,8 @@
         if (lab) {
           const flip = 1 - Math.abs(fr - 0.5) * 2 > 0.85 ? 0.6 : 1;
           c.globalAlpha = k0 * flip;
-          pill(c, 1780, 120, lab, { size: 40, color: '#FACC12', align: 'r' });
-          c.font = `600 26px ${FONT}`; c.fillStyle = 'rgba(246,243,255,0.65)'; c.textAlign = 'right'; c.fillText(o.caption ?? ((window.SCRIPT?.META?.lang === "zh") ? `每一步 × ${f}` : `× ${f} every step`), 1780, 192);
+          pill(c, A.x1, STAGE.title.y + 42, lab, { size: 40, color: '#FACC12', align: 'r' });
+          c.font = `600 26px ${FONT}`; c.fillStyle = 'rgba(246,243,255,0.65)'; c.textAlign = 'right'; c.fillText(o.caption ?? ((window.SCRIPT?.META?.lang === "zh") ? `每一步 × ${f}` : `× ${f} every step`), A.x1, STAGE.title.y + 114);
         }
       }
       c.globalAlpha = 1;

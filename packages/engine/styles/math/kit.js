@@ -319,7 +319,7 @@
    */
   B.plane = function (o = {}) {
     const [x0, x1, xs] = o.x || [-5, 5, 1], [y0, y1, ys] = o.y || [-3, 3, 1];
-    let [bx, by, bw, bh] = o.box || [200, 190, 1100, 660];
+    let [bx, by, bw, bh] = o.box || [STAGE.area.x0 + 60, STAGE.area.y0 + 10, 1100, 660];
     let ux = bw / (x1 - x0), uy = bh / (y1 - y0);
     if (o.equal) { const u = Math.min(ux, uy); bx += (bw - u * (x1 - x0)) / 2; by += (bh - u * (y1 - y0)) / 2; bw = u * (x1 - x0); bh = u * (y1 - y0); ux = uy = u; }
     const X = (v) => bx + (v - x0) * ux, Y = (v) => by + (y1 - v) * uy;
@@ -755,7 +755,7 @@
    */
   B.unroll = function (cx, cy, r, o = {}) {
     const at = o.at ?? 0, n = o.n ?? 16, open = o.open ?? at + 1.6, dur = o.dur ?? 2.6;
-    const tx = o.tx ?? 960, ty = Math.min(o.ty ?? cy + r + 200, 770);
+    const tx = o.tx ?? STAGE.w / 2, ty = Math.min(o.ty ?? cy + r + 200, STAGE.area.y1 - 110);
     const c1 = vcol(this, o.color, 'blue'), c2 = PV.mix(c1, '#0E0F12', 0.32);
     const g = s('g', {}, this.svg), th = r / n, N = 110;
     const rings = Array.from({ length: n }, (_, i) => {
@@ -979,7 +979,7 @@
     const el = h('div', 'tx mt-title', null, T.html); el.textContent = str;
     const ol = h('div', 'mt-title mt-ol', null, T.html); ol.textContent = str;
     const rule = h('div', null, null, T.html);
-    Object.assign(rule.style, { position: 'absolute', left: '140px', top: '136px', height: '2px', width: '120px', background: col('faint'), transformOrigin: '0 0' });
+    Object.assign(rule.style, { position: 'absolute', left: STAGE.title.x + 'px', top: (STAGE.title.y + 58) + 'px', height: '2px', width: '120px', background: col('faint'), transformOrigin: '0 0' });
     const n = [...str].length, dur = clamp(0.4 + n * 0.035, 0.5, 1.2);
     const a = T.act({ at, dur: dur + 0.4, g: el, kind: 'text', pen: false, apply: (k, lt, vis) => {
       const t = lt - at;
@@ -988,6 +988,6 @@
       rule.style.transform = `scaleX(${f3(smooth(clamp((t - dur * 0.5) / 0.5)))})`;
       rule.style.opacity = f2(vis);
     } });
-    return Object.assign(T.handle(a, el), { spans: [el], box: () => ({ x: 140, y: 56, w: el.offsetWidth, h: 70 }) });
+    return Object.assign(T.handle(a, el), { spans: [el], box: () => ({ x: STAGE.title.x, y: STAGE.title.y - 22, w: el.offsetWidth, h: 70 }) });
   };
 })();

@@ -7,7 +7,7 @@
 (function () {
   const { col, clamp, lerp, ease, h, Builder } = PV;
   const B = Builder.prototype;
-  const U = 6, W = 320, H = 180;   // one logical pixel = 6 screen pixels; the stage is 320×180 logical pixels
+  const U = 6, W = STAGE.w / U, H = STAGE.h / U;   // one logical pixel = 6 screen pixels; the stage is 320×180 logical pixels (180×320 in portrait)
 
   // ── palette: sprite characters → colours (a 25-colour console set)
   const PAL = {
@@ -470,7 +470,7 @@
     const g = painter(ctx, m);
     // the pixel stage is a whole world, edge to edge, so the layout check's "sparse page" measure (which skips full-bleed
     // backgrounds) reads it through an invisible stand-in for the playfield instead
-    PV.s('rect', { x: 180, y: 180, width: 1560, height: 690, fill: 'none', stroke: 'none', 'data-pixel-stage': '' }, this.svg);
+    PV.s('rect', { x: STAGE.area.x0 + 40, y: STAGE.area.y0, width: STAGE.area.x1 - STAGE.area.x0 - 80, height: STAGE.area.y1 - STAGE.area.y0 - 10, fill: 'none', stroke: 'none', 'data-pixel-stage': '' }, this.svg);
     this.tick((lt) => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, c.width, c.height);
@@ -491,12 +491,12 @@
   // stepped block underline (it lives on the hud, so camera moves never cut it)
   B.title = function (str, o = {}) {
     const at = o.at ?? 0.15, T = this.hud || this, size = o.size ?? 40;
-    if (o.world !== false) T.text(o.world ? `WORLD ${o.world}` : 'STAGE', { x: 142, y: 34, size: 26, color: 'yellow', font: 'latin', at, mode: 'fade', dur: 0.2 });
-    const t = T.text(str, { x: 140, y: 74, size, color: 'ink', font: 'latin', at: at + 0.1, cps: o.cps ?? 18 });
+    if (o.world !== false) T.text(o.world ? `WORLD ${o.world}` : 'STAGE', { x: STAGE.title.x + 2, y: STAGE.title.y - 44, size: 26, color: 'yellow', font: 'latin', at, mode: 'fade', dur: 0.2 });
+    const t = T.text(str, { x: STAGE.title.x, y: STAGE.title.y - 4, size, color: 'ink', font: 'latin', at: at + 0.1, cps: o.cps ?? 18 });
     const n = Math.min(14, Math.max(4, Math.round([...str].length * 0.7))), c = col(o.accent || 'orange');
     for (let i = 0; i < n; i++) {
       const el = h('div', null, null, T.html);
-      Object.assign(el.style, { position: 'absolute', left: 142 + i * 30 + 'px', top: 72 + size * 1.35 + 'px', width: '24px', height: '12px', background: c, boxShadow: '6px 6px 0 #000' });
+      Object.assign(el.style, { position: 'absolute', left: STAGE.title.x + 2 + i * 30 + 'px', top: STAGE.title.y - 6 + size * 1.35 + 'px', width: '24px', height: '12px', background: c, boxShadow: '6px 6px 0 #000' });
       T.show(el, { at: at + 0.3 + i * 0.035, dur: 0.01, dy: 0 });
     }
     return t;

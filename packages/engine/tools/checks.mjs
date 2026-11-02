@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
-import { EP, PORTRAIT } from './lib.mjs';
+import { EP, PORTRAIT, PAGES_DIR, STAGE } from './lib.mjs';
 import { FFMPEG } from './bins.mjs';
 
 /** text boxes overlapping by at least this much of the smaller one hide each other: an error, not a touch */
@@ -71,7 +71,7 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
     return out;
   }, pages.map((p) => p.id));
   // the visual's lines → the file's: the visual starts on the line that registers it
-  const fileLine = (id, rel) => { try { const src = fs.readFileSync(path.join(EP, PORTRAIT ? 'pages-portrait' : 'pages', id + '.js'), 'utf8'); const at = src.split('\n').findIndex((l) => /ENGINE\.visual\s*\(/.test(l)); return at >= 0 ? at + rel : rel; } catch { return rel; } };
+  const fileLine = (id, rel) => { try { const src = fs.readFileSync(path.join(EP, PAGES_DIR, id + '.js'), 'utf8'); const at = src.split('\n').findIndex((l) => /ENGINE\.visual\s*\(/.test(l)); return at >= 0 ? at + rel : rel; } catch { return rel; } };
   for (const a of apiIssues) { const p = pages.find((x) => x.id === a.page); add(p, p.start, 'api', 'error', `${a.msg} — at pages/${a.page}.js:${fileLine(a.page, a.line)}`, { name: a.name, line: fileLine(a.page, a.line) }); }
 
   for (const p of pages) {
@@ -83,12 +83,12 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
     if (index < L.pages.length - 1 && (await inkAt(p.id, p.end - 0.2)) === 0)
       add(p, p.end - 0.2, 'empty-ending', 'error', 'empty ending: the page has cleared itself before it turns out — keep the final state on screen');
     // settled state, just before the page turns: how much of the content area the drawing covers, and how much is text
-    const settled = await page.evaluate(({ id, t }) => {
+    const settled = await page.evaluate(({ id, t, content, subs }) => {
       ENGINE.renderAt(t);
       const root = document.querySelector(`#stage .page[data-page="${id}"]`);
       const frame = document.getElementById('frame').getBoundingClientRect();
       const op = (n) => { let o = 1; for (; n && n !== root.parentElement; n = n.parentElement) { const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return 0; o *= +cs.opacity; } return o; };
-      const A = { x0: 140, y0: 170, x1: 1780, y1: 900 };   // content area (below the page title, above the subtitles)
+      const A = { x0: content.x0, y0: content.y0 - 10, x1: content.x1, y1: subs };   // content area (below the page title, above the subtitles)
       let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, textArea = 0;
       for (const el of root.querySelectorAll('path, rect, circle, ellipse, polygon, img, canvas, .tx')) {
         if (op(el) < 0.3) continue;
@@ -101,8 +101,8 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
       }
       const area = (A.x1 - A.x0) * (A.y1 - A.y0);
       return { cover: x1 > x0 ? ((x1 - x0) * (y1 - y0)) / area : 0, text: textArea / area };
-    }, { id: p.id, t: p.end - 0.4 });
-    if (settled.cover < 0.45) add(p, p.end - 0.4, 'sparse', 'warn', `sparse page: the drawing spans ${Math.round(settled.cover * 100)}% of the content area (aim for most of x 140–1780, y 180–880)`, { percent: Math.round(settled.cover * 100) });
+    }, { id: p.id, t: p.end - 0.4, content: STAGE.area, subs: STAGE.subs });
+    if (settled.cover < 0.45) add(p, p.end - 0.4, 'sparse', 'warn', `sparse page: the drawing spans ${Math.round(settled.cover * 100)}% of the content area (aim for most of x ${STAGE.area.x0}–${STAGE.area.x1}, y ${STAGE.area.y0}–${STAGE.area.y1})`, { percent: Math.round(settled.cover * 100) });
     if (settled.text > 0.35) add(p, p.end - 0.4, 'text-heavy', 'warn', `text-dominated page: text covers ${Math.round(settled.text * 100)}% of the content area — let an object carry the idea, keep text to labels and numbers`, { percent: Math.round(settled.text * 100) });
     // determinism: the same moment, reached cold (from 0) and warm (from the page end), must be pixel-identical
     if (determinism) {
@@ -122,7 +122,7 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
       if (changed > 0.0005) add(p, mid, 'nondeterministic', 'error', `not deterministic: ${(changed * 100).toFixed(2)}% of this frame differs depending on where playback came from — something depends on state, Math.random, Date.now or a CSS transition`, { percent: +(changed * 100).toFixed(2) });
     }
     for (let t = p.start + 0.4; t < p.end - 0.15; t += step) {
-      const found = await page.evaluate(({ t, minFont, overlapError }) => {
+      const found = await page.evaluate(({ t, minFont, overlapError, W, H, subs }) => {
         ENGINE.renderAt(t);
         const frame = document.getElementById('frame').getBoundingClientRect();
         const op = (n) => { let o = 1; for (; n && n.id !== 'frame'; n = n.parentElement) { const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return 0; o *= +cs.opacity; } return o; };
@@ -145,8 +145,8 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
           boxes.push({ x0: x0 - frame.left, y0: y0 - frame.top, x1: x1 - frame.left, y1: y1 - frame.top, txt: txt.replace(/ /g, ' ').slice(0, 24) });
         }
         for (const b of boxes) {
-          if (b.x0 < 40 || b.x1 > 1880 || b.y0 < 30 || b.y1 > 1060) out.push({ kind: 'off-canvas', level: 'error', msg: `off-canvas/edge: "${b.txt}" box ${b.x0|0},${b.y0|0}–${b.x1|0},${b.y1|0}`, data: { text: b.txt } });
-          else if (b.y1 > 905) out.push({ kind: 'subtitle-band', level: 'error', msg: `subtitle band (y>905): "${b.txt}" bottom ${b.y1|0}`, data: { text: b.txt } });
+          if (b.x0 < 40 || b.x1 > W - 40 || b.y0 < 30 || b.y1 > H - 20) out.push({ kind: 'off-canvas', level: 'error', msg: `off-canvas/edge: "${b.txt}" box ${b.x0|0},${b.y0|0}–${b.x1|0},${b.y1|0}`, data: { text: b.txt } });
+          else if (b.y1 > subs + 5) out.push({ kind: 'subtitle-band', level: 'error', msg: `subtitle band (y>${subs + 5}): "${b.txt}" bottom ${b.y1|0}`, data: { text: b.txt } });
         }
         // Readability: every visible text node, at the size it actually renders (camera zoom and CSS transforms included).
         const walker = document.createTreeWalker(document.getElementById('stage'), NodeFilter.SHOW_TEXT);
@@ -174,7 +174,7 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
           if (share > 0.15) out.push({ kind: 'overlap', level: share >= overlapError ? 'error' : 'warn', msg: `text overlap: "${a.txt}" × "${b.txt}" (${Math.round(100 * share)}% of the smaller)`, data: { a: a.txt, b: b.txt, percent: Math.round(100 * share) } });
         }
         return out;
-      }, { t, minFont, overlapError: OVERLAP_ERROR });
+      }, { t, minFont, overlapError: OVERLAP_ERROR, W: STAGE.w, H: STAGE.h, subs: STAGE.subs });
       for (const f of found) add(p, t, f.kind, f.level, f.msg, f.data);
     }
   }

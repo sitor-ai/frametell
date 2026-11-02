@@ -62,8 +62,8 @@
   B.title = function (str, o = {}) {
     const T = this.hud || this;
     const at = o.at ?? 0.1, size = o.size ?? 44;
-    const w = Math.min(1200, tw(String(str), size) * 1.08 + 70), hh = size * 1.25 + 34;
-    const n = box(T, 120, 52, w + 12, hh + 12, 5);
+    const w = Math.min(1200, STAGE.w - 240, tw(String(str), size) * 1.08 + 70), hh = size * 1.25 + 34;
+    const n = box(T, STAGE.title.x - 20, STAGE.title.y - 26, w + 12, hh + 12, 5);
     s('rect', { x: 9, y: 9, width: w, height: hh, fill: INK() }, n.svg);
     s('rect', { x: 0, y: 0, width: w, height: hh, fill: col(o.accent || 'yellow'), stroke: INK(), 'stroke-width': 5 }, n.svg);
     letters(n.el, str, { x: 0, y: 17, w, size, cls: 'pop-cap', lh: 1.25 });
@@ -114,7 +114,7 @@
   // ── page grid ──────────────────────────────────────────────────────────────────────────────────────────────
   /** grid(layout, o): the panel rectangles of a comic page that tiles the whole content area (x 120–1800, y 185–885) with 36 px gutters — returns [{ x, y, w, h }, …] in reading order, ready for P.panel(r.x, r.y, r.w, r.h, …). layout: 'full' (one splash panel), '2' (two columns), '3' (three columns), '1+2' (a big panel left, two stacked right), '2+1' (two stacked left, big right), 'top+2' (a wide strip on top, two below), '2x2', 'L' (a big panel + a strip under it + a tall one right). o: { x, y, w, h, gap } to tile another area. Lay the whole grid out at the start of the page and bring the panels in one by one on their cues. */
   B.grid = function (layout = '2', o = {}) {
-    const X = o.x ?? 120, Y = o.y ?? 185, W = o.w ?? 1680, H = o.h ?? 700, g = o.gap ?? 36;
+    const A = STAGE.area, X = o.x ?? A.x0 - 20, Y = o.y ?? A.y0 + 5, W = o.w ?? A.x1 - A.x0 + 40, H = o.h ?? A.y1 - A.y0, g = o.gap ?? 36;
     const r = (x, y, w, hh) => ({ x: Math.round(X + x * (W + g) ), y: Math.round(Y + y * (H + g)), w: Math.round(w * (W + g) - g), h: Math.round(hh * (H + g) - g) });
     const L = {
       full: [r(0, 0, 1, 1)],

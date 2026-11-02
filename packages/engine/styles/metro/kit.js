@@ -16,13 +16,13 @@
   const zh = () => (window.SCRIPT?.META?.lang === 'zh') || cjk(window.SCRIPT?.META?.title);
 
   // ── the grid: 27 columns × 12 rows of 60 px inside the content area
-  const U = 60, X0 = 170, Y0 = 200, CMAX = 26, RMAX = 11;
+  const A = STAGE.area, U = 60, X0 = A.x0 + 30, Y0 = A.y0 + 20, CMAX = Math.floor((A.x1 - A.x0 - 80) / U), RMAX = Math.floor((A.y1 - A.y0 - 40) / U);
   const snap = (v, max) => clamp(Math.round((+v || 0) * 2) / 2, 0, max);
   /** PV.mx(c): x in px of grid column c (0–26, halves allowed; 0 = 170, 26 = 1730). */
   PV.mx = (c) => X0 + snap(c, CMAX) * U;
   /** PV.my(r): y in px of grid row r (0–11, halves allowed; 0 = 200, 11 = 860). */
   PV.my = (r) => Y0 + snap(r, RMAX) * U;
-  const BOUND = { x0: 146, y0: 174, x1: 1774, y1: 892 };
+  const BOUND = { x0: A.x0 + 6, y0: A.y0 - 6, x1: A.x1 - 6, y1: A.y1 + 12 };
 
   // ── colours: palette names, plus a few extra line colours a network needs
   const EXTRA = { brown: '#8E5B2E', pink: '#E2609B', teal: '#00A0A4', lime: '#7DB51C', navy: '#233C8F', grey: '#8C9196' };
@@ -322,7 +322,7 @@
     const hitsLegend = (f) => L && all.some((b) => b.x0 * f.sc + f.tx < L.x1 + 12 && b.x1 * f.sc + f.tx > L.x0 - 12 && b.y0 * f.sc + f.ty < L.y1 + 12 && b.y1 * f.sc + f.ty > L.y0 - 12);
     const opts = [T];
     if (L) {
-      const left = L.x0 < 960, topSide = L.y0 < 540;
+      const left = L.x0 < STAGE.w / 2, topSide = L.y0 < STAGE.h / 2;
       opts.push(Object.assign({}, T, left ? { x0: L.x1 + 16 } : { x1: L.x0 - 16 }), Object.assign({}, T, topSide ? { y0: L.y1 + 16 } : { y1: L.y0 - 16 }));
     }
     let best = null;
@@ -645,7 +645,7 @@
    */
   B.river = function (points, o = {}) {
     const m = M(this);
-    const pts = (points || []).map((p) => ({ c: clamp(Math.round((+p[0] || 0) * 2) / 2, -4, 30), r: clamp(Math.round((+p[1] || 0) * 2) / 2, -2, 13), name: '', opts: {} }));
+    const pts = (points || []).map((p) => ({ c: clamp(Math.round((+p[0] || 0) * 2) / 2, -4, CMAX + 4), r: clamp(Math.round((+p[1] || 0) * 2) / 2, -2, RMAX + 2), name: '', opts: {} }));
     if (pts.length < 2) throw new Error('P.river needs at least two grid points');
     const G = buildGeom(pts, { radius: 120 });
     const at = o.at ?? 0, w = clamp(o.w ?? 56, 24, 120);
@@ -655,7 +655,7 @@
       // the longest straight run carries the name
       let best = null;
       for (let i = 1; i < G.V.length; i++) { const a = G.V[i - 1], b = G.V[i], l = Math.hypot(b.x - a.x, b.y - a.y); if (!best || l > best.l) best = { a, b, l }; }
-      const cx = clamp((best.a.x + best.b.x) / 2, 300, 1620), cy = clamp((best.a.y + best.b.y) / 2, 230, 860);
+      const cx = clamp((best.a.x + best.b.x) / 2, A.x0 + 160, A.x1 - 160), cy = clamp((best.a.y + best.b.y) / 2, A.y0 + 50, A.y1 - 20);
       let ang = Math.atan2(best.b.y - best.a.y, best.b.x - best.a.x) * 180 / Math.PI;
       if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
       lab = h('div', 'tx mt-rv', null, m.labels);
@@ -665,7 +665,7 @@
         const ww = lab.offsetWidth, hh = lab.offsetHeight, cands = [];
         for (let i = 1; i < G.V.length; i++) {
           const a = G.V[i - 1], b = G.V[i];
-          if (Math.abs(a.y - b.y) > 1 || a.y < 220 || a.y > 860) continue;
+          if (Math.abs(a.y - b.y) > 1 || a.y < A.y0 + 40 || a.y > A.y1 - 20) continue;
           const xa = Math.min(a.x, b.x) + 90 + ww / 2, xb = Math.max(a.x, b.x) - 90 - ww / 2;
           for (let x = xa; x <= xb; x += 30) cands.push({ x0: x - ww / 2, y0: a.y - hh / 2, x1: x + ww / 2, y1: a.y + hh / 2 });
         }
@@ -859,6 +859,6 @@
       no.style.transform = `scale(${f2(Math.max(0, back(clamp(k * 2.2))))})`;
       t.style.clipPath = `inset(0 ${f2((1 - expo(clamp((k - 0.15) / 0.85))) * 100)}% 0 0)`;
     });
-    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: 140, y: 64, w: wrap.offsetWidth, h: 60 }) });
+    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: STAGE.title.x, y: STAGE.title.y - 14, w: wrap.offsetWidth, h: 60 }) });
   };
 })();

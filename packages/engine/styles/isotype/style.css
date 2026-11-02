@@ -42,6 +42,7 @@ svg.ink [filter="url(#wc)"] { filter: none; }
 .is-key .eq { font-family: "Jost Variable", sans-serif; font-weight: 400; font-size: 38px; color: #4B4740; }
 .is-key .t { font-family: var(--hand); font-weight: 500; font-size: 32px; letter-spacing: 0.12em; text-transform: uppercase; color: #1F1D1A; }
 .is-tt { position: absolute; left: 140px; top: 62px; white-space: nowrap; font-family: var(--hand); font-weight: 600; font-size: 46px; letter-spacing: 0.12em; text-transform: uppercase; color: #1F1D1A; line-height: 1; }
+#frame.portrait .is-tt { left: 70px; top: 154px; }
 .is-tt.zh { letter-spacing: 0.1em; font-weight: 700; }
 .is-tt .k { display: block; font-weight: 400; font-size: 30px; letter-spacing: 0.22em; color: #4B4740; margin-top: 14px; }
 .is-rule { position: absolute; background: #1F1D1A; transform-origin: 0 50%; }

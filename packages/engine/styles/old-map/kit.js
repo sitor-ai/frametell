@@ -12,7 +12,7 @@
   const B = Builder.prototype;
   const W = STAGE.w, H = STAGE.h;
   const RES = 1.5;
-  const FR = [96, 150, 1824, 890];          // the map's neatline: everything is drawn inside it
+  const FR = [96, STAGE.area.y0 - 30, W - 96, STAGE.area.y1 + 10];          // the map's neatline: everything is drawn inside it
   const DEG = Math.PI / 180;
   const ss = (a, b, x) => { const k = clamp((x - a) / (b - a)); return k * k * (3 - 2 * k); };
   const isZh = (s) => /[㐀-鿿]/.test(String(s));
@@ -219,12 +219,12 @@
     const cs = cands.map(([x, y], i) => ({ x, y, s: score(x, y, cw, chh) + i * 0.01 })).sort((a, b) => a.s - b.s);
     om.slots.cart = [cs[0].x, cs[0].y, cw, chh];
     const hit = (r, q) => r[0] < q[0] + q[2] && q[0] < r[0] + r[2] && r[1] < q[1] + q[3] && q[1] < r[1] + r[3];
-    const sc = cands.map(([x, y]) => [x + (x < 900 ? 0 : cw - 330), y + (y < 500 ? 0 : chh - 84), 330, 84]).filter((r) => !hit(r, om.slots.cart)).map((r) => ({ r, s: score(r[0], r[1], r[2], r[3]) })).sort((a, b) => a.s - b.s);
+    const sc = cands.map(([x, y]) => [x + (x < W / 2 - 60 ? 0 : cw - 330), y + (y < (FR[1] + FR[3]) / 2 - 20 ? 0 : chh - 84), 330, 84]).filter((r) => !hit(r, om.slots.cart)).map((r) => ({ r, s: score(r[0], r[1], r[2], r[3]) })).sort((a, b) => a.s - b.s);
     om.slots.scale = sc[0].r;
     let best = null; const cr = 100;
     for (let y = FR[1] + cr + 20; y <= FR[3] - cr - 20; y += 40) for (let x = FR[0] + cr + 20; x <= FR[2] - cr - 20; x += 40) {
       const box = [x - cr, y - cr, 2 * cr, 2 * cr]; if (hit(box, om.slots.cart) || hit(box, om.slots.scale)) continue;
-      const s = om.landFrac(x - cr * 1.25, y - cr * 1.25, x + cr * 1.25, y + cr * 1.25) + 0.12 * (1 - Math.min(1, Math.hypot((x - 960) / 860, (y - 520) / 370)));
+      const s = om.landFrac(x - cr * 1.25, y - cr * 1.25, x + cr * 1.25, y + cr * 1.25) + 0.12 * (1 - Math.min(1, Math.hypot((x - W / 2) / 860, (y - (FR[1] + FR[3]) / 2) / 370)));
       if (!best || s < best.s) best = { x, y, s };
     }
     om.slots.compass = best ? [best.x, best.y] : [FR[0] + 200, FR[3] - 200];
@@ -571,7 +571,7 @@
       if (p >= 1) { c.drawImage(base, 0, 0, W, H); return; }
       // the washes, hachures and water-lines spread out from the middle as the pen goes round the coasts
       const q = ss(0.25, 1, p);
-      if (q > 0) { c.save(); front(c, [960, 520], 1150 * q, 5); c.clip(); c.drawImage(base, 0, 0, W, H); c.restore(); }
+      if (q > 0) { c.save(); front(c, [W / 2, (FR[1] + FR[3]) / 2], 1150 * q, 5); c.clip(); c.drawImage(base, 0, 0, W, H); c.restore(); }
       const k = clamp((lt - at) / (t1 - at)); c.strokeStyle = col('ink'); c.lineWidth = clamp(1.8 * zf, 1.1, 2.4); c.lineJoin = 'round';
       for (const s of coast) { const st = ((s.x - FR[0]) / (FR[2] - FR[0])) * 0.35, f = clamp((k - st) / 0.65); if (f > 0) partial(c, s.r, s.L, s.L[s.L.length - 1] * ease.inOut(f)); }
     };
@@ -580,7 +580,7 @@
     const step = [1, 2, 5, 10, 15, 20, 30].find((s) => s * P.s >= 120) || 30, sub = step >= 10 ? step / 5 : step / 2;
     const frame = (c, lt) => {
       const p = ss(at, at + 0.9, lt), b = 9, x0 = FR[0], y0 = FR[1], x1 = FR[2], y1 = FR[3];
-      c.save(); c.beginPath(); c.rect(lerp(960, 0, p), lerp(520, y0 - 40, p), lerp(0, W, p), lerp(0, y1 - y0 + 80, p)); c.clip();
+      c.save(); c.beginPath(); c.rect(lerp(W / 2, 0, p), lerp((y0 + y1) / 2, y0 - 40, p), lerp(0, W, p), lerp(0, y1 - y0 + 80, p)); c.clip();
       c.strokeStyle = col('ink'); c.lineWidth = 3; c.strokeRect(x0 - b - 4, y0 - b - 4, x1 - x0 + 2 * b + 8, y1 - y0 + 2 * b + 8);
       c.lineWidth = 1; c.strokeRect(x0 - b, y0 - b, x1 - x0 + 2 * b, y1 - y0 + 2 * b); c.strokeRect(x0, y0, x1 - x0, y1 - y0);
       c.fillStyle = col('ink');
@@ -952,7 +952,7 @@
    *  corner (auto) } */
   B.legend = function (items, o = {}) {
     const om = omOf(this), at = o.at ?? 0, rows = items.slice(0, 5), size = 26, w = Math.max(...rows.map((r) => textW(r.text, size, 'it'))) + 100, h = rows.length * 42 + 30;
-    let [x, y] = om.slots.scale; x = x + 330 > 960 ? Math.min(x, FR[2] - 26 - w) : x; y = y > 500 ? FR[3] - 26 - h : y;
+    let [x, y] = om.slots.scale; x = x + 330 > W / 2 ? Math.min(x, FR[2] - 26 - w) : x; y = y > (FR[1] + FR[3]) / 2 - 20 ? FR[3] - 26 - h : y;
     om.used.push([x, y, w, h]); rows.forEach((r) => need(this, r.text));
     mount(this, [x - 10, y - 10, x + w + 10, y + h + 10], o, (c, lt) => {
       const p = clamp((lt - at) / 0.5); if (p <= 0) return;
@@ -990,8 +990,8 @@
   B.title = function (str, o = {}) {
     const at = o.at ?? 0.1, T = this.hud || this, zh = isZh(str), s = String(str).trim();
     const size = o.size ?? (zh ? ([...s].length > 14 ? 40 : 46) : s.length > 34 ? 32 : 38);
-    const t = T.text(zh ? s : s.toUpperCase(), { x: W / 2, y: 50, size, at, cps: o.cps ?? (zh ? 12 : 22), align: 'c', w: 1500, cls: zh ? 'om-title om-zh' : 'om-title', color: 'ink', lh: 1.15, pen: false });
-    const tw = Math.min(1300, PV.tw(s, size) * (zh ? 1.35 : 1.45)), yy = 50 + size * 0.62, ta = at + 0.3;
+    const t = T.text(zh ? s : s.toUpperCase(), { x: W / 2, y: STAGE.title.y - 28, size, at, cps: o.cps ?? (zh ? 12 : 22), align: 'c', w: W - 420, cls: zh ? 'om-title om-zh' : 'om-title', color: 'ink', lh: 1.15, pen: false });
+    const tw = Math.min(W - 620, PV.tw(s, size) * (zh ? 1.35 : 1.45)), yy = STAGE.title.y - 28 + size * 0.62, ta = at + 0.3;
     const flourish = (c, dir, k) => {
       const x0 = W / 2 + dir * (tw / 2 + 24); c.save(); c.translate(x0, yy); c.scale(dir, 1); c.strokeStyle = col('ink'); c.lineCap = 'round';
       const pts = []; for (let i = 0; i <= 60; i++) { const u = i / 60; pts.push([u * 150, Math.sin(u * Math.PI * 2) * 6 * (1 - u)]); }
@@ -999,7 +999,7 @@
       if (k > 0.7) { c.beginPath(); c.arc(156, 0, 3.4, 0, 7); c.fillStyle = col('ink'); c.fill(); c.beginPath(); c.moveTo(8, 9); c.quadraticCurveTo(50, 16, 100, 9); c.lineWidth = 0.9; c.stroke(); }
       c.restore();
     };
-    mount(T, [0, 0, W, 150], { noclip: true }, (c, lt) => { const k = ease.out(clamp((lt - ta) / 0.8)); if (k > 0) { flourish(c, -1, k); flourish(c, 1, k); } }, (lt) => clamp((lt - ta) / 0.8).toFixed(3));
+    mount(T, [0, 0, W, STAGE.title.y + 72], { noclip: true }, (c, lt) => { const k = ease.out(clamp((lt - ta) / 0.8)); if (k > 0) { flourish(c, -1, k); flourish(c, 1, k); } }, (lt) => clamp((lt - ta) / 0.8).toFixed(3));
     return t;
   };
 

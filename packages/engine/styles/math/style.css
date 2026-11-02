@@ -33,6 +33,7 @@ svg.ink g.mark path { opacity: 0.28; }
 .mt-lab { position: absolute; white-space: nowrap; line-height: 1; font-family: var(--serif); color: var(--soft); }
 .mt-num { position: absolute; white-space: nowrap; line-height: 1.25; font-family: 'KaTeX_Main', serif; font-variant-numeric: tabular-nums; }
 .mt-title { position: absolute; left: 140px; top: 56px; white-space: nowrap; line-height: 1.2; font-family: var(--serif); font-size: 60px; font-weight: 500; color: var(--ink); letter-spacing: 0.005em; }
+#frame.portrait .mt-title { left: 70px; top: 148px; }
 .mt-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 /* subtitles: plain serif on a dark strip */
 .subs span { color: #ECEEF2; background: rgba(10, 11, 14, 0.9); border-radius: 2px; box-shadow: none; font-family: var(--serif); font-weight: 500; letter-spacing: 0.01em; }

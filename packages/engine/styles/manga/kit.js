@@ -8,7 +8,7 @@
 (function () {
   const { s, h, col, clamp, lerp, ease, Builder, hashStr } = PV;
   const B = Builder.prototype;
-  const W = 1920, H = 1080, SAFE_B = 890;
+  const W = STAGE.w, H = STAGE.h, SAFE_B = STAGE.area.y1 + 10, SA = STAGE.area;
   const TAU = Math.PI * 2;
   const f1 = (n) => (+n).toFixed(1);
   const f2 = (n) => (+n).toFixed(2);
@@ -170,7 +170,7 @@
   /** grid(layout, o): the panels of a manga page tiling the whole content area (x 100–1820, y 160–885) with white gutters and slanted cuts — returns [{ x, y, w, h, cx, cy, pts }, …] in manga reading order (RIGHT to left, then top to bottom), ready for P.panel(R[i], …). layout: 'full' (one splash), '2' (two columns, slanted cut), '3', '1+2' (a big panel right, read first + two stacked left), '2+1' (two stacked right + a big panel left), 'top+2' (a wide strip on top + two below), '2x2', 'slash' (two halves split by a steep diagonal: a confrontation, before/after), 'strip' (a thin wide strip on top for an eye close-up + a big panel below). o: { x, y, w, h, gap (26) } to tile another area. */
   B.grid = function (layout = '2', o = {}) {
     const g = clamp(o.gap ?? 26, 10, 60);
-    const X = (o.x ?? 100) - g / 2, Y = (o.y ?? 160) - g / 2, Wd = (o.w ?? 1720) + g, Hd = (o.h ?? 725) + g;
+    const X = (o.x ?? SA.x0 - 40) - g / 2, Y = (o.y ?? SA.y0 - 20) - g / 2, Wd = (o.w ?? SA.x1 - SA.x0 + 80) + g, Hd = (o.h ?? SA.y1 - SA.y0 + 25) + g;
     const L = LAYOUTS[layout] || LAYOUTS[2];
     return L.map((q) => {
       const pts = inset(q.map(([u, v]) => [X + u * Wd, Y + v * Hd]), g / 2).map((p) => [Math.round(p[0]), Math.round(p[1])]);
@@ -994,13 +994,13 @@
     const at = o.at ?? 0, right = o.side === 'right';
     // the splash is the film's loudest picture: it holds at least 2.5 s, however early the page asks it to go
     if (o.out != null) o = { ...o, out: typeof o.out === 'number' ? Math.max(o.out, at + 2.5) : o.out };
-    const fx = right ? 1220 : 700, fy = 440;
+    const fx = right ? W / 2 + 260 : W / 2 - 260, fy = 440;
     s('rect', { x: 0, y: 0, width: W, height: H, fill: WHITE }, L.svg);
     L.area = { x: 0, y: 0, w: W, h: H, cx: W / 2, cy: H / 2 };
     L.focus(fx, fy - 30, { at, r0: 330, n: 190 });
     L.chara(fx, fy, 860, { from: 'cut', ...(o.chara || {}), mood: (o.chara && o.chara.mood) || 'shock', at });
-    if (o.sfx !== null) L.sfx(right ? 470 : 1460, 380, o.sfx || 'ドン', { size: 250, style: o.spot ? 'spot' : 'black', at: at + 0.05, rot: right ? 8 : -10 });
-    if (o.line) L.caption(right ? 120 : 1180, 700, String(o.line), { at: at + 0.5, size: 38, w: 600 });
+    if (o.sfx !== null) L.sfx(right ? W / 2 - 490 : W / 2 + 500, 380, o.sfx || 'ドン', { size: 250, style: o.spot ? 'spot' : 'black', at: at + 0.05, rot: right ? 8 : -10 });
+    if (o.line) L.caption(right ? 120 : W / 2 + 220, 700, String(o.line), { at: at + 0.5, size: 38, w: 600 });
     s('rect', { x: 18, y: 18, width: W - 36, height: H - 36, fill: 'none', stroke: INK(), 'stroke-width': 8 }, s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: 'position:absolute;left:0;top:0;z-index:9' }, L.html));
     const flash = h('div', null, null, L.html);
     Object.assign(flash.style, { position: 'absolute', left: 0, top: 0, width: W + 'px', height: H + 'px', background: INK(), zIndex: 10 });

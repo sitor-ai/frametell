@@ -204,7 +204,7 @@
     g.fillStyle = vg; g.fillRect(0, 0, W, H);
     g.globalAlpha = 0.5; g.fillStyle = g.createPattern(NOISE, 'repeat'); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
     if (o.table) {
-      const ty = 880, tg = g.createLinearGradient(0, ty - 30, 0, H);
+      const ty = STAGE.area.y1, tg = g.createLinearGradient(0, ty - 30, 0, H);
       tg.addColorStop(0, '#D99A62'); tg.addColorStop(0.18, '#C9844D'); tg.addColorStop(1, '#A9673A');
       g.fillStyle = tg; g.beginPath(); g.roundRect(-40, ty - 26, W + 80, H, 34); g.fill();
       g.fillStyle = 'rgba(255,240,215,0.45)'; g.beginPath(); g.roundRect(-40, ty - 26, W + 80, 10, 6); g.fill();

@@ -23,7 +23,7 @@ window.STYLE = {
   },
   // a pale grey page with the white figure card on it: a hairline border, registration ticks in its corners
   background: (stage) => {
-    const W = stage.w, H = stage.h, x0 = 72, y0 = 40, x1 = W - 72, y1 = 892;
+    const W = stage.w, H = stage.h, x0 = 72, y0 = 40, x1 = W - 72, y1 = stage.area.y1 + 12;
     const tick = (x, y, dx, dy) => `<path d="M${x} ${y + dy * 14} L${x} ${y} L${x + dx * 14} ${y}" fill="none" stroke="#26262A" stroke-width="1.6"/>`;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#FBFBFA" stroke="#B4B4B8" stroke-width="1.5"/><line x1="${x0 + 40}" y1="${y1 - 70}" x2="${x1 - 40}" y2="${y1 - 70}" stroke="#E2E2E4" stroke-width="1.2"/>${tick(x0 + 10, y0 + 10, 1, 1)}${tick(x1 - 10, y0 + 10, -1, 1)}${tick(x0 + 10, y1 - 10, 1, -1)}${tick(x1 - 10, y1 - 10, -1, -1)}</svg>`;
     return [`url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 0 0 / ${W}px ${H}px no-repeat`, '#ECECE8'].join(',');

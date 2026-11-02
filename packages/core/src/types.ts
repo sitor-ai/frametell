@@ -56,6 +56,8 @@ export interface ProjectMeta {
   /** the language was not chosen: the film takes the language the user wrote their request in, `lang` only when that
    *  can't be told */
   langAuto?: boolean;
+  /** a 9:16 film for phones (1080×1920), set when it is made; absent: 16:9 (1920×1080) */
+  portrait?: boolean;
   topic?: string;
   notes?: string;
   /** notes for the style this film is drawn in (a style the user shaped), read after its style card */
@@ -93,6 +95,8 @@ export interface NewProjectInput {
   lang?: Locale;
   /** true: the film is in the language of the user's request (their topic, notes, material); `lang` when it can't be told */
   langAuto?: boolean;
+  /** a 9:16 film for phones (1080×1920); absent: 16:9 */
+  portrait?: boolean;
   topic?: string;
   notes?: string;
   /** notes for the style this film is drawn in (a style the user shaped), read after its style card */

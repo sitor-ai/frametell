@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { ENGINE_DIR } from '@frametell/engine/tools/project.mjs';
+import { canvas, PORTRAIT_STAGE as PS } from '@frametell/engine/tools/canvas.mjs';
 import { Type } from 'typebox';
 import type { PageTiming, Storyboard, LintIssue } from './project.js';
 import type { AnswerTool } from './runtime/types.js';
@@ -65,13 +66,35 @@ export function pageSystem(style: string, extras: string[] = [], preferences?: s
   return [read('PAGE.md'), '---\n# This film\'s style\n\n' + grammar(style), filmCardSection(card), styleNotesSection(styleNotes), '---\n' + read('API.md'), '---\n' + pagePack(style, extras, filmKit), '---\n' + read('LIB.md'), preferencesSection(preferences)].filter(Boolean).join('\n\n');
 }
 
+/**
+ * A portrait film (9:16, 1080×1920, for phones): the last part of every system prompt that plans, draws or judges its
+ * pages. Everything above (the drawing API, the style's card, its components and worked example, the page rules) speaks
+ * of the 1920×1080 stage; this says what changes. Two variants of each prompt in all, so the caches stay warm.
+ * `who`: whom it speaks to: the director (storyboard, script), an artist (pages, components) or the reviewer.
+ */
+export function canvasSection(portrait: boolean | undefined, who: 'planner' | 'artist' | 'reviewer'): string {
+  if (!portrait) return '';
+  const A = PS.area;
+  const head = `---\n# This film is portrait (9:16)\n\nThis film is for phones: the stage is **${PS.w} wide × ${PS.h} tall**, not 1920×1080. Everything above that speaks of the wide stage (coordinates, the content area, the subtitle band, where the title sits, sizes in the style's card, its components and its worked example) is replaced by this. The style itself (its medium, palette, line, type and how it moves) holds as it is: only the layout changes.`;
+  const layout = `- The page title starts at x ${PS.title.x}, y ${PS.title.y} (\`P.title\` puts it there; a style's own title component too, when it reads \`STAGE.title\`). Keep it to one line: about 12 Chinese characters or 24 letters.
+- The content area is **x ${A.x0}–${A.x1}, y ${A.y0}–${A.y1}**. Below y ${PS.subs} is for subtitles only (and on a phone the app's own captions and buttons cover it): no content there. Keep text clear of the right edge (x > ${PS.w - 90}), where the apps put their buttons.
+- \`STAGE.w\`, \`STAGE.h\`, \`STAGE.area\` and \`STAGE.subs\` hold these numbers in code.`;
+  const compose = `- **Compose for a tall frame.** Stack, don't line up: a comparison is top against bottom, a sequence and a timeline run downwards, a cause sits above its effect. At most two things side by side, never a row of four or five.
+- **One idea per screen, bigger, and the whole height used.** The main object fills most of the width (about 700–940 px wide); fewer, larger parts than on a wide page. Supporting things go above or below it, not beside it. By the page's end the drawing reaches from the top of the content area to near its bottom (y ${A.y0} to about ${A.y1 - 100}): a page that stops above y ${A.y1 - 300} leaves a third of the phone empty. Spread the parts down the frame, or draw them bigger.
+- **Readable on a phone held in the hand:** body text at least 40px, labels at least 32px, numbers that matter 90px or more. Short lines: at most about 14 Chinese characters or 26 letters to a line.
+- A background or ground that fills the frame spans x < 0 to x > ${PS.w} and the full height.`;
+  if (who === 'planner') return `${head}\n\n- Plan every page for a tall frame: one idea per page, its parts stacked top to bottom, few words on screen. A beat that would put things side by side (a before and after, two options, a row of steps) puts them top and bottom, or one after the other on the same page.\n- On-screen text is short: titles of one line (about 12 Chinese characters or 24 letters), labels of a few words.`;
+  if (who === 'reviewer') return `${head}\n\n${layout}\n\nJudge the page as a phone screen: fail a page whose drawing is a wide layout squeezed into the middle (a thin band with empty paper above and below), that leaves the lower third of the content area (y ${A.y1 - 350}–${A.y1}) empty at its end, whose text is too small to read on a phone (labels under about 32px), or whose content runs into the subtitle band or off the sides.`;
+  return `${head}\n\n${layout}\n${compose}\n- The style's components and the worked example were written for the wide stage: give them positions and sizes that fit this one (pass a size or scale where they take one), and where one draws something wide (a long row, a wide chart), use fewer parts or stack two. Positions written for the wide stage (x 960 as the middle, y 540, x 1780) are wrong here: the middle is x ${PS.w / 2}, y ${Math.round((A.y0 + A.y1) / 2)}.`;
+}
+
 /** a language, as a tag ('zh', 'en', 'es', 'fr', 'fa', 'pt-BR'…): the film's (narration, on-screen text), or the one
  *  the director reports in (the user's). A film is in the language the user wrote their request in, whatever the
  *  interface's; Chinese and English have their own rules, any other language the general ones */
 export type Lang = string;
 /** `langAuto`: the film's language is not chosen: the planner takes the language of the user's request (their topic,
  *  notes, material), `lang` only when that can't be told */
-export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; langAuto?: boolean; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief }
+export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; langAuto?: boolean; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief; portrait?: boolean }
 
 /** a language tag as a film may carry it: 'es', 'pt-BR', 'zh-Hant'; anything else (a name, a sentence) is not one */
 export function langTag(v: unknown): Lang | undefined {
@@ -293,7 +316,8 @@ export function kitSystem(style: string, extras: string[] = [], styleNotes?: str
 
 /** what one kit session is asked: its component (`it`), among the others the storyboard lists (written at the same
  *  time by other sessions), and where on the check page it is drawn (`cell`) */
-export function kitPrompt(sb: Storyboard, items: KitItem[], it: KitItem, cell: { i: number; x: number; y: number; w: number; h: number }, lang: Lang | undefined = sb.lang, replyLang?: Lang) {
+export function kitPrompt(sb: Storyboard, items: KitItem[], it: KitItem, cell: { i: number; x: number; y: number; w: number; h: number }, lang: Lang | undefined = sb.lang, replyLang?: Lang, portrait = false) {
+  const stage = canvas(portrait);
   const beatsOf = (x: KitItem) => sb.pages.filter((p) => x.pages.includes(p.id)).flatMap((p) => (p.beats || []).filter((b) => mentions(b, x)).map((b) => `    - ${p.id}: ${b.object} — ${b.action}`)).slice(0, 8);
   const others = items.filter((x) => x !== it);
   const file = kitPart(it.name), check = kitPartCheck(it.name);
@@ -311,7 +335,7 @@ ${others.length ? `\nThe film's other components, each written now by another ar
 - **Directly above it**, its doc comment, which is all the pages will see of it: \`/** ${it.name}(args): what it draws and when to use it. o: { at, dur, … } */\`. Say every option a page may pass: what it can highlight, label or move.
 - **A pure function of time.** It draws through the API's timed calls (\`at\`, \`dur\`) and \`this.tick((lt) => …)\` only: the same moment gives the same picture. No \`Math.random()\` (use \`PV.rng(seed)\`), no state kept between frames.
 - Take \`o.at\` for when it starts and give the pages handles to what they need to move or light later (return an object, or the group).
-- Coordinates on the 1920×1080 stage; keep it out of the subtitle band (y > 900) unless a page places it there.
+- Coordinates on the ${stage.w}×${stage.h} stage; keep it out of the subtitle band (y > ${stage.subs}) unless a page places it there.
 - Only \`B.${it.name}\` (helpers inside the IIFE are fine). Nothing else in the file.
 - **Short and plain**: about the size of what one page would draw for it (aim for 40–80 lines), drawn the way a page draws, not modelled. Fix what must match across pages (shape, proportions, colours, parts) and the states the pages need; leave the rest to the pages. The pages are waiting for this file: write it in one go, without exploring the project first (the style's components are listed above, already loaded). Once written, the file is changed with edit: writing it whole again is refused.
 

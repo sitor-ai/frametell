@@ -29,14 +29,18 @@ svg.ink g.mark path { opacity: 0.3; }
 /* the card's corners */
 .ins-title { position: absolute; left: 120px; top: 74px; display: flex; align-items: baseline; gap: 22px; white-space: nowrap;
   font-family: var(--hand); font-weight: 500; font-size: 44px; color: #26262A; letter-spacing: -0.015em; }
+#frame.portrait .ins-title { top: 166px; }
 .ins-title b { font-family: var(--mono); font-weight: 600; font-size: 24px; color: #FF4F00; letter-spacing: 0.06em; }
 .ins-caption { position: absolute; right: 120px; top: 86px; font-family: var(--mono); font-weight: 500; font-size: 25px; color: #8A8A8F;
   letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+#frame.portrait .ins-caption { top: 178px; }
 .ins-legend { position: absolute; left: 120px; top: 840px; display: flex; gap: 32px; white-space: nowrap; font-family: var(--mono); font-size: 25px; color: #57575A; }
+#frame.portrait .ins-legend { top: 1360px; }
 .ins-key { display: flex; align-items: center; gap: 12px; }
 .ins-key b { font-weight: 600; color: #26262A; }
 .ins-key b::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #26262A; margin-right: 10px; vertical-align: 2px; }
 .ins-right { position: absolute; right: 120px; top: 838px; display: flex; align-items: center; gap: 28px; white-space: nowrap; font-family: var(--mono); font-size: 25px; }
+#frame.portrait .ins-right { top: 1358px; }
 .ins-phase { order: 0; display: flex; align-items: center; gap: 12px; color: #8A8A8F; letter-spacing: 0.08em; text-transform: uppercase; }
 .ins-phase s { display: block; width: 10px; height: 10px; background: #FF4F00; }
 .ins-readout { order: 1; color: #26262A; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 10px; }

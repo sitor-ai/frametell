@@ -609,10 +609,10 @@
    *  bare paper below y 900 left for the words. o: { at, dur (1.4), y (760: the top of the grass), hill (40: how
    *  rolling), color ('green'), flowers (0: little flowers along the edge), out } */
   B.ground = function (o = {}) {
-    const at = o.at ?? 0, dur = o.dur ?? 1.4, y = o.y ?? 760, hill = o.hill ?? 40, seed = SEED += 31, c = o.color || 'green';
+    const at = o.at ?? 0, dur = o.dur ?? 1.4, y = o.y ?? STAGE.area.y1 - 120, hill = o.hill ?? 40, seed = SEED += 31, c = o.color || 'green';
     const topY = (x) => y - hill * (0.5 + 0.5 * Math.sin(x / 420 + seed)) - n1(seed, x / 90) * 6;
     const top = []; for (let x = -420; x <= W + 420; x += 24) top.push([x, topY(x)]);
-    const poly = [...top]; for (let x = W + 420; x >= -420; x -= 30) poly.push([x, 888 + n1(seed + 4, x / 60) * 6]);
+    const poly = [...top]; for (let x = W + 420; x >= -420; x -= 30) poly.push([x, STAGE.subs - 12 + n1(seed + 4, x / 60) * 6]);
     const ops = [{ kind: 'fill', hg: hatch(poly, { seed, ang: 0.4, gap: 12, over: 10, patch: 300 }), color: c, press: 0.85, w: 13, t0: at, dur, seed },
       { kind: 'fill', hg: hatch(poly, { seed: seed + 1, ang: 1.6, gap: 22, over: 6, patch: 300 }), color: c === 'green' ? 'greenF' : c, press: 0.55, w: 10, t0: at + dur * 0.4, dur, seed: seed + 1 },
       { kind: 'line', pts: top, color: darker(c, 0.75), w: 7, press: 1, t0: at, dur: dur * 0.7, seed: seed + 2 }];
@@ -620,7 +620,7 @@
     for (let x = 60; x < W; x += 70 + r() * 80) { const ty = topY(x) + 4, s = 0.7 + r() * 0.6; ops.push({ kind: 'line', pts: [[x - 12 * s, ty - 18 * s], [x, ty + 4], [x + 4 * s, ty - 26 * s], [x + 8, ty + 4], [x + 18 * s, ty - 16 * s]], color: darker(c, 0.7), w: 4, press: 0.95, t0: at + dur * (x / W) * 0.8 + 0.3, dur: 0.25, seed: seed + x }); }
     const nf = o.flowers ?? 0;
     for (let i = 0; i < nf; i++) { const fx = 100 + ((i + 0.5) / nf) * (W - 200) + (r() - 0.5) * 80, fy = topY(fx) + 30 + r() * 40, fc = ['red', 'yellow', 'pink', 'purple'][i % 4]; ops.push({ kind: 'fn', t0: at + dur + 0.1 + i * 0.05, dur: 0.2, draw: (g) => { for (let j = 0; j < 5; j++) { const a = (j / 5) * TAU; dab(g, fx + Math.cos(a) * 9, fy + Math.sin(a) * 9, 7, 7, fc, 0.95, seed + i * 7 + j); } dab(g, fx, fy, 5, 5, 'yellow', 1, seed + i); } }); }
-    return mount(this, o, [-420, y - hill - 60, W + 420, 900], { ops, press: 0.85 });
+    return mount(this, o, [-420, y - hill - 60, W + 420, STAGE.subs], { ops, press: 0.85 });
   };
 
   /** room(o): an indoor picture-book page — a wooden floor scribbled along the bottom (plank lines, top at y), a skirting
@@ -629,15 +629,15 @@
    *  floor ('brownF'), dots ('pinkF' | false), window ([x, y] top-left of a 300×240 window, or false), night (false),
    *  rug ([x, w]: a striped rug on the floor), out } */
   B.room = function (o = {}) {
-    const at = o.at ?? 0, dur = o.dur ?? 1.4, y = o.y ?? 780, seed = SEED += 43, ops = [], r = PV.rng(seed);
-    const floor = [[-420, y + n1(seed, 1) * 4], [W + 420, y + n1(seed, 2) * 4], [W + 420, 888], [-420, 890]];
+    const at = o.at ?? 0, dur = o.dur ?? 1.4, y = o.y ?? STAGE.area.y1 - 100, seed = SEED += 43, ops = [], r = PV.rng(seed);
+    const floor = [[-420, y + n1(seed, 1) * 4], [W + 420, y + n1(seed, 2) * 4], [W + 420, STAGE.subs - 12], [-420, STAGE.subs - 10]];
     ops.push({ kind: 'fill', hg: hatch(floor, { seed, ang: 0.1, gap: 12, over: 8, patch: 300 }), color: o.floor || 'brownF', press: 0.85, w: 13, t0: at, dur, seed });
     ops.push({ kind: 'line', pts: [[-420, y], [W + 420, y]], color: 'brown', w: 7, press: 1, t0: at, dur: dur * 0.6, seed: seed + 1 });
     for (let i = 1; i < 3; i++) { const yy = y + i * 36; ops.push({ kind: 'line', pts: [[-420, yy], [W + 420, yy + 3]], color: 'brown', w: 3.5, press: 0.7, t0: at + dur * 0.5, dur: dur * 0.5, seed: seed + 3 + i }); }
     if (o.rug) { const [rx, rw] = o.rug; ['red', 'yellow', 'blue', 'yellow', 'red'].forEach((c, i) => { const q = [[rx + i * rw / 5, y + 30], [rx + (i + 1) * rw / 5, y + 30], [rx + (i + 1) * rw / 5 + 30, y + 92], [rx + i * rw / 5 + 30, y + 92]]; ops.push({ kind: 'fill', hg: hatch(q, { seed: seed + 20 + i, ang: 1.2, gap: 8, over: 4 }), color: c, press: 0.85, w: 9, t0: at + dur * 0.6 + i * 0.08, dur: 0.4, seed: seed + 20 + i }); }); }
-    if (o.dots !== false) for (let yy = 230; yy < y - 60; yy += 120) for (let xx = 90 + ((yy / 120) % 2) * 60; xx < W - 60; xx += 120) { const wq = o.window === false ? null : (o.window || [1380, 220]); if (wq && xx > wq[0] - 40 && xx < wq[0] + 340 && yy > wq[1] - 40 && yy < wq[1] + 290) continue; const sx = xx + (r() - 0.5) * 20, sy = yy + (r() - 0.5) * 20; ops.push({ kind: 'fn', t0: at + 0.3 + (xx / W) * dur * 0.6, dur: 0.1, draw: (g) => dab(g, sx, sy, 8, 8, o.dots || 'pinkF', 0.9, sx) }); }
+    if (o.dots !== false) for (let yy = 230; yy < y - 60; yy += 120) for (let xx = 90 + ((yy / 120) % 2) * 60; xx < W - 60; xx += 120) { const wq = o.window === false ? null : (o.window || [W - 540, 220]); if (wq && xx > wq[0] - 40 && xx < wq[0] + 340 && yy > wq[1] - 40 && yy < wq[1] + 290) continue; const sx = xx + (r() - 0.5) * 20, sy = yy + (r() - 0.5) * 20; ops.push({ kind: 'fn', t0: at + 0.3 + (xx / W) * dur * 0.6, dur: 0.1, draw: (g) => dab(g, sx, sy, 8, 8, o.dots || 'pinkF', 0.9, sx) }); }
     if (o.window !== false) {
-      const [wx, wy] = o.window || [1380, 220], ww = 300, wh = 240, glass = rect(wx, wy, wx + ww, wy + wh);
+      const [wx, wy] = o.window || [W - 540, 220], ww = 300, wh = 240, glass = rect(wx, wy, wx + ww, wy + wh);
       ops.push({ kind: 'fill', hg: hatch(glass, { seed: seed + 9, ang: 0.4, gap: 9, over: 3 }), color: o.night ? 'night' : 'blueF', press: 0.95, w: 10, t0: at + 0.4, dur: 0.8, seed: seed + 9, knock: glass });
       if (o.night) { ops.push({ kind: 'fn', t0: at + 1.2, dur: 0.2, draw: (g, lt, v) => { dab(g, wx + ww * 0.7, wy + wh * 0.32, 30, 30, 'yellow', 1, seed); for (let i = 0; i < 4; i++) { const p = starPts(wx + 40 + i * 52, wy + 60 + (i % 2) * 100, 10, 4.5); g.fillStyle = css('yellow'); g.beginPath(); p.forEach(([a, b], j) => (j ? g.lineTo(a, b) : g.moveTo(a, b))); g.closePath(); g.fill(); } } }); }
       else ops.push({ kind: 'fn', t0: at + 1.2, dur: 0.2, draw: (g) => { for (const [dx, rr] of [[-30, 26], [0, 34], [32, 24]]) dab(g, wx + ww * 0.42 + dx, wy + wh * 0.38, rr, rr * 0.8, 'paper', 1, seed + dx); } });
@@ -646,7 +646,7 @@
       ops.push({ kind: 'line', pts: [[wx, wy + wh / 2], [wx + ww, wy + wh / 2]], color: 'brown', w: 8, press: 1, t0: at + 0.8, dur: 0.3, seed: seed + 13 });
       ops.push({ kind: 'line', pts: [[wx - 24, wy + wh + 10], [wx + ww + 24, wy + wh + 10]], color: 'brown', w: 14, press: 1, t0: at + 0.9, dur: 0.3, seed: seed + 14 });
     }
-    return mount(this, o, [-420, 150, W + 420, 900], { ops, press: 0.85 });
+    return mount(this, o, [-420, 150, W + 420, STAGE.subs], { ops, press: 0.85 });
   };
 
   // ─────────────────────────── the cast ───────────────────────────
@@ -879,7 +879,7 @@
   // ─────────────────────────── the page title: hand-lettered with a crayon swash under it ───────────────────────────
   B.title = function (str, o = {}) {
     const T = this.hud || this, at = o.at ?? 0.15, size = o.size ?? (isCJK(str) ? 58 : 60), seed = SEED += 3;
-    const lay = layoutGlyphs(String(str), size, size * 0.02), x0 = 132, y0 = 52;
+    const lay = layoutGlyphs(String(str), size, size * 0.02), x0 = STAGE.title.x - 8, y0 = STAGE.title.y - 26;
     const sw = [[x0 - 18, y0 + size * 0.78], [x0 + lay.width + 26, y0 + size * 0.7], [x0 + lay.width + 34, y0 + size * 1.12], [x0 - 14, y0 + size * 1.2]];
     const swOps = [{ kind: 'fill', hg: hatch(sw, { seed, ang: 0.15, gap: 9, over: 10 }), color: o.accent === 'blue' ? 'blueF' : o.accent === 'green' ? 'greenF' : o.accent === 'red' ? 'redF' : 'yellow', press: 0.75, w: 11, t0: at, dur: 0.6, seed }];
     const go = { at: at + 0.25, color: 'ink', stagger: 0.045, outline: false };

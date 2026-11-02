@@ -11,6 +11,7 @@ import { Lightbox } from './Lightbox';
 import { clip, type Ref } from '../lib/refs';
 import { milestones, trackOnce, track } from '../lib/track';
 import { t as tr, useT } from '../i18n';
+import { aspectClass, isPortrait, screenWidth } from '../lib/aspect';
 
 // The workbench is about the film and its pages, each page's picture next to the words it carries: a film view (player,
 // a page lane in proportion to time, the line being spoken), a canvas of page cards, and a focused page to look closely.
@@ -120,8 +121,8 @@ function Thumb({ p, project, poster, className = '', badge = true }: { p?: PageV
       {src && <img src={client.fileUrl(project, src)} alt="" className="absolute inset-0 h-full w-full object-cover object-left-top opacity-0 transition-opacity duration-500 [&.loaded]:opacity-100" ref={(el) => { if (el?.complete && el.naturalWidth) el.classList.add('loaded'); }} onLoad={(e) => e.currentTarget.classList.add('loaded')} />}
       {!src && <span className="absolute inset-0 flex items-center justify-center text-[12px] text-ink-3">{statusText(working ? 'drawing' : 'queued')}</span>}
       {working && (
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 160 90" preserveAspectRatio="none" aria-hidden>
-          <rect x="1" y="1" width="158" height="88" rx="6" fill="none" stroke="rgb(var(--fs-accent))" strokeWidth="2" pathLength="100" strokeDasharray="22 78" className="motion-safe:animate-[trace_1.6s_linear_infinite]" style={{ strokeDashoffset: 100 }} />
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={isPortrait(project) ? '0 0 90 160' : '0 0 160 90'} preserveAspectRatio="none" aria-hidden>
+          <rect x="1" y="1" width={isPortrait(project) ? 88 : 158} height={isPortrait(project) ? 158 : 88} rx="6" fill="none" stroke="rgb(var(--fs-accent))" strokeWidth="2" pathLength="100" strokeDasharray="22 78" className="motion-safe:animate-[trace_1.6s_linear_infinite]" style={{ strokeDashoffset: 100 }} />
         </svg>
       )}
       {badge && p?.status === 'ok' && <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-jade text-paper" aria-hidden><Check size={10} strokeWidth={3} /></span>}
@@ -204,10 +205,10 @@ function Film({ run, project, ids, tl, subs, playKey, takePlay, onFocus }: { run
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* the screen fills the space it has at 16:9: a size container lets it fit both width and height */}
+      {/* the screen fills the space it has at the film's shape (16:9, or 9:16 fitted by height): a size container lets it fit both width and height */}
       <div className="min-h-0 flex-1 px-6 pt-5 [container-type:size]">
         <div className="mx-auto flex h-full items-center justify-center">
-          <div className="aspect-video" style={{ width: 'min(100cqw, calc(100cqh * 16 / 9), 1280px)' }}>{screen}</div>
+          <div className={aspectClass(project)} style={{ width: screenWidth(project) }}>{screen}</div>
         </div>
       </div>
       {pages.length > 0 && (
@@ -278,7 +279,10 @@ function Canvas({ run, project, ids, tl, onFocus, onWarm, onRef }: { run: RunVie
               </button>
               <button onClick={() => onFocus(id)} onPointerEnter={() => warm(id)} onPointerLeave={() => clearTimeout(rest.current)} onFocus={() => warm(id)}
                 className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-line bg-surface text-left transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-line-2">
-                <Thumb p={p} project={project} poster={tl?.posters?.[id]} className="aspect-video w-full border-b border-line" />
+                {isPortrait(project)
+                  // a portrait page stands in the card's usual 16:9 band, as tall and narrower, so the rows keep their height
+                  ? <span className="flex aspect-video w-full justify-center border-b border-line bg-paper-2"><Thumb p={p} project={project} poster={tl?.posters?.[id]} className="aspect-[9/16] h-full" /></span>
+                  : <Thumb p={p} project={project} poster={tl?.posters?.[id]} className="aspect-video w-full border-b border-line" />}
                 <span className="flex flex-1 flex-col px-3.5 pb-3.5 pt-3">
                   <span className="flex items-baseline gap-2">
                     <span className="text-[12px] text-ink-3 tabular">{i + 1}</span>
@@ -479,7 +483,7 @@ function Focus({ id, active: shown, playKey, wantPlay, run, project, ids, tl, on
       </div>
       <div className="min-h-0 flex-1 px-6 pt-3 [container-type:size]">
         <div className="mx-auto flex h-full items-center justify-center">
-          <div className="aspect-video" style={{ width: 'min(100cqw, calc(100cqh * 16 / 9), 1280px)' }}>{screen}</div>
+          <div className={aspectClass(project)} style={{ width: screenWidth(project) }}>{screen}</div>
         </div>
       </div>
 
@@ -492,7 +496,7 @@ function Focus({ id, active: shown, playKey, wantPlay, run, project, ids, tl, on
                 <div key={j} role="listitem" data-i={j} className="group/f relative shrink-0 snap-start">
                   <button onClick={() => seekFrame(frame.current, m, false)} onDoubleClick={() => src && setLight({ kind: 'frames', i: j })}
                     aria-label={tr('stage.frameAria', { time: mmss(lines[j]?.abs ?? m), text: lines[j]?.text ?? '' })} aria-current={on || undefined}
-                    className={`relative block aspect-video w-[132px] overflow-hidden rounded-lg bg-paper-2 ring-offset-2 ring-offset-paper transition-[box-shadow,opacity] duration-150 ${on ? 'ring-2 ring-accent' : 'opacity-75 ring-1 ring-line hover:opacity-100'}`}>
+                    className={`relative block ${isPortrait(project) ? 'aspect-[9/16] w-[56px]' : 'aspect-video w-[132px]'} overflow-hidden rounded-lg bg-paper-2 ring-offset-2 ring-offset-paper transition-[box-shadow,opacity] duration-150 ${on ? 'ring-2 ring-accent' : 'opacity-75 ring-1 ring-line hover:opacity-100'}`}>
                     {src ? <img src={client.fileUrl(project, src)} alt="" className="h-full w-full object-cover" loading="lazy" />
                       : <span className="absolute inset-0 animate-pulse bg-ink/[0.06]" aria-hidden />}
                     <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 font-mono text-[10px] leading-4 text-white tabular">{mmss(lines[j]?.abs ?? m)}</span>

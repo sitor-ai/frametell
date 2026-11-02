@@ -7,7 +7,7 @@
 (function () {
   const { col, clamp, lerp, ease, Builder, h } = PV;
   const B = Builder.prototype;
-  const W = STAGE.w, H = STAGE.h;
+  const W = STAGE.w, H = STAGE.h, SA = STAGE.area;
   const isZh = () => { const l = window.SCRIPT?.META?.lang; return l ? /^zh/.test(l) : !/^en/.test(document.documentElement.lang || 'zh'); };
   const L = (zh, en) => (isZh() ? zh : en);
   const fin = (lt, at, dur = 0.3) => ease.out(clamp((lt - at) / dur));
@@ -153,11 +153,13 @@
     if (free) {
       w0 = clamp(num(o.w, 560), 320, 900); h0 = clamp(num(o.h, 440), 220, 600);
       s = clamp(num(o.size, 1.5), 1, 2);
-      s = Math.max(1, Math.min(s, 1640 / w0, 720 / h0));
-    } else s = 1;   // the phone keeps its size: its text is drawn at the smallest size a viewer can read
+      s = Math.max(1, Math.min(s, (SA.x1 - SA.x0) / w0, (SA.y1 - SA.y0 + 20) / h0));
+    // the phone keeps its size: its text is drawn at the smallest size a viewer can read. On a portrait stage, itself a
+    // phone's shape, one phone is the picture: drawn about 1.45× (as tall as the content area allows)
+    } else s = STAGE.portrait ? Math.min(1.45, (SA.y1 - SA.y0 + 100) / PH) : 1;
     const hw = (w0 * s) / 2 + Math.abs(Math.sin(tilt)) * h0 * s / 2, hh = (h0 * s) / 2 + Math.abs(Math.sin(tilt)) * w0 * s / 2;
     x = clamp(num(x, W / 2), hw + 40, W - hw - 40);
-    y = clamp(num(y, 512), Math.min(118 + hh, 540), Math.max(897 - hh, 512));
+    y = clamp(num(y, H / 2 - 28), Math.min(SA.y0 - 62 + hh, H / 2), Math.max(SA.y1 + 17 - hh, H / 2 - 28));
     const root = h('div', 'cs-phone' + (free ? ' cs-free' : '') + (o.dark ? ' cs-dark' : ''), null, self.html);
     Object.assign(root.style, { width: w0 + 'px', height: h0 + 'px', left: x - w0 / 2 + 'px', top: y - h0 / 2 + 'px' });
     marker(root, w0, h0);
@@ -265,7 +267,7 @@
       Object.assign(b.style, { width: r * 2 + 'px', height: r * 2 + 'px', background: `radial-gradient(circle at 40% 40%, ${c}, ${c}00 70%)`, opacity: dark ? 0.55 : 0.75 });
       return [b, fx * W + 320 - r, fy * H + 320 - r, i];
     });
-    const deco = PV.s('svg', { width: 2560, height: 1720, style: 'position:absolute;left:0;top:0' }, el);
+    const deco = PV.s('svg', { width: W + 640, height: H + 640, style: 'position:absolute;left:0;top:0' }, el);
     const rr = PV.rng(hashS(o.tint || 'mint') + 5), bub = [];
     for (let i = 0; i < 7; i++) {
       const bw = 260 + rr() * 300, bh = bw * (0.42 + rr() * 0.2), side = rr() > 0.5;
@@ -274,6 +276,7 @@
       PV.s('path', { d, fill: dark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.22)', stroke: dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.4)', 'stroke-width': 3 }, g);
       for (let j = 0; j < 3; j++) PV.s('rect', { x: bh * 0.45, y: bh * (0.3 + j * 0.16), width: (bw - bh * 0.9) * (j === 2 ? 0.55 : 0.9), height: bh * 0.07, rx: bh * 0.035, fill: dark ? 'rgba(255,255,255,0.05)' : 'rgba(27,34,50,0.045)' }, g);
       const zone = i % 2 ? [1150 + rr() * 1100, 300 + rr() * 1150] : [320 + rr() * 2000, i < 2 ? 330 + rr() * 140 : 1250 + rr() * 250];
+      zone[0] *= (W + 640) / 2560; zone[1] *= (H + 640) / 1720;   // spread over this stage's ground
       bub.push([g, zone[0] - bw / 2, zone[1] - bh / 2, rr() * 6, 0.6 + rr() * 0.5]);
     }
     const at = num(o.at, 0);
@@ -289,7 +292,8 @@
   /** chat(x, y, { title, sub, messages: [{ from, text, at }, …], me, people, group, app, tilt, at, out, swap, warn, phone }):
    *  THE component — a phone at stage centre (x, y) showing one conversation; it lays out the bubbles, wraps Chinese and English
    *  text, scrolls up when full and never overflows the phone. The phone is 380 × 760 px (fixed size, kept inside the frame).
-   *  One phone: x ≈ 560 with notes on the right; two phones: x ≈ 520 and 1400.
+   *  One phone: x ≈ 560 with notes on the right; two phones: x ≈ 520 and 1400. In a portrait film the phone is drawn about
+   *  1.45× (550 × 1100) and is the page: one phone at x ≈ 540, notes above or below it over its edge, never two phones.
    *  title: the contact or group name in the header; sub: a small line under it (e.g. '在线', '38 members'). from: 'me' (right,
    *  green) or the sender's name (left, white, avatar = first character); people: { name: { color, avatar } } to fix colours.
    *  A group (names above bubbles) is detected when more than one other person speaks. app: 'sms' for a plain text-message
@@ -511,7 +515,7 @@
     const el = h('div', 'cs-say' + (me ? ' me' : ''), null, this.html);
     const nm = o.name ?? o.from ?? '?';
     const c = col(o.color) || (me ? '#3FA166' : AVC[hashS(nm) % AVC.length]);
-    el.innerHTML = `${me ? '' : `<div class="cs-av" style="background:${c}">${esc(o.avatar ?? initial(nm))}</div>`}<div class="cs-bw" style="position:relative"><div class="cs-b" style="font-size:${size}px;max-width:${clamp(num(o.w, 900), 360, 1300)}px">${rich(text)}</div></div>`;
+    el.innerHTML = `${me ? '' : `<div class="cs-av" style="background:${c}">${esc(o.avatar ?? initial(nm))}</div>`}<div class="cs-bw" style="position:relative"><div class="cs-b" style="font-size:${size}px;max-width:${clamp(num(o.w, 900), 360, Math.min(1300, W - 120))}px">${rich(text)}</div></div>`;
     const bw = el.querySelector('.cs-bw'), body = bw.firstChild, av = el.querySelector('.cs-av');
     const typ = o.fly ? 0 : num(o.typing, me ? 0 : 0.9);
     let ty = null;
@@ -519,7 +523,7 @@
     let rc = null;
     if (o.recall != null) { rc = h('div', 'cs-sys', `<span>${me ? L('你撤回了一条消息', 'You unsent a message') : L('对方撤回了一条消息', 'They unsent a message')}</span>`, bw); Object.assign(rc.style, { position: 'absolute', left: me ? 'auto' : '0', right: me ? '0' : 'auto', top: '12px' }); }
     const w = el.offsetWidth || 600, hh = el.offsetHeight || 120;
-    const left = clamp(num(x, W / 2) - w / 2, 60, W - 60 - w), top = clamp(num(y, 500) - hh / 2, 150, 880 - hh);
+    const left = clamp(num(x, W / 2) - w / 2, 60, W - 60 - w), top = clamp(num(y, 500) - hh / 2, SA.y0 - 30, SA.y1 - hh);
     Object.assign(el.style, { left: left + 'px', top: top + 'px', transformOrigin: '50% 50%' });
     marker(el, w, hh);
     const t0 = at - typ, rec = o.recall != null ? num(o.recall, at + 2) : null, hlAt = o.hl ? num(typeof o.hl === 'number' ? o.hl : o.hlAt, at + 0.5) : null;
@@ -601,7 +605,7 @@
     const wrap = h('div', 'cs-toast', null, this.html);
     noteCard(wrap, o);
     const w = 420 * s, hh = (wrap.offsetHeight || 110) * s;
-    const cx = clamp(num(x, W / 2), w / 2 + 60, W - w / 2 - 60), top = clamp(num(y, 300) - hh / 2, 140, 880 - hh);
+    const cx = clamp(num(x, W / 2), w / 2 + 60, W - w / 2 - 60), top = clamp(num(y, 300) - hh / 2, SA.y0 - 40, SA.y1 - hh);
     Object.assign(wrap.style, { left: cx - 210 + 'px', top: top + 'px' });
     marker(wrap, 420, wrap.offsetHeight || 110);
     this.tick((lt) => {
@@ -827,7 +831,7 @@
     el.style.setProperty('--acc', acc);
     Object.assign(el.style, { fontSize: size + 'px', maxWidth: clamp(num(o.w, 440), 240, 900) + 'px' });
     const w = el.offsetWidth || 400, hh = el.offsetHeight || 90;
-    const left = clamp(num(x, 1400) - w / 2, 60, W - 60 - w), top = clamp(num(y, 400) - hh / 2, 140, 885 - hh);
+    const left = clamp(num(x, 1400) - w / 2, 60, W - 60 - w), top = clamp(num(y, 400) - hh / 2, SA.y0 - 40, SA.y1 + 5 - hh);
     Object.assign(el.style, { left: left + 'px', top: top + 'px' });
     marker(el, w, hh);
     if (o.to) {
@@ -859,7 +863,7 @@
    *  small line under it. Shrinks itself to fit w. */
   B.big = function (x, y, text, o = {}) {
     if (text && typeof text === 'object') { o = text; text = o.text; }
-    const at = num(o.at, 0.3), maxW = clamp(num(o.w, 1500), 300, 1700), cnt = o.count ? range(o.count) : null, dur = num(o.dur, 1.2);
+    const at = num(o.at, 0.3), maxW = clamp(num(o.w, 1500), 300, Math.min(1700, W - 120)), cnt = o.count ? range(o.count) : null, dur = num(o.dur, 1.2);
     let size = clamp(num(o.size, 120), 56, 260);
     const el = h('div', 'cs-big', null, this.html);
     Object.assign(el.style, { color: col(o.color || 'ink'), fontSize: size + 'px' });
@@ -870,7 +874,7 @@
     if (w > maxW) { size = Math.max(56, Math.floor(size * maxW / w)); el.style.fontSize = size + 'px'; el.innerHTML = content(cnt ? cnt[1] : 0); w = el.offsetWidth || maxW; }
     const hh = el.offsetHeight || size;
     const al = o.align || 'c';
-    const left = clamp(al === 'l' ? num(x, 200) : al === 'r' ? num(x, 1700) - w : num(x, W / 2) - w / 2, 60, W - 60 - w), top = clamp(num(y, 500) - hh / 2, 140, 885 - hh);
+    const left = clamp(al === 'l' ? num(x, 200) : al === 'r' ? num(x, 1700) - w : num(x, W / 2) - w / 2, 60, W - 60 - w), top = clamp(num(y, 500) - hh / 2, SA.y0 - 40, SA.y1 + 5 - hh);
     Object.assign(el.style, { left: left + 'px', top: top + 'px', minWidth: w + 'px', textAlign: al === 'r' ? 'right' : al === 'l' ? 'left' : 'center' });
     const mk = marker(el, w, hh);
     this.tick((lt) => {
@@ -891,7 +895,7 @@
     const el = h('div', 'cs-tag', `${iconF ? iconF(light ? c : '#fff', Math.round(size * 1.05)) : ''}<span>${esc(text)}</span>`, this.html);
     Object.assign(el.style, { fontSize: size + 'px', padding: `${size * 0.4}px ${size * 0.7}px ${size * 0.42}px ${iconF ? size * 0.5 : size * 0.7}px`, background: light ? PV.C[(o.color || 'red') + 'F'] || '#FFFFFF' : c, color: light ? c : '#fff' });
     const w = el.offsetWidth || 200, hh = el.offsetHeight || 60;
-    const left = clamp(num(x, W / 2) - w / 2, 60, W - 60 - w), top = clamp(num(y, 500) - hh / 2, 130, 890 - hh);
+    const left = clamp(num(x, W / 2) - w / 2, 60, W - 60 - w), top = clamp(num(y, 500) - hh / 2, SA.y0 - 50, SA.y1 + 10 - hh);
     Object.assign(el.style, { left: left + 'px', top: top + 'px' });
     marker(el, w, hh);
     this.tick((lt) => {

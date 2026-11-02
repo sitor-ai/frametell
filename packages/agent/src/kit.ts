@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ENGINE_DIR } from '@frametell/engine/tools/project.mjs';
+import { canvas } from '@frametell/engine/tools/canvas.mjs';
 
 /** one thing the film draws on several pages, as the storyboard lists it */
 export interface KitItem { name: string; what: string; pages: string[] }
@@ -31,9 +32,11 @@ export const kitPart = (name: string) => `extras/kit/${name}.js`;
 export const kitPartCheck = (name: string) => `extras/kit/${name}.check.js`;
 
 /** where component i of n is drawn on the check page: a grid over the stage above the subtitle band */
-export function kitCell(i: number, n: number): { i: number; x: number; y: number; w: number; h: number } {
-  const cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
-  const w = Math.floor((1920 - 120) / cols), h = Math.floor((900 - 80) / rows);
+export function kitCell(i: number, n: number, portrait = false): { i: number; x: number; y: number; w: number; h: number } {
+  const stage = canvas(portrait);
+  // a tall stage: the components one under another rather than side by side
+  const cols = portrait ? Math.ceil(n / Math.ceil(Math.sqrt(n * 1.8))) : Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
+  const w = Math.floor((stage.w - 120) / cols), h = Math.floor((stage.subs - 80) / rows);
   return { i, x: 60 + (i % cols) * w, y: 60 + Math.floor(i / cols) * h, w, h };
 }
 
@@ -152,7 +155,7 @@ const CHECK_HOLD = 2.6;
  * per component, written from the check page the kit session wrote. The engine's own check (lint, determinism, a
  * contact sheet) then runs there as on any page. Returns the stage's folder.
  */
-export function kitStage(dir: string, o: { style: string; lang: string; look?: unknown; items: KitItem[]; kit: string; check: string; extras?: string[]; gl?: Record<string, unknown> }): string {
+export function kitStage(dir: string, o: { style: string; lang: string; portrait?: boolean; look?: unknown; items: KitItem[]; kit: string; check: string; extras?: string[]; gl?: Record<string, unknown> }): string {
   const stage = path.join(dir, KIT_STAGE);
   fs.rmSync(stage, { recursive: true, force: true });
   fs.mkdirSync(path.join(stage, 'pages'), { recursive: true });
@@ -162,7 +165,7 @@ export function kitStage(dir: string, o: { style: string; lang: string; look?: u
   // the check page as written, its id made `kit` whatever the session called it
   fs.writeFileSync(path.join(stage, 'pages', 'kit.js'), o.check.replace(/ENGINE\.visual\(\s*['"][^'"]*['"]/, "ENGINE.visual('kit'"));
   // the style's own components load first, as on the film's pages: the film's may build on them
-  const META = { title: 'kit', name: 'kit', style: o.style, lang: o.lang, gap: 0.5, extras: [...(o.extras ?? []), 'extras/film-kit.js'], ...(o.look ? { look: o.look } : {}), ...o.gl };
+  const META = { title: 'kit', name: 'kit', style: o.style, lang: o.lang, ...(o.portrait ? { portrait: true } : {}), gap: 0.5, extras: [...(o.extras ?? []), 'extras/film-kit.js'], ...(o.look ? { look: o.look } : {}), ...o.gl };
   const cues = o.items.map((x) => ({ t: x.name, hold: CHECK_HOLD }));
   const PAGES = [{ id: 'kit', section: 'kit', title: '', cues }];
   fs.writeFileSync(path.join(stage, 'script.js'), `(function (root) {\n  const META = ${JSON.stringify(META)};\n  const PAGES = ${JSON.stringify(PAGES)};\n  root.SCRIPT = { META, PAGES };\n})(typeof window !== 'undefined' ? window : globalThis);\n`);

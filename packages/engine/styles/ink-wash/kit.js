@@ -219,7 +219,7 @@
    *  sky empty. o: { y (640: the near range's foot), height (420: the tallest peak above y), layers (3), peak (x of the
    *  main peak, 1240), at, dur (1.8), tone (0.85: the near range), seed } */
   B.mountains = function (o = {}) {
-    const y = o.y ?? 640, H0 = o.height ?? 420, n = o.layers ?? 3, peak = o.peak ?? 1240, at = o.at ?? 0, dur = o.dur ?? 1.8;
+    const y = o.y ?? STAGE.area.y1 - 240, H0 = o.height ?? 420, n = o.layers ?? 3, peak = o.peak ?? W - 680, at = o.at ?? 0, dur = o.dur ?? 1.8;
     const tone = o.tone ?? 0.85, seed = o.seed ?? seedN++, x0 = -240, x1 = W + 240, rgb = rgbOf('ink');
     const top = y - H0 - 80, bottom = y + 160;
     const L = [];
@@ -299,7 +299,7 @@
    *  appear and vanish). Endless: it wraps around. o: { y (520: band centre), h (180), bands (4), speed (34 px/s; negative
    *  drifts left), alpha (0.8), at, seed } */
   B.mist = function (o = {}) {
-    const y = o.y ?? 520, h = o.h ?? 180, n = o.bands ?? 4, sp = o.speed ?? 34, al = o.alpha ?? 0.8, at = o.at ?? 0;
+    const y = o.y ?? STAGE.area.y1 - 360, h = o.h ?? 180, n = o.bands ?? 4, sp = o.speed ?? 34, al = o.alpha ?? 0.8, at = o.at ?? 0;
     const r = PV.rng(o.seed ?? seedN++), span = W + 1400;
     const bands = Array.from({ length: n * 3 }, (_, i) => ({ x: r() * span, y: y + (r() - 0.5) * h, rx: 260 + r() * 420, ry: h * (0.18 + r() * 0.22), v: sp * (0.6 + r() * 0.8), a: al * (0.55 + r() * 0.45) }));
     const draw = (c, lt) => {
@@ -317,7 +317,7 @@
   /** waves(o): calm water — rows of dry, fine brush ripples drifting sideways, denser and darker toward the viewer.
    *  o: { y0 (720: farthest row), y1 (880: nearest row), rows (7), amp (6), speed (18 px/s), tone (0.45), at, seed } */
   B.waves = function (o = {}) {
-    const y0 = o.y0 ?? 720, y1 = o.y1 ?? 880, n = o.rows ?? 7, amp = o.amp ?? 6, sp = o.speed ?? 18, tone = o.tone ?? 0.45, at = o.at ?? 0, seed = o.seed ?? seedN++;
+    const y0 = o.y0 ?? STAGE.area.y1 - 160, y1 = o.y1 ?? STAGE.area.y1, n = o.rows ?? 7, amp = o.amp ?? 6, sp = o.speed ?? 18, tone = o.tone ?? 0.45, at = o.at ?? 0, seed = o.seed ?? seedN++;
     const draw = (c, lt) => {
       for (let i = 0; i < n; i++) {
         const q = n === 1 ? 1 : i / (n - 1), yy = lerp(y0, y1, Math.pow(q, 1.4)), k = ease.out(clamp((lt - at - i * 0.08) / 0.8));
@@ -630,12 +630,12 @@
   B.title = function (str, o = {}) {
     const at = o.at ?? 0.15, T = this.hud || this, chars = [...String(str)].filter((ch) => ch !== ' ');
     if (!/[㐀-鿿]/.test(str)) {
-      const size = o.size ?? 52, t = T.text(str, { x: 140, y: 74, size, weight: 600, at, cps: o.cps ?? 16, color: 'ink' });
-      if (o.seal !== false) T.seal(140 + Math.min(1500, PV.tw(str, size) * 0.98) + 22, 86, o.seal || '帧言', { size: 44, at: at + t.a.dur + 0.1 });
+      const size = o.size ?? 52, t = T.text(str, { x: STAGE.title.x, y: STAGE.title.y - 4, size, weight: 600, at, cps: o.cps ?? 16, color: 'ink' });
+      if (o.seal !== false) T.seal(STAGE.title.x + Math.min(W - 420, PV.tw(str, size) * 0.98) + 22, STAGE.title.y + 8, o.seal || '帧言', { size: 44, at: at + t.a.dur + 0.1 });
       return t;
     }
     const n = chars.length, size = o.size ?? (n > 12 ? 46 : n > 9 ? 52 : 60), adv = size * 1.12;
-    const x = 1790 - size, y = 92;
+    const x = W - 130 - size, y = STAGE.title.y + 14;
     const t = T.text(str.replace(/\s+/g, ''), { x, y, size, at, cps: o.cps ?? 7, color: 'ink', font: 'brush', cls: 'vt', lh: 1.2 });
     if (o.seal !== false) T.seal(x + size / 2 - 20, y + n * adv + 22, o.seal || '帧言', { size: 40, at: at + t.a.dur + 0.1 });
     return t;

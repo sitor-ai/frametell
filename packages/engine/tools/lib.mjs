@@ -8,10 +8,8 @@ import { createRequire } from 'module';
 export const KIT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const EP = process.cwd();
 export const OUT = path.join(EP, 'out');
-/** Portrait canvas (1080×1920, pages-portrait/): `--portrait` on any tool, or PORTRAIT=1 (render.mjs passes it to its children). Default is landscape. */
-export const PORTRAIT = process.argv.includes('--portrait') || process.env.PORTRAIT === '1';
-export const SIZE = PORTRAIT ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 };
 import { findChrome } from './bins.mjs';
+import { canvas } from './canvas.mjs';
 export const { chromium } = createRequire(import.meta.url)('playwright-core');
 
 if (!fs.existsSync(path.join(EP, 'script.js'))) {
@@ -29,7 +27,19 @@ export function loadEpisode() {
   return { TIMING, SCRIPT, META: SCRIPT.META || {}, L: TIMING.layout(SCRIPT.PAGES, { ...(SCRIPT.META || {}), voice: SCRIPT.VOICE }) };
 }
 
-export const pageUrl = (query) => 'file://' + path.join(EP, 'index.html') + '?' + query + (PORTRAIT ? '&portrait' : '');
+/** A portrait film (META.portrait, its pages in pages/) is drawn 1080×1920. A landscape film's portrait twin (1080×1920,
+ *  pages-portrait/): `--portrait` on any tool, or PORTRAIT=1 (render.mjs passes it to its children). */
+const NATIVE = !!loadEpisode().META.portrait;
+/** the portrait twin of a landscape film is drawn (its own pages, a portrait tag on its files) */
+export const TWIN = !NATIVE && (process.argv.includes('--portrait') || process.env.PORTRAIT === '1');
+/** the stage is portrait: a portrait film, or a landscape film's portrait twin */
+export const PORTRAIT = NATIVE || TWIN;
+export const STAGE = canvas(PORTRAIT);
+export const SIZE = { width: STAGE.w, height: STAGE.h };
+/** where the pages drawn now are: pages-portrait/ for a landscape film's portrait twin, else pages/ */
+export const PAGES_DIR = TWIN ? 'pages-portrait' : 'pages';
+
+export const pageUrl = (query) => 'file://' + path.join(EP, 'index.html') + '?' + query + (TWIN ? '&portrait' : '');
 
 /** Opens a 1920×1080 (or 1080×1920 portrait) page on the episode and waits until fonts are loaded and pages are built. */
 export async function openStage(query, launchArgs = []) {

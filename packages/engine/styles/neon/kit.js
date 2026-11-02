@@ -384,7 +384,7 @@
    */
   B.horizon = function (o = {}) {
     const Y = o.y ?? 700, at = o.at ?? 0, dur = o.dur ?? 0.9, gc = o.color || 'purple', ec = o.edge || 'red', speed = o.speed ?? 0.6;
-    const W = STAGE.w, H = STAGE.h, VX = 960;
+    const W = STAGE.w, H = STAGE.h, VX = W / 2;
     const svg = stageSvg(this, -1);
     svg.style.opacity = '0';
     const df = defs(svg);
@@ -392,7 +392,7 @@
     let sunG = null;
     if (o.sun) {
       const so = typeof o.sun === 'object' ? o.sun : {};
-      const sx = so.x ?? 960, sr = so.r ?? 230, gid = `ns${++uid}`, mid = `nm${uid}`;
+      const sx = so.x ?? STAGE.w / 2, sr = so.r ?? 230, gid = `ns${++uid}`, mid = `nm${uid}`;
       const lg = s('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, df);
       s('stop', { offset: '0', 'stop-color': hex('yellow') }, lg);
       s('stop', { offset: '0.55', 'stop-color': hex(so.color || 'orange') }, lg);
@@ -601,6 +601,6 @@
       pg.style.opacity = f2(clamp((u - 0.3) * 3) * vis);
     } });
     T.tick((lt) => { dot.style.opacity = Math.floor(lt * 1.6) % 2 ? '0.35' : '1'; });
-    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: 140, y: 62, w: wrap.offsetWidth, h: 44 }) });
+    return Object.assign(T.handle(a, wrap), { spans: [t], box: () => ({ x: STAGE.title.x, y: STAGE.title.y - 16, w: wrap.offsetWidth, h: 44 }) });
   };
 })();

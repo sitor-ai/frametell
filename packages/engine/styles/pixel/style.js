@@ -18,7 +18,7 @@ window.STYLE = {
   },
   // night-blue ground with a crisp pixel starfield (each star a 6×6 block on the 6px grid, no blur, no glow)
   background: (stage) => {
-    const W = 320, H = 180;
+    const W = stage.w / 6, H = stage.h / 6;   // 320×180 logical pixels (180×320 in portrait)
     let r = 7, stars = '';
     const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
     for (let i = 0; i < 70; i++) {

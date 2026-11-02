@@ -4,6 +4,7 @@ import { Check, ImageIcon, ImageUp, Loader2 } from 'lucide-react';
 import { client, type ProjectView, type Timeline } from '../lib/client';
 import { isWorking, relPath, type RunView } from '../lib/run';
 import { t as tr, useT } from '../i18n';
+import { aspectClass, isPortrait } from '../lib/aspect';
 
 // The exported film's cover: the page it opens on. A film starts on a blank stage, and a chat app or a file browser shows
 // a video by its first frame; the engine draws the chosen page, settled, as that frame (render.mjs). The first page
@@ -126,14 +127,14 @@ export function CoverPicker({ run, project, ids, tl, size = '' }: { run: RunView
             <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3">{tr('stage.cover.hint')}</p>
           </div>
           <div ref={grid} role="radiogroup" aria-labelledby="cover-heading" onKeyDown={keys}
-            className="grid min-h-0 grid-cols-2 gap-x-2.5 gap-y-3 overflow-y-auto px-4 pb-4 pt-0.5 sm:grid-cols-3">
+            className={`grid min-h-0 gap-x-2.5 gap-y-3 overflow-y-auto px-4 pb-4 pt-0.5 ${isPortrait(project) ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3'}`}>
             {canUpload && (
               // a picture of the user's own, first (a long film's pages would bury it): shown as it will fill the frame; picking
               // it again chooses another
               <button type="button" role="radio" aria-checked={!!image} tabIndex={image ? 0 : -1} onClick={() => file.current?.click()}
                 aria-label={tr(image ? 'stage.cover.replace' : 'stage.cover.upload')} aria-busy={saving === UPLOAD}
                 className="group min-w-0 rounded-[10px] p-1 text-left outline-none transition-colors duration-150 hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/60">
-                <span className={`relative block aspect-video overflow-hidden rounded-lg bg-paper-2 transition-shadow duration-150 ${image ? 'ring-2 ring-accent' : 'ring-1 ring-line group-hover:ring-line-2'}`}>
+                <span className={`relative block ${aspectClass(project)} overflow-hidden rounded-lg bg-paper-2 transition-shadow duration-150 ${image ? 'ring-2 ring-accent' : 'ring-1 ring-line group-hover:ring-line-2'}`}>
                   {image
                     ? <img src={client.fileUrl(project, image)} alt="" decoding="async" className="h-full w-full object-cover" />
                     : (
@@ -154,7 +155,7 @@ export function CoverPicker({ run, project, ids, tl, size = '' }: { run: RunView
                 <button key={id} type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1} onClick={() => void choose(id)}
                   aria-label={tr('stage.pageLabel', { n: i + 1, section })} aria-busy={saving === id}
                   className="group min-w-0 rounded-[10px] p-1 text-left outline-none transition-colors duration-150 hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent/60">
-                  <span className={`relative block aspect-video overflow-hidden rounded-lg bg-paper-2 transition-shadow duration-150 ${on ? 'ring-2 ring-accent' : 'ring-1 ring-line group-hover:ring-line-2'}`}>
+                  <span className={`relative block ${aspectClass(project)} overflow-hidden rounded-lg bg-paper-2 transition-shadow duration-150 ${on ? 'ring-2 ring-accent' : 'ring-1 ring-line group-hover:ring-line-2'}`}>
                     {src
                       ? <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       : <span className="absolute inset-1.5 rounded-md border border-dashed border-line-2" aria-hidden />}

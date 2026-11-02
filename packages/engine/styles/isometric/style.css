@@ -34,4 +34,5 @@ svg.ink g.mark path { opacity: 0.3; }
 .isocard small { font-family: var(--mono); font-weight: 500; color: #8F93B8; font-size: max(24px, 0.8em); letter-spacing: 0.02em; }
 .isotitle { position: absolute; left: 140px; top: 70px; display: flex; align-items: center; gap: 18px; white-space: nowrap;
   font-family: var(--hand); font-weight: 700; color: #23264F; letter-spacing: -0.01em; }
+#frame.portrait .isotitle { left: 70px; top: 162px; }
 .isotitle svg { display: block; flex: none; }

@@ -201,7 +201,7 @@
   }
   /** place a subject: centre (x, y), box size, rot (deg), flip (mirror left-right) → stage points */
   function place(s, x, y, size, o = {}) {
-    x = Number.isFinite(x) ? x : 960; y = Number.isFinite(y) ? y : 540; size = Number.isFinite(size) && size > 0 ? size : 820;
+    x = Number.isFinite(x) ? x : STAGE.w / 2; y = Number.isFinite(y) ? y : STAGE.h / 2; size = Number.isFinite(size) && size > 0 ? size : 820;
     const k = size / 1000, a = ((o.rot || 0) * Math.PI) / 180, ca = Math.cos(a), sa = Math.sin(a), f = o.flip ? -1 : 1;
     return unit(s).map(([u, v]) => { const dx = (u - 500) * k * f, dy = (v - 500) * k; return [x + dx * ca - dy * sa, y + dx * sa + dy * ca]; });
   }
@@ -440,7 +440,7 @@
    *  runs past both edges, so a pan never shows its end), with a slight natural sag; ground for a walker, the sea under
    *  a boat, the line a mountain stands on. o: { at | done, dur (1.6), from ('l' | 'r'), sag (6), w, color, pen, out } */
   B.horizon = function (y, o = {}) {
-    const sag = o.sag ?? 6, pts = [[-60, y], [480, y + sag * 0.7], [960, y + sag], [1440, y + sag * 0.6], [1980, y]];
+    const sag = o.sag ?? 6, W = STAGE.w, pts = [[-60, y], [W / 4, y + sag * 0.7], [W / 2, y + sag], [W * 3 / 4, y + sag * 0.6], [W + 60, y]];
     return this.thread(o.from === 'r' ? pts.reverse() : pts, { dur: 1.6, ...o });
   };
 
@@ -520,7 +520,7 @@
   /** the page title: a thin serif line, top left, like the title of a print; no underline, no ornament */
   B.title = function (str, o = {}) {
     const T = this.hud || this, cjk = isCJK(str), size = o.size ?? (cjk ? 42 : 46);
-    const t = T.text(String(str), { x: 140, y: 70, size, color: 'ink', at: o.at ?? 0.15, cps: o.cps ?? (cjk ? 10 : 22), raw: true, cls: 'ol-title-t', weight: 300 });
+    const t = T.text(String(str), { x: STAGE.title.x, y: STAGE.title.y - 8, size, color: 'ink', at: o.at ?? 0.15, cps: o.cps ?? (cjk ? 10 : 22), raw: true, cls: 'ol-title-t', weight: 300 });
     t.a.g.style.letterSpacing = cjk ? '0.18em' : '0.015em';
     return t;
   };

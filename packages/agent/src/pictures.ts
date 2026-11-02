@@ -16,10 +16,11 @@ export const PICTURES_DIR = 'assets/gen';
 export const PICTURES_MANIFEST = `${PICTURES_DIR}/pictures.json`;
 
 export type PictureKind = 'scene' | 'object' | 'character' | 'texture';
-export type PictureShape = 'wide' | 'tall' | 'square' | 'film';
+export type PictureShape = 'wide' | 'tall' | 'square' | 'film' | 'reel';
 const KINDS: PictureKind[] = ['scene', 'object', 'character', 'texture'];
 // film: the frame's own 16:9, every scene of a style drawn in pictures (a 3:2 scene shown full frame loses its top and bottom)
-const SHAPES: Record<PictureShape, string> = { wide: '1536x1024', tall: '1024x1536', square: '1024x1024', film: '1536x864' };
+// film: a scene over a 16:9 film's whole frame; reel: over a portrait (9:16) film's
+const SHAPES: Record<PictureShape, string> = { wide: '1536x1024', tall: '1024x1536', square: '1024x1024', film: '1536x864', reel: '864x1536' };
 /** a cut-out stands on the page by itself: drawn on a transparent ground */
 export const cutOut = (k: PictureKind) => k === 'object' || k === 'character';
 
@@ -51,7 +52,9 @@ const OWN_SVG = /^assets\/(brand|user)\/[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.svg$/i
  *  person in each look, a place, a prop), on no page, and every scene is drawn from the ones it shows (`uses`), so they
  *  look the same in every scene (a film from before designs has one cast sheet, CAST, every scene drawn from it). `words`: a
  *  style drawn in pictures whose words are drawn in them too (titles, labels, a short list): the pages write nothing */
-export interface PictureStyle { kinds: PictureKind[]; max: number; quality: 'low' | 'medium'; prefix: string; avoid: string; fromLook?: boolean; led?: boolean; cast?: boolean; words?: boolean }
+export interface PictureStyle { kinds: PictureKind[]; max: number; quality: 'low' | 'medium'; prefix: string; avoid: string; fromLook?: boolean; led?: boolean; cast?: boolean; words?: boolean;
+  /** the film is portrait (9:16): a scene drawn in pictures fills a tall frame */
+  portrait?: boolean }
 
 /** one picture as drawn: the file (its name carries the content's hash, so a picture drawn again is a new file and the
  *  render's segment cache never shows a stale one) and the prompt it was drawn from */
@@ -112,7 +115,7 @@ export function picturePlan(look: unknown, style?: PictureStyle, own: string[] =
     const id = typeof o.id === 'string' ? o.id : '';
     const kind = KINDS.find((k) => k === o.kind && style.kinds.includes(k));
     const what = typeof o.what === 'string' ? o.what.replace(/\s+/g, ' ').trim().slice(0, 400) : '';
-    const shape = style.led && kind === 'scene' ? 'film' : (Object.keys(SHAPES) as PictureShape[]).find((s) => s === o.shape && s !== 'film') ?? 'wide';
+    const shape = style.led && kind === 'scene' ? (style.portrait ? 'reel' : 'film') : (Object.keys(SHAPES) as PictureShape[]).find((s) => s === o.shape && s !== 'film' && s !== 'reel') ?? 'wide';
     const pages = Array.isArray(o.pages) ? o.pages.filter((p): p is string => typeof p === 'string') : [];
     if (!ID.test(id) || !kind || !what || out.some((p) => p.id === id)) continue;
     const like = typeof o.like === 'string' && out.some((p) => p.id === o.like && !p.like) ? o.like : undefined;

@@ -383,12 +383,12 @@
       const layers = [];
       const n = o.hills === true ? 3 : o.hills;
       for (let L = 0; L < n; L++) {
-        const base = 820 + L * 70 - (n - 1) * 20, amp = 90 - L * 20, rr = PV.rng(seed * 31 + L * 7);
+        const base = H - 260 + L * 70 - (n - 1) * 20, amp = 90 - L * 20, rr = PV.rng(seed * 31 + L * 7);
         const ph = rr() * 6, f1 = 0.0028 + rr() * 0.0015, f2 = 0.007 + rr() * 0.004;
         const top = []; for (let x = X0; x <= X0 + GW; x += 30) top.push([x, base - amp * (0.6 * Math.sin(x * f1 + ph) + 0.4 * Math.sin(x * f2 + ph * 2)) - amp * 0.4]);
         layers.push({ top, base, colr: G.layers[Math.min(L, G.layers.length - 1)], L });
       }
-      hills = layers.map((ly) => piece([X0, 560, X0 + GW, Y0 + GH], (g) => {
+      hills = layers.map((ly) => piece([X0, H - 520, X0 + GW, Y0 + GH], (g) => {
         const edge = sawEdge(smooth(ly.top, false, 8), 14, 22, -1);
         fillPoly(g, edge.concat([[X0 + GW, Y0 + GH], [X0, Y0 + GH]]), ly.colr);
         const rr = PV.rng(seed + ly.L * 13);
@@ -1024,8 +1024,8 @@
       g.restore();
     }, { color: strip, seed: (x + y) | 0, light: 'rgba(255,190,160,.4)' });
     // a banner never leaves the frame: it is slid back inside x 60–1860, y 40–880
-    if (!vert) x = clamp(x, 60, Math.max(60, 1860 - w)); else x = clamp(x, 60 + w / 2, 1860 - w / 2);
-    y = clamp(y, 40, Math.max(40, 880 - h));
+    if (!vert) x = clamp(x, 60, Math.max(60, W - 60 - w)); else x = clamp(x, 60 + w / 2, W - 60 - w / 2);
+    y = clamp(y, 40, Math.max(40, STAGE.area.y1 - h));
     const cx = vert ? x : x + w / 2, cy = vert ? y + h / 2 : y + h / 2;
     const hnd = place(this, p, cx, cy, Object.assign({ dur: 0.3 }, o));
     return Object.assign(hnd, { w, h });
@@ -1213,6 +1213,6 @@
   // the page title: a deep-red paper banner with gold characters, pasted top left
   B.title = function (str, o = {}) {
     const T = this.hud || this;
-    return T.banner(str, 120, 46, { at: o.at ?? 0.15, size: o.size ?? 44, color: o.accent === 'gold' ? 'gold' : 'deep' });
+    return T.banner(str, STAGE.title.x - 20, STAGE.title.y - 32, { at: o.at ?? 0.15, size: o.size ?? 44, color: o.accent === 'gold' ? 'gold' : 'deep' });
   };
 })();

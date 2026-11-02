@@ -43,6 +43,8 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
   // ?topic= starts the box with an idea typed elsewhere (frametell.ai's landing page)
   const [topic, setTopic] = useState(() => new URLSearchParams(location.search).get('topic') || '');
   const [duration, setDuration] = useState(60);
+  // landscape (16:9) unless portrait (9:16) is picked
+  const [portrait, setPortrait] = useState(false);
   // on a hosted service: what this film is quoted at, against the balance
   const credits = useCredits();
   const estimate = credits ? Math.ceil((duration / 60) * credits.perMinute) : 0;
@@ -124,7 +126,7 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
       if (!hosted && (modelId !== settings.data?.defaults.model || (pagesOwn ? pagesId : '') !== (savedPages ?? ''))) {
         await client.updateSettings({ defaults: { model: modelId, pageModel: pagesOwn ? pagesId : '' } }).catch(() => {});
       }
-      const p = await client.createProject({ durationSec: duration, lang: filmLang, style: styleId, model: modelId, pageModel: pagesOwn ? pagesId : '', notes: topic.trim() || undefined, research: canSearch ? webOn : undefined, voice: v ? { provider: v.provider, id: v.id, name: v.name } : voiceId === null ? null : undefined }, files,
+      const p = await client.createProject({ durationSec: duration, lang: filmLang, ...(portrait ? { portrait: true } : {}), style: styleId, model: modelId, pageModel: pagesOwn ? pagesId : '', notes: topic.trim() || undefined, research: canSearch ? webOn : undefined, voice: v ? { provider: v.provider, id: v.id, name: v.name } : voiceId === null ? null : undefined }, files,
         assets.length ? assets.map((a) => ({ file: a.file, thumb: a.thumb })) : undefined);
       go(`#/p/${p.id}`);
     } catch (e) { setError((e as Error).message); setBusy(false); }
@@ -184,6 +186,18 @@ export function Home({ openSettings, prefsStamp }: { openSettings: (section?: st
               <legend className="fs-label">{t('home.duration')}</legend>
               <div className="flex flex-wrap gap-1.5" role="radiogroup">
                 {DURATIONS.map((s) => <button key={s} type="button" role="radio" aria-checked={duration === s} className="fs-chip" onClick={() => setDuration(s)}>{t('home.minutes', { n: s / 60 })}</button>)}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="fs-label">{t('home.aspect')}</legend>
+              <div className="flex flex-wrap gap-1.5" role="radiogroup">
+                {([false, true] as const).map((tall) => (
+                  <button key={String(tall)} type="button" role="radio" aria-checked={portrait === tall} className="fs-chip" onClick={() => setPortrait(tall)}>
+                    {/* the frame's shape, drawn small: a wide or a tall rectangle */}
+                    <span className={`shrink-0 rounded-[2px] border-[1.5px] border-current opacity-80 ${tall ? 'h-[13px] w-2' : 'h-2 w-[13px]'}`} aria-hidden />
+                    {t(tall ? 'home.portrait' : 'home.landscape')}
+                  </button>
+                ))}
               </div>
             </fieldset>
             <fieldset>

@@ -35,6 +35,7 @@
   const fit = (x, y, w, hh, m = 30) => [clamp(x, m + w / 2, W - m - w / 2), clamp(y, TOP + hh / 2, BOTTOM - hh / 2)];
   /** where the host stands on this page: content keeps out of its zone */
   const zoneOf = (T) => {
+    if (PORTRAIT) return null;                     // portrait: the host stands under the content, nothing steps aside
     const e = window.MASCOT_HOST && window.MASCOT_HOST[T.page.id], c = e && e.sh === T.sh ? e.conf : null;
     if (c && c.hide) return null;
     if (!c) return 'corner';
@@ -627,10 +628,10 @@
    *  smaller grey line under it), color, size (default 80), align ('c' default, 'l' to sit top left) } */
   B.title = function (str, o = {}) {
     const T = this.hud || this, at = o.at ?? 0.1;
-    const size = Math.min(o.size ?? 80, (1640 / Math.max(1, tw(str, 1))) | 0);
+    const size = Math.min(o.size ?? 80, ((STAGE.area.x1 - STAGE.area.x0) / Math.max(1, tw(str, 1))) | 0);
     const left = o.align === 'l';
-    text(T, str, { x: left ? 130 : W / 2, y: o.sub ? 92 : 108, size, at, color: o.color, align: left ? 'l' : 'c', cls: 'title' });
-    if (o.sub) text(T, o.sub, { x: left ? 134 : W / 2, y: 168, size: 38, color: 'soft', at: at + 0.25, align: left ? 'l' : 'c', in: 'rise', shadow: false });
+    text(T, str, { x: left ? STAGE.title.x - 10 : W / 2, y: STAGE.title.y + (o.sub ? 14 : 30), size, at, color: o.color, align: left ? 'l' : 'c', cls: 'title' });
+    if (o.sub) text(T, o.sub, { x: left ? STAGE.title.x - 6 : W / 2, y: STAGE.title.y + 90, size: 38, color: 'soft', at: at + 0.25, align: left ? 'l' : 'c', in: 'rise', shadow: false });
   };
 
   /** headline(str, x, y, o): a big line of rounded lettering centred on (x, y) that pops in: a key word, a rule, a
@@ -672,7 +673,7 @@
     const wMax = Math.max(...rows.map((r) => tw(typeof r === 'string' ? r : r.t, size)), 300);
     { const z = zoneOf(this); const lo = z === 'left' ? 660 : 60, hi = (z === 'right' ? 1260 : z === 'corner' ? 1560 : W - 60) - Math.max(wMax, 460); x = clamp(x, lo, Math.max(lo, hi)); }
     const tot = rows.length * lh + (o.result ? size * 2.6 : 0);
-    y = clamp(y, 200, Math.max(200, BOTTOM - tot));
+    y = clamp(y, TOP + 10, Math.max(TOP + 10, BOTTOM - tot));
     let tEnd = at0;
     rows.forEach((r, i) => {
       const str = typeof r === 'string' ? r : r.t, at = typeof r === 'string' ? at0 + i * gap : r.at ?? at0 + i * gap;
@@ -970,7 +971,7 @@
     let x0 = o.x ?? (z === 'left' ? 700 : 240), wIn = o.w ?? (z === 'left' || z === 'right' ? 1000 : 1240);
     if (z === 'left') x0 = Math.max(x0, 660);
     const xMax = z === 'right' ? 1250 : z === 'corner' ? 1540 : W - 60;
-    const y0 = Math.min(o.y ?? 760, BOTTOM - 70), w = Math.min(wIn, xMax - x0), Hh = Math.min(o.h ?? 440, y0 - 240);
+    const y0 = Math.min(o.y ?? 760, BOTTOM - 70), w = Math.min(wIn, xMax - x0), Hh = Math.min(o.h ?? 440, y0 - (TOP + 50));
     const nI = items.length, slot = w / nI, bw = Math.min(190, slot * 0.6);
     const max = Math.max(...items.map((it) => Math.abs(it.value)), 1e-9), neg = items.some((it) => it.value < 0);
     const U = (Hh * (neg ? 0.8 : 1)) / max, at0 = o.at ?? 0, gap = o.gap ?? 0.5;
@@ -999,7 +1000,7 @@
    *  (default 1.2), h (default 64), out } */
   B.progress = function (x, y, w, o = {}) {
     const hh = o.h ?? 64, max = o.max ?? 1, at = o.at ?? 0, dur = o.dur ?? 1.2;
-    { const z = zoneOf(this); const lo = z === 'left' ? 660 : 40, hi = (z === 'right' ? 1260 : z === 'corner' && y > 600 ? 1560 : W - 40) - w; x = clamp(x, lo, Math.max(lo, hi)); } y = clamp(y, 200, BOTTOM - hh);
+    { const z = zoneOf(this); const lo = z === 'left' ? 660 : 40, hi = (z === 'right' ? 1260 : z === 'corner' && y > 600 ? 1560 : W - 40) - w; x = clamp(x, lo, Math.max(lo, hi)); } y = clamp(y, TOP + 10, BOTTOM - hh);
     return svgEl(this, (t, lt) => {
       const k = ease.out(clamp((lt - at - 0.2) / dur)), f = clamp((o.value ?? 0) / max) * k, c = o.color || 'blue';
       let s = S.rect(0, -hh / 2, w, hh, { r: hh / 2, fill: 'white' });
@@ -1019,8 +1020,8 @@
    *  host leaves free. o: { at, gap (s between items, default 0.5), bAt (when b starts), stamp: { text,
    *  color } (lands on b at the end), out } */
   B.compare = function (a, b, o = {}) {
-    const z = zoneOf(this), [L0, R0] = z === 'left' ? [650, 1780] : z === 'right' ? [140, 1270] : z === 'cornerL' ? [360, 1780] : [150, 1560];
-    const at = o.at ?? 0, gap = o.gap ?? 0.5, cw = Math.min(660, (R0 - L0 - 50) / 2), chh = 560, top = 250;
+    const z = zoneOf(this), [L0, R0] = z === 'left' ? [650, 1780] : z === 'right' ? [140, 1270] : z === 'cornerL' ? [360, 1780] : PORTRAIT ? [STAGE.area.x0, STAGE.area.x1] : [150, 1560];
+    const at = o.at ?? 0, gap = o.gap ?? 0.5, cw = Math.min(660, (R0 - L0 - 50) / 2), chh = 560, top = STAGE.area.y0 + 70;
     const card = (d, cx, t0) => {
       const kind = d.kind || 'plain', fill = kind === 'yes' ? 'greenF' : kind === 'no' ? 'redF' : 'white';
       const items = d.items || [];

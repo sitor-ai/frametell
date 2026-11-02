@@ -629,7 +629,7 @@
    *  kidney clouds) 'blocks' (two big abstract colour planes) 'night' (stars) 'plain'; floor (y of the horizon, default
    *  830), at (cut in), out } */
   B.set = function (tintName = 'yellow', o = {}) {
-    const PADX = 200, PADY = 140, w = W + PADX * 2, hh = H + PADY * 2, floor = (o.floor ?? 830) + PADY, motif = o.motif || 'plain';
+    const PADX = 200, PADY = 140, w = W + PADX * 2, hh = H + PADY * 2, floor = (o.floor ?? STAGE.area.y1 - 50) + PADY, motif = o.motif || 'plain';
     const base = tintName === 'paper' ? '#F3E6CC' : tint(tintName, 0.12), wallD = shade(base, 0.07), floorC = shade(base, 0.16);
     let cache = null;
     const cv = mountCanvas(this, w, hh, (lt) => {
@@ -643,9 +643,9 @@
         g.fillStyle = base; g.fillRect(0, 0, w, hh);
         const X = (x) => PADX + x, Y = (y) => PADY + y;
         if (motif === 'room') {
-          shape(g, rrP(X(1380), Y(150), 360, 300, 8), { fill: wallD, line: 0, off: false, grain: 0.3 });
-          shape(g, rrP(X(1400), Y(170), 320, 260, 4), { fill: tint(base, 0.4), line: 4, off: [6, 4], lt: 0, seed: 101, grain: 0.3 });
-          inkLine(g, [[X(1560), Y(170)], [X(1560), Y(430)]], 5, { breaks: 0.2, seed: 102 }); inkLine(g, [[X(1400), Y(300)], [X(1720), Y(300)]], 5, { breaks: 0.2, seed: 103 });
+          shape(g, rrP(X(W - 540), Y(150), 360, 300, 8), { fill: wallD, line: 0, off: false, grain: 0.3 });
+          shape(g, rrP(X(W - 520), Y(170), 320, 260, 4), { fill: tint(base, 0.4), line: 4, off: [6, 4], lt: 0, seed: 101, grain: 0.3 });
+          inkLine(g, [[X(W - 360), Y(170)], [X(W - 360), Y(430)]], 5, { breaks: 0.2, seed: 102 }); inkLine(g, [[X(W - 520), Y(300)], [X(W - 200), Y(300)]], 5, { breaks: 0.2, seed: 103 });
           inkLine(g, [[X(330), Y(-140)], [X(330), Y(120)]], 3, { taper: false, seed: 104 });
           shape(g, [[X(270), Y(190)], [X(390), Y(190)], [X(360), Y(120)], [X(300), Y(120)]], { fill: tint('red', 0.15), line: 4, off: [6, 4], seed: 105, grain: 0.4 });
           shape(g, boomP(X(860), Y(250), 120, 0.2), { fill: wallD, line: 0, off: false, grain: 0.2 });
@@ -654,12 +654,12 @@
           shape(g, [[0, floor - 120], [w, floor - 120], [w, floor - 96], [0, floor - 96]], { fill: tint('blue', 0.1), line: 4, off: [6, 4], seed: 106, grain: 0.3 });
           shape(g, [[0, floor - 96], [w, floor - 96], [w, floor], [0, floor]], { fill: tint('paper', 0.2), line: 0, off: false, grain: 0.3 });
         } else if (motif === 'outdoor') {
-          shape(g, kidneyP(X(1180), Y(250), 70, 0.1), { fill: tint(base, 0.55), line: 3, off: [6, 4], seed: 107, grain: 0.2 });
-          shape(g, kidneyP(X(1560), Y(170), 54, -0.1), { fill: tint(base, 0.55), line: 3, off: [6, 4], seed: 108, grain: 0.2 });
-          for (const [x, r, k] of [[110, 90, 0.16], [1740, 120, 0.12], [1870, 70, 0.22]]) { inkLine(g, [[X(x), floor], [X(x), floor - r * 2.2]], 7, { taper: false, seed: 109 + x }); shape(g, ellP(X(x), floor - r * 2.4, r * 0.8, r, 28), { fill: shade(base, k), line: 4, off: [6, 4], seed: 110 + x, grain: 0.4 }); }
+          shape(g, kidneyP(X(W - 740), Y(250), 70, 0.1), { fill: tint(base, 0.55), line: 3, off: [6, 4], seed: 107, grain: 0.2 });
+          shape(g, kidneyP(X(W - 360), Y(170), 54, -0.1), { fill: tint(base, 0.55), line: 3, off: [6, 4], seed: 108, grain: 0.2 });
+          for (const [x, r, k] of [[110, 90, 0.16], [W - 180, 120, 0.12], [W - 50, 70, 0.22]]) { inkLine(g, [[X(x), floor], [X(x), floor - r * 2.2]], 7, { taper: false, seed: 109 + x }); shape(g, ellP(X(x), floor - r * 2.4, r * 0.8, r, 28), { fill: shade(base, k), line: 4, off: [6, 4], seed: 110 + x, grain: 0.4 }); }
         } else if (motif === 'blocks') {
           shape(g, [[X(-40), Y(120)], [X(760), Y(80)], [X(800), floor - PADY - 40 + PADY], [X(-40), floor]], { fill: wallD, line: 0, off: false, grain: 0.3 });
-          shape(g, kidneyP(X(1420), Y(360), 330, 0.1), { fill: shade(base, 0.04), line: 0, off: false, grain: 0.3 });
+          shape(g, kidneyP(X(W - 500), Y(360), 330, 0.1), { fill: shade(base, 0.04), line: 0, off: false, grain: 0.3 });
         } else if (motif === 'night') {
           const r = PV.rng(77); for (let i = 0; i < 40; i++) sparkle(g, r() * w, r() * (floor - 200), 4 + r() * 10, 'paper', 0);
         }
@@ -708,8 +708,8 @@
     const T = this.hud || this, at = o.at ?? 0.2, dock = o.dock === false ? 1e9 : (o.dock ?? at + 1.6);
     const zh = /[㐀-鿿]/.test(text), ts = 84, title = String(text);
     const tw = PV.tw(title, ts) * (zh ? 1.04 : 1.12), capsTxt = zh ? `${o.label || '第'} ${n} 步${o.of ? ` · 共 ${o.of} 步` : ''}` : `${o.label || 'STEP'} ${n}${o.of ? ` OF ${o.of}` : ''}`;
-    const D = 170, gap = 34, cw = D + gap + Math.max(tw, PV.tw(capsTxt, 40) * 1.6) + 70, chh = 230;
-    const sC = Math.min(1.35, 1560 / cw), sD = Math.min(0.62, 1000 / cw), dockX = 92, dockY = 34;
+    const MID = (STAGE.area.y0 + STAGE.area.y1) / 2 - 90, D = 170, gap = 34, cw = D + gap + Math.max(tw, PV.tw(capsTxt, 40) * 1.6) + 70, chh = 230;
+    const sC = Math.min(1.35, (W - 360) / cw), sD = Math.min(0.62, 1000 / cw), dockX = STAGE.title.x - 48, dockY = STAGE.title.y - 44;
     const g = h('div', 'mc-step', null, T.html);
     Object.assign(g.style, { position: 'absolute', left: '0px', top: '0px', width: cw + 'px', height: chh + 'px', transformOrigin: '0 0', zIndex: 6 });
     const burst = o.burst === false ? null : (o.burst || 'blue');
@@ -748,7 +748,7 @@
     Object.assign(tt.style, { left: (40 + D + gap) + 'px', top: '88px', fontSize: ts + 'px', fontWeight: zh ? '900' : '400' });
     function state(lt) {
       const tq = step(lt), t = tq - at;
-      const cx = W / 2 - cw * sC / 2, cy = 440 - chh * sC / 2;
+      const cx = W / 2 - cw * sC / 2, cy = MID - chh * sC / 2;
       if (t < 0) return { x: cx, y: cy, s: 0, op: 0 };
       // slam: from 2.4× to 1× in three drawings, a squash, a one-drawing jolt
       let s = sC * (t < 0.17 ? lerp(2.4, 1, ease.in(t / 0.17)) : t < 0.25 ? 0.93 : t < 0.33 ? 1.04 : 1);
@@ -767,7 +767,7 @@
       g.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) scale(${st.s.toFixed(4)})`;
     });
     // flying stars on the slam
-    mountCanvas(T, 900, 900, (lt) => (lt < at + 0.15 || lt > at + 0.9 || lt > dock ? null : { x: W / 2 - 450, y: 440 - 450 }), (c, lt) => {
+    mountCanvas(T, 900, 900, (lt) => (lt < at + 0.15 || lt > at + 0.9 || lt > dock ? null : { x: W / 2 - 450, y: MID - 450 }), (c, lt) => {
       const q = clamp((lt - at - 0.15) / 0.75);
       for (let i = 0; i < 10; i++) { const an = i / 10 * TAU + 0.3, r = 200 + ease.out(q) * 260; sparkle(c, 450 + Math.cos(an) * r * 1.0, 450 + Math.sin(an) * r * 0.62, 22 * (1 - q), i % 2 ? 'red' : 'ink', 0); }
     }, 1).style.zIndex = 7;
@@ -1034,16 +1034,17 @@
    *  right ("DON'T"), tints: [left colour, right colour] (default ['blue', 'red']), top (y, 190), bottom (y, 860), at,
    *  out } Returns { L: [x, y], R: [x, y] } (the centres of the two halves). */
   B.split = function (o = {}) {
-    const at = o.at ?? 0, top = o.top ?? 190, bot = o.bottom ?? 860, tints = o.tints || ['blue', 'red'];
+    const at = o.at ?? 0, top = o.top ?? STAGE.area.y0 + 10, bot = o.bottom ?? STAGE.area.y1 - 20, tints = o.tints || ['blue', 'red'];
     mountCanvas(this, W, H, (lt) => (lt < at || (o.out != null && lt > o.out + 0.3) ? null : { x: 0, y: 0 }), (c, lt) => {
       const u = ease.out(clamp((step(lt) - at) / 0.4)), v = o.out != null ? 1 - clamp((lt - o.out) / 0.3) : 1;
       c.globalAlpha = v;
-      shape(c, [[100 - (1 - u) * 900, top], [948 - (1 - u) * 900, top], [948 - (1 - u) * 900, bot], [100 - (1 - u) * 900, bot]], { fill: tint(tints[0], 0.35), line: 4, lt, seed: 251 });
-      shape(c, [[972 + (1 - u) * 900, top], [1820 + (1 - u) * 900, top], [1820 + (1 - u) * 900, bot], [972 + (1 - u) * 900, bot]], { fill: tint(tints[1], 0.35), line: 4, lt, seed: 252 });
+      shape(c, [[100 - (1 - u) * 900, top], [W / 2 - 12 - (1 - u) * 900, top], [W / 2 - 12 - (1 - u) * 900, bot], [100 - (1 - u) * 900, bot]], { fill: tint(tints[0], 0.35), line: 4, lt, seed: 251 });
+      shape(c, [[W / 2 + 12 + (1 - u) * 900, top], [W - 100 + (1 - u) * 900, top], [W - 100 + (1 - u) * 900, bot], [W / 2 + 12 + (1 - u) * 900, bot]], { fill: tint(tints[1], 0.35), line: 4, lt, seed: 252 });
     }, 1);
     const hd = (txt, x, cl, d) => { const el = plateText(this, 'display', esc(txt), { plate: cl, size: 56, seed: 253 + d }); Object.assign(el.style, { left: x - 300 + 'px', width: '600px', textAlign: 'center', top: top + 26 + 'px', fontSize: '56px', color: C('ink') }); this.tick((lt) => { const k = pop(lt, at + 0.35 + d * 0.1, o.out); el.style.opacity = k > 0.03 ? '1' : '0'; el.style.transform = `scale(${Math.max(0.01, tpop(k)).toFixed(3)})`; }); };
-    hd(o.left || 'DO', 524, tints[0], 0); hd(o.right || "DON'T", 1396, tints[1], 1);
-    return { L: [524, (top + bot) / 2 + 30], R: [1396, (top + bot) / 2 + 30] };
+    const xl = W / 4 + 44, xr = W * 3 / 4 - 44;
+    hd(o.left || 'DO', xl, tints[0], 0); hd(o.right || "DON'T", xr, tints[1], 1);
+    return { L: [xl, (top + bot) / 2 + 30], R: [xr, (top + bot) / 2 + 30] };
   };
 
   /** recap(items, o): the closing lockup: a row of 2–5 numbered medallions, each a coloured disc with its thing inside
@@ -1053,8 +1054,8 @@
    *  up to 150), at, gap (seconds between stamps, 0.45), ticks (when the ticks land, default after the last stamp), tints
    *  (disc colours in turn), size (label px, 46), out } */
   B.recap = function (items, o = {}) {
-    const n = items.length, y = o.y ?? 450, r = o.r ?? Math.min(150, 1320 / n / 2.9), at = o.at ?? 0, gap = o.gap ?? 0.45;
-    const tints = o.tints || ['blue', 'yellow', 'green', 'red', 'purple'], span = Math.min(o.w ?? 1320, n * r * 3.3), x0 = (o.x ?? 1080) - span / 2 + span / n / 2;
+    const n = items.length, y = o.y ?? STAGE.area.y0 + 270, r = o.r ?? Math.min(150, 1320 / n / 2.9), at = o.at ?? 0, gap = o.gap ?? 0.45;
+    const tints = o.tints || ['blue', 'yellow', 'green', 'red', 'purple'], span = Math.min(o.w ?? 1320, n * r * 3.3), x0 = (o.x ?? W / 2 + 120) - span / 2 + span / n / 2;
     const ticksAt = o.ticks ?? at + n * gap + 0.4;
     items.forEach((it, i) => {
       const x = x0 + i * span / n, t = at + i * gap;

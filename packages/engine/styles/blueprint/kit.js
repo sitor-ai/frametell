@@ -461,6 +461,6 @@
       v.style.clipPath = `inset(0 ${f1((1 - clamp((k - 0.3) / 0.7)) * 100)}% 0 0)`;
     } });
     void ref;
-    return Object.assign(T.handle(a, wrap), { spans: [v], box: () => ({ x: 140, y: 60, w: wrap.offsetWidth, h: 80 }) });
+    return Object.assign(T.handle(a, wrap), { spans: [v], box: () => ({ x: STAGE.title.x, y: STAGE.title.y - 18, w: wrap.offsetWidth, h: 80 }) });
   };
 })();
