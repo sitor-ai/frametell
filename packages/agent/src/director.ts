@@ -947,12 +947,20 @@ export class Director {
     const style = this.pictureStyle()!;
     // a reference is a picture of the film's, or a file of the person's (a picture's `from`)
     const from = refs.flatMap((r) => { try { return [new Uint8Array(readIn(this.o.dir, typeof r === 'string' ? r : picturePath(r), { record: true }))]; } catch { return []; } });
-    let data: Uint8Array | undefined, last: unknown, ask = prompt, again = false;
+    let data: Uint8Array | undefined, last: unknown, ask = prompt, again = false, reshaped = false;
+    const [ww, wh] = pictureSize(p).split('x').map(Number);
     // asked for up to 3 times: a request stuck upstream (timed out) or refused is asked for afresh
     for (let i = 0; i < 3; i++) {
       try {
         const got = await this.o.images!.draw({ prompt: ask, size: pictureSize(p), quality: style.quality, transparent: cutOut(p.kind), refs: from.length ? from : undefined, signal: this.o.signal });
         data = got;
+        // a picture drawn at another shape than asked (some image services answer 3:2 to a 16:9 request now and then)
+        // would lose an edge to fill its frame: drawn once more, and the second kept whatever its shape
+        const shape = sniffPicture(got);
+        if (shape && !reshaped && Math.abs(shape.w / shape.h - ww / wh) > 0.04) {
+          console.warn(`[pictures] ${p.id}: drawn ${shape.w}x${shape.h}, asked ${pictureSize(p)}: drawn again`);
+          reshaped = true; i--; continue;
+        }
         // a cut-out that would look stuck on the page (a ground behind it, a sticker's rim) is drawn once more, told why;
         // a second one like it is kept, as better than none
         const trouble = cutOut(p.kind) && sniffPicture(got) ? cutOutTrouble(got) : undefined;
