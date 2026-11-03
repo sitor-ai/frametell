@@ -60,14 +60,16 @@ test('a picture\'s type and size are read from its first bytes', () => {
 });
 
 /** an image service that draws a PNG for each call and keeps what it was asked */
-function service(calls: { prompt: string; refs: number; transparent: boolean }[], o: { fail?: RegExp } = {}): ImageProvider {
+function service(calls: { prompt: string; refs: number; transparent: boolean }[], o: { fail?: RegExp; shapes?: string[] } = {}): ImageProvider {
   let n = 0;
   return {
     model: 'test-image',
-    async draw({ prompt, refs, transparent }) {
+    async draw({ prompt, refs, transparent, size }) {
       calls.push({ prompt, refs: refs?.length ?? 0, transparent });
       if (o.fail?.test(prompt)) throw new Error('image service 500: busy');
-      return png(1536, 1024, ++n, transparent);
+      // at the size asked, or the next of `shapes` (an image service that answers another shape)
+      const [w, h] = (o.shapes?.shift() ?? size).split('x').map(Number);
+      return png(w, h, ++n, transparent);
     },
   };
 }
@@ -78,7 +80,7 @@ const PLAN = [
   { id: 'bird-fly', kind: 'character', what: 'the bird flying to the right', pages: ['p03'], like: 'bird' },
 ];
 
-function film(o: { fail?: RegExp; style?: PictureStyle; plan?: object[] } = {}) {
+function film(o: { fail?: RegExp; shapes?: string[]; style?: PictureStyle; plan?: object[] } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-pictures-'));
   fs.mkdirSync(path.join(dir, 'pages'));
   const calls: { prompt: string; refs: number; transparent: boolean }[] = [], events: StudioEvent[] = [];
@@ -113,6 +115,17 @@ test('after the go-ahead the first picture is drawn from nothing, the rest from 
   f.d.state.pictures = undefined;
   await f.d.pictures();
   assert.equal(f.calls.length, 3);
+});
+
+test('a picture the image service draws at another shape than asked is drawn once more, and the second kept', async () => {
+  const f = film({ plan: [PLAN[1]], shapes: ['1024x1536', '1024x1536'] });
+  await f.d.pictures();
+  assert.equal(f.calls.length, 2);
+  assert.equal(readPictures(f.dir).items[0].h, 1536, 'the second answer is kept, whatever its shape');
+  const g = film({ plan: [PLAN[1]], shapes: ['1024x1536'] });
+  await g.d.pictures();
+  assert.equal(g.calls.length, 2);
+  assert.deepEqual([readPictures(g.dir).items[0].w, readPictures(g.dir).items[0].h], [1536, 1024]);
 });
 
 test('a sample that can\'t be had: the next picture drawn from nothing stands in for its look, and it is tried again at the end', async () => {
