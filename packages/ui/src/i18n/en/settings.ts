@@ -13,6 +13,12 @@ const en: typeof zh = {
     zh: '中文',
     en: 'English',
   },
+  general: {
+    concurrency: 'Page concurrency',
+    concurrencyDesc: 'How many pages draw at once. With an external AI agent (Claude Code and the like) one at a time is steadier and cheaper.',
+    sequential: '1 (in order)',
+    parallel: (v: { n: number }) => `${v.n} at once`,
+  },
   exportDir: {
     title: 'Export folder',
     desc: 'Every mp4 export, with and without subtitles, is also saved here, replacing an earlier export of the same name. Leave it empty to keep exports in the project only.',
