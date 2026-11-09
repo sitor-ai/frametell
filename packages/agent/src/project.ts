@@ -25,7 +25,8 @@ export interface LintIssue { page: string; t: number; t1: number; local: number;
 export type PageCheck = { issues: LintIssue[]; sheet: string; crash?: undefined } | { issues: LintIssue[]; sheet?: undefined; crash: string };
 
 export interface Beat { at: string; object: string; action: string; camera?: string; text?: string }
-export interface StoryPage { id: string; section: string; say: string; core?: boolean; beats: Beat[] }
+/** `energy`, `move`, `turn`, `chapter`: the page's place in the film's rhythm (rhythm.ts), absent on films planned before */
+export interface StoryPage { id: string; section: string; say: string; core?: boolean; beats: Beat[]; energy?: string; move?: string; turn?: string; chapter?: string }
 /** `look`: a designed style's film only, the look the director designed for it (look.ts designedLook) */
 export interface Storyboard { title: string; summary: string; durationSec?: number; style: string; cast: string; /** a language tag ('zh', 'en', 'es'…) */ lang?: string; look?: unknown; pages: StoryPage[] }
 

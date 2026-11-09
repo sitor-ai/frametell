@@ -328,7 +328,57 @@
     pan(at, x, y, s) { return s == null ? { at, x, y, keepScale: true, dur: 0.3, ease: 'out' } : { at, x, y, s, dur: 0.3, ease: 'out' }; }
     slam(at, x, y, s = 1.2) { return { at, x, y, s, dur: 0.17 * 2.2, ease: 'slam' }; }
     shake(at, amp = 10, dur = 0.25) { return { at, shake: { amp, dur } }; }
-    back(at, dur = 0.5) { return { at, x: STAGE.w / 2, y: STAGE.h / 2, s: 1, dur, ease: 'out' }; }
+    back(at, dur = 0.5) { return { at, x: STAGE.w / 2, y: STAGE.h / 2, s: 1, rx: 0, ry: 0, dur, ease: 'out' }; }
+    // 2.5D: the whole page laid into space, seen from the side (rotated about the stage's centre, in perspective), and
+    // set level again. A key without rx/ry keeps the current tilt, so a push or pan while tilted stays tilted; back() and
+    // level() set it straight. Text on a tilted page is for looking at, not reading: level it before a line is read.
+    tilt(at, x = STAGE.w / 2, y = STAGE.h / 2, o = {}) { return { at, x, y, s: o.s ?? 0.9, rx: o.rx ?? 9, ry: o.ry ?? -15, dur: o.dur ?? 0.9, ease: 'inOut' }; }
+    level(at, dur = 0.7) { return { at, x: STAGE.w / 2, y: STAGE.h / 2, s: 1, rx: 0, ry: 0, dur, ease: 'inOut' }; }
+    /** Times for a batch that arrives faster and faster, like cards dealt from a deck: n times from t0 over span seconds,
+     *  each gap `k` times the one before (k < 1 accelerates). Leave the batch still for about 0.5s after the last. */
+    deal(n, t0, span, k = 0.72) { return deal(n, t0, span, k); }
+    /**
+     * A spotlight on one thing: the rest of the picture dims toward the ground, so the eye has one place to go. It sits in
+     * the camera layer (it moves with a push), above everything the page draws. r is the lit radius; `o.ry` makes it an
+     * ellipse r wide and ry tall (fit it to the thing: a card 220×300 takes r 125, ry 165). `o.to: [{ at, x, y, r, ry }]`
+     * moves it to other things (0.5s each), `o.until` lifts it, `o.dim` (0–1, default 0.6) is how far the rest dims.
+     */
+    spot(at, x, y, r, o = {}) {
+      const W = STAGE.w, H = STAGE.h;
+      const el = h('div', 'spot', null, this.host);
+      el.style.cssText = `position:absolute;left:${-W}px;top:${-H}px;width:${3 * W}px;height:${3 * H}px;pointer-events:none;opacity:0`;
+      const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(document.getElementById('frame') || document.body).backgroundColor || '');
+      const rgb = m ? m[1].split(',').slice(0, 3).map((v) => v.trim()).join(',') : '244,238,226';
+      const dim = clamp(o.dim ?? 0.6), dur = o.dur ?? 0.45, keys = [{ at, x, y, r, ry: o.ry ?? r }, ...(o.to || [])];
+      let last = '';
+      this.tick((lt) => {
+        let p = keys[0];
+        for (const k of keys.slice(1)) {
+          if (lt <= k.at) break;
+          const e = ease.inOut(clamp((lt - k.at) / 0.5));
+          p = { x: lerp(p.x, k.x, e), y: lerp(p.y, k.y, e), r: lerp(p.r, k.r ?? p.r, e), ry: lerp(p.ry, k.ry ?? k.r ?? p.ry, e) };
+        }
+        const on = smooth(at, at + dur, lt) * (o.until == null ? 1 : 1 - smooth(o.until, o.until + dur, lt));
+        const key = `${p.x.toFixed(1)}|${p.y.toFixed(1)}|${p.r.toFixed(1)}|${p.ry.toFixed(1)}|${on.toFixed(3)}`;
+        if (key === last) return;
+        last = key;
+        el.style.opacity = on.toFixed(3);
+        // the gradient's own ellipse is the lit one grown by a soft edge of ~18% + 24px; inside, clear up to the lit edge
+        const f = 1.18, pad = 24, ex = p.r * f + pad, ey = p.ry * f + pad, inner = (100 * p.r / ex).toFixed(1);
+        el.style.background = `radial-gradient(${ex.toFixed(1)}px ${ey.toFixed(1)}px at ${(p.x + W).toFixed(1)}px ${(p.y + H).toFixed(1)}px, rgba(${rgb},0) ${inner}%, rgba(${rgb},${dim}) 100%)`;
+      });
+      return el;
+    }
+  }
+
+  /** n times from t0 over span, each gap k times the last (see Builder.deal) */
+  function deal(n, t0, span, k = 0.72) {
+    if (n <= 1) return n === 1 ? [t0] : [];
+    const q = Math.abs(1 - k) < 1e-6 ? 1 : k, sum = q === 1 ? n - 1 : (1 - q ** (n - 1)) / (1 - q);
+    const out = [t0];
+    let g = span / sum, t = t0;
+    for (let i = 1; i < n; i++) { t += g; out.push(t); g *= q; }
+    return out;
   }
 
   function applyAct(a, lt) {
@@ -342,7 +392,7 @@
     if (a.g && a.kind !== 'show' && a.kind !== 'text') a.g.style.opacity = o.toFixed(3);
   }
 
-  window.PV = Object.assign(window.PV || {}, { clamp, lerp, smooth, ease, C, col, unknownColors, s, h, gen, rrect, Builder, applyAct, hashStr,
+  window.PV = Object.assign(window.PV || {}, { clamp, lerp, smooth, ease, C, col, unknownColors, s, h, gen, rrect, Builder, applyAct, hashStr, deal,
     rng(seed) { let x = seed >>> 0; return () => { x = (x + 0x6d2b79f5) >>> 0; let r = Math.imul(x ^ (x >>> 15), 1 | x); r ^= r + Math.imul(r ^ (r >>> 7), 61 | r); return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; },
   });
 })();

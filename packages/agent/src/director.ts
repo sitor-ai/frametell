@@ -208,10 +208,10 @@ This page is new: the film is finished and the user's change adds it. What it sh
 /** the largest picture attached to a page's brief, as the read tool's limit */
 const PICTURE_BYTES_SHOWN = 3_700_000;
 const PAGE_THINKING: Thinking = 'low';
-/** the storyboard, the narration and a change's plan: at the model's own level (medium) a one-minute storyboard thought
- *  12k tokens before writing and 15k more while writing, ~5½ minutes and ~$1 before the user saw anything (2026-10-29);
- *  its check rounds catch what a quicker draft misses, as the pages' do */
-const PLAN_THINKING: Thinking = 'low';
+/** the storyboard, the narration and a change's plan, at medium: in a blind test of six films (2026-11-08) medium plans
+ *  won five of six on content (a concrete hook, an ending that answers it, sharper examples) for ~$0.05 and ~15 s more a
+ *  film; a 2026-10-29 note had medium storyboards at ~$1 and 5½ minutes, which the test didn't see again */
+const PLAN_THINKING: Thinking = 'medium';
 /** the film's components: a few small drawings every page is waiting on (at medium, one kettle took 44k tokens and
  *  7½ minutes of thought); the kit's check and reviewer catch what a quicker draft gets wrong */
 const KIT_THINKING: Thinking = 'low';

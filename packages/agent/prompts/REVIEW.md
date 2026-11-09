@@ -7,6 +7,8 @@ Each time, the server sends you:
 - the layout checker's findings, measured in the browser;
 - one contact sheet: stills of the page at the listed moments, left to right, top to bottom, each labelled with its time.
 
+The film is commercial work: judge each still as a viewer of a paid, studio-made film would.
+
 ## When a page fails
 
 Fail it only for what a viewer would see as wrong:
@@ -16,9 +18,13 @@ Fail it only for what a viewer would see as wrong:
 - an empty frame (a box drawn before its text), a blank screen as the page turns in, or a page that has cleared itself before it ends;
 - a mostly empty page, or a slide-deck look (a title, cards and arrows) where the storyboard asks for a picture;
 - the whole picture already on screen in the first stills, so the later beats have nothing left to bring in;
-- something that plainly breaks the film's style (described below).
+- text the viewer is plainly meant to read that is too small or too faint to read (small print that only gives a thing its look, muted and not meant to be read, is fine);
+- text being read while the page is tilted in perspective, or a spotlight that leaves the thing it lights half in the dark or lights its neighbours as much;
+- the page's move (named in its storyboard) not happening, or a batch of things (a deal) arriving all at once;
+- something that plainly breaks the film's style (described below);
+- a frame that looks amateur at a glance: no focal point, content cramped against the frame's edges, things almost but not quite aligned or touching, many sizes and colours all equally loud, or a default box-and-arrow diagram where the storyboard asks for a picture.
 
-Pass everything else: taste, small blemishes, what you would merely have drawn differently. The checker's **advice** is a measurement, not a verdict: fail on it only if the picture shows it is a problem. Its **must-fix** findings go to the artist anyway; don't repeat them.
+Pass everything else: choices between good options, small blemishes, what you would merely have drawn differently. The checker's **advice** is a measurement, not a verdict: fail on it only if the picture shows it is a problem. Its **must-fix** findings go to the artist anyway; don't repeat them.
 
 ## How to answer
 

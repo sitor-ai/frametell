@@ -14,6 +14,7 @@ import { designedFonts } from './look.js';
 import { KIT_MAX, KIT_MIN_PAGES, kitPart, kitPartCheck, type KitItem } from './kit.js';
 import { brandFilesOn, brandPageNote, cornerMark, brandReviewNote, brandSection, signsOff, type BrandBrief } from './brand.js';
 import { assetPageNote, assetReviewNote, assetsSection, type UserAsset } from './assets.js';
+import { rhythmLines } from './rhythm.js';
 
 // found through the package itself, so it still resolves when the code is bundled (the desktop app)
 const DIR = path.join(path.dirname(createRequire(import.meta.url).resolve('@frametell/agent/package.json')), 'prompts');
@@ -221,7 +222,7 @@ ${outline}
 ## This page's storyboard
 - Section: ${p?.section ?? ''}
 - What it says: ${p?.say ?? ''}
-- Key page: ${p?.core ? 'yes' : 'no'}
+- Key page: ${p?.core ? 'yes' : 'no'}${rhythmLines(p, sb.pages[0]?.id === id)}
 - Beats:
 ${(p?.beats || []).map((b, i) => `  ${i + 1}. [${b.at}] ${b.object} — ${b.action}${b.camera ? ` (camera: ${b.camera})` : ''}${b.text ? `, on-screen text "${b.text}"` : ''}`).join('\n')}
 
@@ -286,7 +287,7 @@ export function reviewerPrompt(sb: Storyboard, id: string, t: PageTiming, round:
   const must = issues.filter((i) => i.level === 'error'), advice = issues.filter((i) => i.level === 'warn');
   return `${round > 1 ? `Round ${round}: the artist has changed the page since you last saw it.\n\n` : ''}## The page (${id} of ${sb.pages.length}, in the film "${sb.title}")
 - Section: ${p?.section ?? ''}
-- What it says: ${p?.say ?? ''}
+- What it says: ${p?.say ?? ''}${rhythmLines(p, sb.pages[0]?.id === id)}
 - Beats:
 ${(p?.beats || []).map((b, i) => `  ${i + 1}. [${b.at}] ${b.object} — ${b.action}${b.text ? `, on-screen text "${b.text}"` : ''}`).join('\n')}
 - The page lasts ${(t.end - t.start).toFixed(1)}s. Narration:
