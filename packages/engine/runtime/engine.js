@@ -45,7 +45,7 @@
   function editsOf(id, map) { edits[id] = map && typeof map === 'object' ? map : {}; }
   const firstWords = (args) => { const w = args.find((a) => typeof a === 'string'); return w == null ? '' : w.slice(0, 60); };
   /** the builder's helpers that tell a time, make a layer, move the camera or work for other calls: not things */
-  const NOT_THINGS = new Set(['constructor', 'c', 'cw', 'ce', 'seed', 'act', 'tick', 'handle', 'ro', 'shapeOf', 'texture', 'layer', 'cam', 'push', 'pan', 'slam', 'shake', 'back']);
+  const NOT_THINGS = new Set(['constructor', 'c', 'cw', 'ce', 'seed', 'act', 'tick', 'handle', 'ro', 'shapeOf', 'texture', 'layer', 'cam', 'push', 'pan', 'slam', 'shake', 'back', 'tilt', 'level', 'deal']);
   let building = null;   // the page being built: { id, n, watch }
   let thing = null;      // the thing being drawn: { n, j, ed }
   let counted = false;
@@ -184,10 +184,11 @@
   // ── camera ───────────────────────────────────────────────
   // key.ease: 'inOut' (default, a calm move) · 'out' (pulse: fast, then settle) · 'slam' (lands past the target, settles back)
   // key.shake: { amp, dur } — a short deterministic jolt starting at key.at (no target, keeps the current framing)
+  // key.rx / key.ry: the page tilted in perspective (degrees, about the stage's centre); a key without them keeps the tilt
   const SLAM = (x) => (x < 0.55 ? lerp(0, 1.08, ease.out(x / 0.55)) : lerp(1.08, 1, ease.inOut((x - 0.55) / 0.45)));
   function camAt(keys, lt) {
     const CX = STAGE.w / 2, CY = STAGE.h / 2;
-    let st = { x: CX, y: CY, s: 1 }, jx = 0, jy = 0;
+    let st = { x: CX, y: CY, s: 1, rx: 0, ry: 0 }, jx = 0, jy = 0;
     for (const k of keys) {
       if (lt <= k.at) break;
       if (k.shake) {
@@ -197,10 +198,42 @@
       }
       const x = clamp((lt - k.at) / (k.dur ?? 1.2));
       const e = k.ease === 'slam' ? SLAM(x) : (ease[k.ease] || ease.inOut)(x);
-      st = { x: lerp(st.x, k.x ?? CX, e), y: lerp(st.y, k.y ?? CY, e), s: k.keepScale ? st.s : lerp(st.s, k.s ?? 1, e) };
+      st = { x: lerp(st.x, k.x ?? CX, e), y: lerp(st.y, k.y ?? CY, e), s: k.keepScale ? st.s : lerp(st.s, k.s ?? 1, e),
+        rx: k.rx == null ? st.rx : lerp(st.rx, k.rx, e), ry: k.ry == null ? st.ry : lerp(st.ry, k.ry, e) };
     }
-    return { x: st.x - jx / st.s, y: st.y - jy / st.s, s: st.s };
+    return { x: st.x - jx / st.s, y: st.y - jy / st.s, s: st.s, rx: st.rx, ry: st.ry };
   }
+
+  // ── chapter card: pg.chapter ─────────────────────────────
+  // A page that opens a new part of the film can open on its name alone, big, on the bare ground, for TIMING.CARD seconds
+  // (the narration waits for it): the page's own picture is held back meanwhile, and comes in as the card lifts. Drawn
+  // with the style's own text, after the page is built, so it is not one of the page's things (an editor's numbers stay
+  // as they were). No ground of its own: the film's ground shows through, so a travel into it has no seam.
+  function chapterCard(p) {
+    const el = h('div', 'chapter', null, p.root);
+    el.style.cssText = 'position:absolute;inset:0;z-index:5;pointer-events:none';
+    const C = new Builder(p.pg, el, p.sh);
+    const words = p.pg.chapter.trim(), size = STAGE.portrait ? 104 : 96;
+    const y = Math.round(STAGE.h * 0.44 - size * 0.7), w = Math.min(STAGE.w - 240, 1500);
+    try {
+      C.text(words, { x: STAGE.w / 2, y, size, w, align: 'c', weight: 700, at: 0.12, mode: 'fade', dur: 0.5 });
+      const uw = Math.min(w, Math.max(160, (PV.tw ? PV.tw(words, size) : words.length * size * 0.6) * 0.42));
+      C.underline(STAGE.w / 2 - uw / 2, y + size * 1.32, uw, { color: 'orange', at: 0.45, dur: 0.5, sw: 4 });
+    } catch (e) { console.error(`chapter card ${p.pg.id}: ${e?.message || e}`); }
+    const T = p.pg.card;
+    p.sh.ticks.push((lt) => {
+      const k = 1 - smooth(T - 0.5, T - 0.2, lt), under = smooth(T - 0.2, T + 0.25, lt);   // the card lifts, then the page comes in
+      el.style.opacity = k.toFixed(3); el.style.display = k <= 0.001 ? 'none' : '';
+      p.cam.style.opacity = p.hud.style.opacity = under >= 0.999 ? '' : under.toFixed(3);
+    });
+  }
+
+  // ── page turns: pg.turn (how a page comes in) ────────────
+  // fade (default): a cross-fade with a small slide · travel: the camera travels sideways to the next page, as along one
+  // long wall (both stay solid, side by side) · dive: through the page into the next, the old
+  // one grows past the camera as the new one settles · cut: a straight cut, from the stillness the old page ends on.
+  const TRAVEL = [0.2, 0.55], DIVE = [0.25, 0.45];   // seconds before and after the boundary the move takes
+  const easeIn = (x) => x * x * x;
 
   // ── lifecycle ────────────────────────────────────────────
   function init(opts = {}) {
@@ -241,6 +274,7 @@
           PV.colorPage = undefined; building = null; thing = null; watch.disconnect();
           orphans[pg.id] = mine.filter(([n]) => !b.claimed.has(n)).map(([n]) => +n);
         }
+        if (pg.card > 0) chapterCard(obj);
       }
     }
     chrome = (SCRIPT.META || {}).chrome === true ? buildChrome(frame) : null;   // META.chrome: true → series header (META.course · META.no | section)
@@ -254,26 +288,50 @@
     // and ending the fade at the boundary showed empty paper in between. The outgoing page stays a pure function of t.
     const D = SCRIPT.META?.fadeDelay ?? 0.3;
     const FO = SCRIPT.META?.fadeOut ?? TIMING.FADE_OUT;   // META.fadeOut: the film's closing fade in seconds, 0 for a hard cut
+    const motion = SCRIPT.META?.pageMotion !== false;   // META.pageMotion: false → plain cross-fades (films: the pages do their own transitions)
+    // how page i comes in; with pageMotion off only a cut stays a cut, everything else is a plain cross-fade
+    const turnOf = (i) => { const k = pages[i]?.pg.turn || 'fade'; return motion || k === 'cut' ? k : 'fade'; };
+    const W = STAGE.w;
     for (const p of pages) {
       const { start, end, index } = p.pg;
       const last = index === pages.length - 1;
-      const inK = index === 0 ? 1 : smooth(start - F + D, start + D, t);
+      const kin = index === 0 ? 'none' : turnOf(index), kout = last ? 'end' : turnOf(index + 1);
+      // progress of the turn into this page (0 → 1) and of the turn out of it, by the kind of each
+      const prog = (kind, at) => kind === 'cut' ? (t >= at + D ? 1 : 0)
+        : kind === 'travel' ? ease.inOut(clamp((t - (at - TRAVEL[0])) / (TRAVEL[0] + TRAVEL[1])))
+        : kind === 'dive' ? clamp((t - (at - DIVE[0])) / (DIVE[0] + DIVE[1]))
+        : smooth(at - F + D, at + D, t);
+      const inK = kin === 'none' ? 1 : prog(kin, start);
       // the last page fades to the ground over the film's final moments
-      const outK = last ? (FO > 0 ? smooth(end - FO, end, t) : 0) : smooth(end - F + D, end + D, t);
-      const vis = inK * (1 - outK);
+      const outK = kout === 'end' ? (FO > 0 ? smooth(end - FO, end, t) : 0) : prog(kout, end);
+      // solid through a travel; a dive fades the old page out as it grows past the camera and the new one in as it lands
+      const opIn = kin === 'travel' ? (inK > 0 ? 1 : 0) : kin === 'dive' ? ease.out(inK) : inK;
+      const opOut = kout === 'travel' ? (outK < 1 ? 0 : 1) : kout === 'dive' ? easeIn(outK) : outK;
+      const vis = opIn * (1 - opOut);
       p.vis = vis;
       if (vis <= 0.001) { if (p.root.style.display !== 'none') p.root.style.display = 'none'; continue; }
       p.root.style.display = 'block';
       p.root.style.opacity = vis.toFixed(4);
-      if (SCRIPT.META?.pageMotion !== false) {   // META.pageMotion: false → plain cross-fade (films: the pages do their own transitions)
-        const turn = last ? 0 : outK;   // the film's own ending is a plain fade, not a page turn
-        p.root.style.transform = `translate(${(-turn * 36 + (1 - inK) * 24).toFixed(2)}px, 0)`;
-        p.root.style.filter = turn > 0.02 ? `blur(${(turn * 5).toFixed(2)}px)` : 'none';
+      let tf = '', blur = 0, clip = false;
+      if (kin === 'travel' && inK < 1) { tf = `translate(${((1 - inK) * W).toFixed(1)}px, 0)`; clip = true; }
+      else if (kout === 'travel' && outK > 0) { tf = `translate(${(-outK * W).toFixed(1)}px, 0)`; clip = true; }
+      else if (kin === 'dive' && inK < 1) tf = `scale(${lerp(0.86, 1, ease.out(inK)).toFixed(4)})`;
+      else if (kout === 'dive' && outK > 0) { tf = `scale(${lerp(1, 1.6, easeIn(outK)).toFixed(4)})`; blur = outK * 6; }
+      else if (motion && (kin === 'fade' || kout === 'fade')) {
+        const turn = kout === 'fade' ? outK : 0;   // the film's own ending is a plain fade, not a page turn
+        tf = `translate(${(-turn * 36 + (kin === 'fade' ? (1 - inK) * 24 : 0)).toFixed(2)}px, 0)`;
+        blur = turn * 5;
       }
+      p.root.style.transform = tf;
+      p.root.style.filter = blur > 0.1 ? `blur(${blur.toFixed(2)}px)` : 'none';
+      p.root.style.clipPath = clip ? 'inset(0)' : '';
       const lt = t - start;
       const c = camAt(p.sh.cams, lt);
       const cx0 = STAGE.w / 2, cy0 = STAGE.h / 2;
-      p.cam.style.transform = c.s === 1 && c.x === cx0 && c.y === cy0 ? '' : `translate(${(cx0 - c.x * c.s).toFixed(2)}px, ${(cy0 - c.y * c.s).toFixed(2)}px) scale(${c.s.toFixed(4)})`;
+      const tilted = Math.abs(c.rx) > 0.01 || Math.abs(c.ry) > 0.01;
+      const frame2d = c.s === 1 && c.x === cx0 && c.y === cy0 ? '' : `translate(${(cx0 - c.x * c.s).toFixed(2)}px, ${(cy0 - c.y * c.s).toFixed(2)}px) scale(${c.s.toFixed(4)})`;
+      // tilted: the framed page turned about the stage's centre, in perspective (the camera's distance is ~1.4 stage widths)
+      p.cam.style.transform = tilted ? `translate(${cx0}px, ${cy0}px) perspective(${Math.round(STAGE.w * 1.4)}px) rotateX(${c.rx.toFixed(3)}deg) rotateY(${c.ry.toFixed(3)}deg) translate(${-cx0}px, ${-cy0}px) ${frame2d}` : frame2d;
       // while the camera is pushed in, a paper band fades in behind the fixed title so content can slide under it
       p.hud.style.setProperty('--band', clamp((c.s - 1) * 10).toFixed(3));
       PV.colorPage = p.pg.id;

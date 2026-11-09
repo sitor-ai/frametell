@@ -87,3 +87,38 @@ test('two beats at one cue are flagged for the later one to name its word', () =
   sb.pages[2].beats[1].at = `${sb.pages[2].beats[0].at}:果子`;
   assert.ok(!lintStoryboard(sb, { source }).some((i) => /two beats at/.test(i.msg)));
 });
+
+test('the film\'s rhythm: energy, move, turn and chapter are checked where given', () => {
+  const sb = good();
+  // a storyboard without them passes as before
+  assert.deepEqual(reds(sb), []);
+  const six = () => {
+    const s = good();
+    s.pages = [...s.pages, ...good().pages.map((p, i) => ({ ...p, id: `p0${i + 4}` }))];
+    const plan = [['mid', 'hero'], ['high', 'deal'], ['low', 'build'], ['high', 'count'], ['low', 'zoom'], ['high', 'callback']];
+    s.pages.forEach((p, i) => { [p.energy, p.move] = plan[i]; });
+    s.pages[3].turn = 'dive'; s.pages[3].chapter = '第二步：取样';
+    return s;
+  };
+  assert.deepEqual(msgs(six()), []);
+  const cases = [
+    ['unknown energy', (s) => { s.pages[1].energy = 'max'; }, /energy "max"/],
+    ['unknown move', (s) => { s.pages[1].move = 'spin'; }, /move "spin"/],
+    ['unknown turn', (s) => { s.pages[1].turn = 'wipe'; }, /turn "wipe"/],
+    ['same move twice in a row', (s) => { s.pages[2].move = 'deal'; }, /two pages in a row/],
+    ['chapter on the first page', (s) => { s.pages[0].chapter = '开场'; }, /first page/],
+    ['chapter on the last page', (s) => { s.pages[5].chapter = '结尾'; }, /last page/],
+    ['chapter too long', (s) => { s.pages[3].chapter = '第二步：从概率里抽出一个词'; }, /characters \(≤ 10\)/],
+  ];
+  for (const [name, mutate, re] of cases) {
+    const s = six(); mutate(s);
+    assert.ok(reds(s).some((m) => re.test(m)), `${name}: expected ${re}, got ${JSON.stringify(msgs(s))}`);
+  }
+  const yellows = (s) => msgs(s).filter((m) => m.startsWith('yellow'));
+  const flat = six(); flat.pages.slice(0, 3).forEach((p) => { p.energy = 'high'; });
+  assert.ok(yellows(flat).some((m) => /three pages in a row/.test(m)));
+  const reused = six(); reused.pages[2].move = 'hero'; reused.pages[4].move = 'hero';
+  assert.ok(yellows(reused).some((m) => /leads 3 pages/.test(m)));
+  const short = good(); short.pages[1].chapter = '第二步';
+  assert.ok(yellows(short).some((m) => /6 pages or more/.test(m)));
+});

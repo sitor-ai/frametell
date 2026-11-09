@@ -97,6 +97,36 @@ function readSource(paths) {
   return text;
 }
 
+// ── the film's rhythm: each page's energy, move, turn and chapter card (PLANNER.md "The film's rhythm") ──────────────
+export const ENERGIES = ['low', 'mid', 'high'];
+export const MOVES = ['hero', 'deal', 'build', 'count', 'compare', 'tilt', 'zoom', 'fill', 'trace', 'callback'];
+export const TURNS = ['fade', 'travel', 'dive', 'cut'];
+/** Checked only where the storyboard gives them: a film planned before they existed passes as it did. */
+function rhythm(pages, add, en, units) {
+  const n = pages.length;
+  pages.forEach((p, i) => {
+    const where = { page: p.id };
+    if (p.energy != null && !ENERGIES.includes(p.energy)) add('red', where, `energy "${p.energy}" is not one of ${ENERGIES.join(' / ')}`);
+    if (p.move != null && !MOVES.includes(p.move)) add('red', where, `move "${p.move}" is not one of ${MOVES.join(' / ')}`);
+    if (p.turn != null && !TURNS.includes(p.turn)) add('red', where, `turn "${p.turn}" is not one of ${TURNS.join(' / ')}`);
+    if (p.chapter != null && String(p.chapter).trim()) {
+      const words = String(p.chapter).trim(), max = en ? 6 : 10, len = units(words);
+      if (i === 0 || i === n - 1) add('red', where, `a chapter card on the ${i === 0 ? 'first' : 'last'} page: the film opens on its hook and ends on its close, never on a chapter card`);
+      if (len > max) add('red', where, `chapter "${words}" has ${len} ${en ? 'words' : 'characters'} (≤ ${max})`);
+    }
+    const prev = pages[i - 1];
+    if (prev && p.move && MOVES.includes(p.move) && prev.move === p.move) add('red', where, `the same move "${p.move}" leads two pages in a row: give this page another`);
+    const pp = pages[i - 2];
+    if (pp && p.energy && prev.energy === p.energy && pp.energy === p.energy) add('yellow', where, `three pages in a row at "${p.energy}" energy: alternate high pages with low ones`);
+  });
+  const uses = {};
+  for (const p of pages) if (MOVES.includes(p.move)) uses[p.move] = (uses[p.move] || 0) + 1;
+  for (const [m, k] of Object.entries(uses)) if (k > 2) add('yellow', {}, `the move "${m}" leads ${k} pages (at most 2 a film)`);
+  const chapters = pages.filter((p) => typeof p.chapter === 'string' && p.chapter.trim()).length;
+  if (chapters && n < 6) add('yellow', {}, `chapter cards in a film of ${n} pages: they are for films of 6 pages or more`);
+  else if (chapters > Math.floor(n / 3)) add('yellow', {}, `${chapters} chapter cards in ${n} pages (at most one for every three pages)`);
+}
+
 // ── checks ────────────────────────────────────────────────────────────────────
 export function lintStoryboard(sb, { source = '' } = {}) {
   const issues = [];
@@ -156,6 +186,7 @@ export function lintStoryboard(sb, { source = '' } = {}) {
     const [a, b, c] = [all[i - 2], all[i - 1], all[i]];
     if (a.cam && a.cam === b.cam && b.cam === c.cam) add('yellow', { page: c.page, beat: c.bi }, `three beats in a row use the same camera move "${c.cam}"`);
   }
+  rhythm(sb.pages, add, en, units);
   return issues;
 }
 

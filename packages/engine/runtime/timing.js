@@ -8,6 +8,8 @@
   const FADE = 0.6;      // cross-fade at the end of the gap
   const END = 2.5;       // the last page holds this long after its last line, so the film ends on a settled picture
   const FADE_OUT = 0.8;  // the film fades to its ground over its final seconds, never a hard cut
+  const CARD = 1.8;      // a chapter card (pg.chapter): the page opens on its big title alone, then the narration starts
+  const TURNS = ['fade', 'travel', 'dive', 'cut'];   // how a page comes in (pg.turn); fade unless the page says otherwise
 
   /** Rough spoken length: a CJK character, kana or Hangul syllable = 1 unit, a word in any other script ~ its syllables,
    *  digits = 1 each. */
@@ -61,7 +63,9 @@
     let t = 0;
     const out = pages.map((pg, idx) => {
       const start = t;
-      let ct = start + (voice ? VOICE.lead : LEAD);
+      // a chapter card holds the page's first seconds in silence: everything the page says starts after it
+      const card = typeof pg.chapter === 'string' && pg.chapter.trim() && idx > 0 ? CARD : 0;
+      let ct = start + card + (voice ? VOICE.lead : LEAD);
       const cues = pg.cues.map((c, ci) => {
         const text = typeof c === 'string' ? c : c.t;
         const hold = typeof c === 'string' ? 0 : c.hold || 0;
@@ -91,7 +95,8 @@
       const last = idx === pages.length - 1;
       const end = speechEnd + after + (last ? pg.tail ?? V.tail : gap);   // pg.tail / META.pace.tail: a longer ending hold (a brand's sign-off)
       t = end;
-      return { ...pg, index: idx, start, speechEnd, end, cues };
+      const turn = TURNS.includes(pg.turn) && idx > 0 ? pg.turn : 'fade';
+      return { ...pg, index: idx, start, speechEnd, end, cues, card, turn };
     });
     return { pages: out, duration: t, gap };
   }
@@ -117,5 +122,5 @@
     })));
   }
 
-  root.TIMING = { CPS, BREATH, LEAD, GAP, FADE, END, FADE_OUT, VOICE, units, cueDur, subText, wordTime, layout, sfxTimes };
+  root.TIMING = { CPS, BREATH, LEAD, GAP, FADE, END, FADE_OUT, CARD, TURNS, VOICE, units, cueDur, subText, wordTime, layout, sfxTimes };
 })(typeof window !== 'undefined' ? window : globalThis);
