@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import { loadEpisode, OUT, PORTRAIT, TWIN, PAGES_DIR, EP } from './lib.mjs';
 import { mixTrack } from './mix.mjs';
+import { fileName } from './filename.mjs';
 import { FFMPEG, HW_ENCODE, probe } from './bins.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -33,7 +34,7 @@ process.env.JPEG_QUALITY = String(JPEG);
 // service); children inherit WATERMARK=1, and marked segments are cached apart from unmarked ones
 const WATERMARK = has('watermark');
 if (WATERMARK) process.env.WATERMARK = '1';
-const FPS = +arg('fps', 60), W = +arg('workers', 12), name = arg('name', META.name || 'video') + (TWIN ? (!META.lang || /^zh/.test(META.lang) ? '-竖版' : '-portrait') : '');
+const FPS = +arg('fps', 60), W = +arg('workers', 12), name = fileName(arg('name', META.name || 'video')) + (TWIN ? (!META.lang || /^zh/.test(META.lang) ? '-竖版' : '-portrait') : '');
 const from = +arg('from', 0), to = +arg('to', L.duration);
 const F0 = Math.round(from * FPS), F1 = Math.round(to * FPS);
 // The film's first frame is its cover: a page settled, at the moment its thumbnail is cut (0.4 s before it ends). Which
