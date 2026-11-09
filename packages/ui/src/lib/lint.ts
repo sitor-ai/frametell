@@ -22,6 +22,7 @@ const sayZh: Partial<Record<Lint['kind'], Words>> = {
   'subtitle-band': (d) => `文字${q(d.text)}压到了字幕的位置`,
   'small-text': (d) => `字太小：${q(d.text)}只有 ${d.px} 像素，至少要 ${d.min}`,
   overlap: (d) => `文字重叠：${q(d.a)}和${q(d.b)}叠在了一起`,
+  'off-word': (d) => `音画没对上：${q(d.text)}在 ${d.at} 秒才画，旁白在 ${d.said} 秒就说到了${q(d.word)}`,
   palette: (d) => `用了这个风格没有的颜色${q(d.name)}`,
   runtime: () => '这一页的代码出错了',
   api: () => '这一页的代码出错了',

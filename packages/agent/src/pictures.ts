@@ -51,8 +51,9 @@ const OWN_SVG = /^assets\/(brand|user)\/[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.svg$/i
  *  draws, and the pages draw it in and write the words on top. `cast`: the film's designs come first (`base`: each
  *  person in each look, a place, a prop), on no page, and every scene is drawn from the ones it shows (`uses`), so they
  *  look the same in every scene (a film from before designs has one cast sheet, CAST, every scene drawn from it). `words`: a
- *  style drawn in pictures whose words are drawn in them too (titles, labels, a short list): the pages write nothing */
-export interface PictureStyle { kinds: PictureKind[]; max: number; quality: 'low' | 'medium'; prefix: string; avoid: string; fromLook?: boolean; led?: boolean; cast?: boolean; words?: boolean;
+ *  style drawn in pictures whose words are drawn in them too (titles, labels, a short list): the pages write nothing.
+ *  `ink`: the style's kit draws its pictures in stroke by stroke, so each one gets an ink map (ink.ts) like a led style's */
+export interface PictureStyle { kinds: PictureKind[]; max: number; quality: 'low' | 'medium'; prefix: string; avoid: string; fromLook?: boolean; led?: boolean; cast?: boolean; words?: boolean; ink?: boolean;
   /** the film is portrait (9:16): a scene drawn in pictures fills a tall frame */
   portrait?: boolean;
   /** what a scene is in this style (a vignette on bare paper), instead of a picture that fills the canvas edge to edge */
@@ -93,7 +94,7 @@ export function pictureStyle(style: string): PictureStyle | undefined {
   if (!kinds.length || (!prefix && !fromLook)) return undefined;
   const max = typeof raw.max === 'number' && raw.max >= 1 ? Math.min(PICTURES_MAX, Math.floor(raw.max)) : 6;
   const quality = raw.quality === 'low' ? 'low' : 'medium';
-  return { kinds, max, quality, prefix, avoid: typeof raw.avoid === 'string' ? raw.avoid.trim() : '', ...(fromLook ? { fromLook } : {}), ...(raw.led === true ? { led: true } : {}), ...(raw.cast === true && kinds.includes('scene') ? { cast: true } : {}), ...(raw.led === true && raw.words === true ? { words: true } : {}), ...(typeof raw.scene === 'string' && raw.scene.trim() ? { scene: raw.scene.trim() } : {}) };
+  return { kinds, max, quality, prefix, avoid: typeof raw.avoid === 'string' ? raw.avoid.trim() : '', ...(fromLook ? { fromLook } : {}), ...(raw.led === true ? { led: true } : {}), ...(raw.ink === true ? { ink: true } : {}), ...(raw.cast === true && kinds.includes('scene') ? { cast: true } : {}), ...(raw.led === true && raw.words === true ? { words: true } : {}), ...(typeof raw.scene === 'string' && raw.scene.trim() ? { scene: raw.scene.trim() } : {}) };
 }
 
 /** a designed look's words for the image model: its style card (what it says of the picture, not of type or motion)
