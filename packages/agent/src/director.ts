@@ -285,7 +285,7 @@ const REVIEWER_THINKING: Thinking = 'low';
 /** what breaks a film whatever it looks like: the whole-film check's 'defects' mode takes only these */
 const DEFECTS: LintKind[] = ['runtime', 'api', 'nondeterministic', 'palette'];
 /** what a viewer sees broken on a page: its 'hard' checks fix only these (not advice such as text-heavy or sparse) */
-const HARD: LintKind[] = ['runtime', 'api', 'nondeterministic', 'empty-opening', 'empty-ending', 'off-canvas', 'subtitle-band', 'overlap', 'small-text'];
+const HARD: LintKind[] = ['runtime', 'api', 'nondeterministic', 'empty-opening', 'empty-ending', 'off-canvas', 'subtitle-band', 'overlap', 'small-text', 'off-word'];
 /** findings that mean the page's code does not run as written: such a page is not drawn */
 const BROKEN: LintKind[] = ['runtime', 'api'];
 const errorsOf = (issues: LintIssue[]) => issues.filter((i) => i.level === 'error');
@@ -988,7 +988,8 @@ export class Director {
     this.project.write(PICTURES_MANIFEST, JSON.stringify(now, null, 2) + '\n');
     if (old && old.file !== pic.file) for (const f of [picturePath(old), inkPath(old)]) { try { fs.rmSync(this.project.file(f)); } catch { /* gone */ } }
     // a style that draws its pictures in on the page reads where each one's ink is (ink.ts)
-    if (this.pictureStyle()?.led) {
+    const ps = this.pictureStyle();
+    if (ps?.led || ps?.ink) {
       try { const js = inkScript(pic.file, new Uint8Array(readIn(this.o.dir, picturePath(pic), { record: true }))); if (js) writeIn(this.o.dir, inkPath(pic), js, { record: true }); } catch (e) { console.warn(`[pictures] ${pic.id}: no ink map: ${(e as Error).message}`); }
     }
     freeze(this.o.dir, picturePath(pic));

@@ -103,6 +103,10 @@ export async function lintPages(page, { L, pages, step = 0.5, minFont = 24, dete
       return { cover: x1 > x0 ? ((x1 - x0) * (y1 - y0)) / area : 0, text: textArea / area };
     }, { id: p.id, t: p.end - 0.4, content: STAGE.area, subs: STAGE.subs });
     if (settled.cover < 0.45) add(p, p.end - 0.4, 'sparse', 'warn', `sparse page: the drawing spans ${Math.round(settled.cover * 100)}% of the content area (aim for most of x ${STAGE.area.x0}–${STAGE.area.x1}, y ${STAGE.area.y0}–${STAGE.area.y1})`, { percent: Math.round(settled.cover * 100) });
+    // the style's own checks: its kit may set PV.lint(pageId) → [{ t (page time), kind, level, msg, data }] (doodle: a
+    // drawing that starts away from the word that names it)
+    const own = await page.evaluate((id) => { try { return typeof window.PV?.lint === 'function' ? window.PV.lint(id) || [] : []; } catch (e) { return [{ t: 0, kind: 'style', level: 'warn', msg: 'the style check failed: ' + e.message }]; } }, p.id);
+    for (const s of own) add(p, p.start + (+s.t || 0), String(s.kind || 'style'), s.level === 'error' ? 'error' : 'warn', String(s.msg || ''), s.data || {});
     if (settled.text > 0.35) add(p, p.end - 0.4, 'text-heavy', 'warn', `text-dominated page: text covers ${Math.round(settled.text * 100)}% of the content area — let an object carry the idea, keep text to labels and numbers`, { percent: Math.round(settled.text * 100) });
     // determinism: the same moment, reached cold (from 0) and warm (from the page end), must be pixel-identical
     if (determinism) {

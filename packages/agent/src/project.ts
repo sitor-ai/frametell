@@ -16,7 +16,9 @@ export interface Cue { i: number; at: number; abs: number; text: string }
 export interface PageTiming { id: string; start: number; end: number; speechEnd: number; cues: Cue[] }
 export interface Timeline { voiced: boolean; duration: number; pages: PageTiming[]; /** page id → a frame cut from the finished film */ posters?: Record<string, string> }
 /** what a lint finding is about (engine/tools/checks.mjs) */
-export type LintKind = 'runtime' | 'api' | 'empty-opening' | 'empty-ending' | 'sparse' | 'text-heavy' | 'nondeterministic' | 'raw-markup' | 'off-canvas' | 'subtitle-band' | 'small-text' | 'overlap' | 'palette';
+export type LintKind = 'runtime' | 'api' | 'empty-opening' | 'empty-ending' | 'sparse' | 'text-heavy' | 'nondeterministic' | 'raw-markup' | 'off-canvas' | 'subtitle-band' | 'small-text' | 'overlap' | 'palette'
+  /** a style's own checks (its kit's PV.lint): 'off-word', a drawing that starts away from the word that names it */
+  | 'off-word' | 'style';
 /** `level`: 'error' is plainly wrong on screen or in the code, a page is not done while one is there; 'warn' is advice
  *  the pictures decide on. `msg` is for whoever reads it: code goes by `kind` and `level`. `data`: what the message
  *  quotes (percent, text, px…), for wording it in another language */
