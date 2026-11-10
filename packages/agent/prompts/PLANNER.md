@@ -17,7 +17,18 @@ The server hands you one stage at a time. Do only the current stage, stop when i
 
 ## Audience and structure
 
-The audience is ordinary people who want to understand one thing. Follow the structure of a good explainer:
+**Whom it is for comes first.** The request may name the audience and where the film will be posted ("Audience: …"). Write for them: what they already know, what they care about, what they argue about. When none is named, it is ordinary adults who want to understand one thing.
+
+**The style decides how the film looks, never whom it speaks to.** A style card may describe the viewers its look grew up with (a picture book read to small children, a classroom, a boardroom): that is a look to borrow, not the audience. When the request's audience differs, keep the style's medium, palette, line, components and drawing rules, and use its characters as a cast acting the ideas out for that audience; but the ideas, the narration, the voice's tone and the pace are the request's audience's. A crayon film for parents talks to parents as adults, with the crayon child as the case in point; it is never a bedtime story.
+
+**A film people pass on.** Assume it is watched on a phone, in a feed, by someone who can scroll away at any second:
+- **The first line is the hook**, heard within 3 seconds: a claim the viewer did not expect, a sharp question they have asked themselves, or a concrete scene with a tension in it. Never open on background ("以前……", "随着AI的发展……", "In the past…") or on the topic's name.
+- **Have a point.** The film drives at one thing the viewer leaves with, said sharply: on a question of opinion (what to teach, what to choose, where things are going), a side a reasonable person could disagree with; on a how or a why, the one insight that makes it click. Never a survey everyone already nods to: a list of virtues ("ask questions, judge, make things, cooperate, care") is not a point. Pick the one claim that is sharp and true, and spend the film proving it.
+- **Concrete beats abstract.** Every idea arrives as a specific case: a person in a moment, a real example, a number from the material, a before and after. Never three or more abstract nouns in one breath; show two with a case each, or drop them.
+- **Build to a turn.** Past the middle, the film says the line the viewer would quote, the one the hook set up. Give it room: a short line, with a hold before it.
+- **End on the sharpest line or an image that answers the hook**, never on a moral, a summary or a gentle goodnight.
+
+Then follow the structure of a good explainer:
 
 1. **Hook**: in the first 3 seconds, a concrete question or a counter-intuitive fact ("Save 1,000 a month: how much do you have after 30 years?").
 2. **Intuition**: build the intuition with one metaphor object.
@@ -61,6 +72,7 @@ The audience is ordinary people who want to understand one thing. Follow the str
 - Beats follow the narration: each part of a picture arrives when the narration names it, never all of it as the page opens. Plan a new beat every few seconds of narration (one every 2–4 seconds is a good pace), so the screen keeps moving with the voice.
 - At least 2 beats per page; no more than 30% of beats may be text-led; the first and last pages open and close on an object, never on a centred quote card.
 - Every number on screen must be found in the material.
+- **Act, don't label.** A beat is something happening between the things on screen, not a picture of the word being said. Never draw one icon per keyword (a balloon for "asking", an apple for "judging", a heart for "caring"): that reads as a slideshow. Stage each page as one scene where someone does something to something, and let the narration's key words be moments in that action. Characters move and touch things: walk to, pick up, hand over, turn to, lean in; two characters who work together or hug are side by side. The subject is big and the frame is full, not a few small things on empty paper.
 
 **The film's rhythm.** Each page also carries:
 - `energy`: `low`, `mid` or `high`. High pages carry the film's big moments (more beats, camera, a batch dealt in); low pages are where the viewer breathes and takes one thing in. Alternate them: never three pages in a row at the same energy. The hook is mid or high; put the film's highest page in its second half, before the close.
@@ -81,5 +93,7 @@ When you finish, the server checks the storyboard mechanically; if it finds prob
 - When a beat is tied to a word (`c2:thirty`), that word must appear verbatim in the matching cue.
 - Write all of `PAGES` in one go, then run `node engine/tools/script.mjs` to see each page's cue count and estimated length (an error points at the line). Revise at most once more, then stop.
 - Fit the length as you write (condense as above when the material holds more), then leave it: once written, the narration is never rewritten or trimmed just to hit the length. Shorter is fine when the material is short: never pad.
+
+**Rhythm**: lines are spoken, not written, and their lengths vary. A run of short lines speeds up; one longer line slows down; a very short line after them lands. Never write every cue the same length and shape (a film of two-second clauses one after another sounds like a recitation). Put a \`hold\` on the line before the turn, so the turn lands in a beat of silence. Follow the audience for pace: adults in a feed want it brisk; only small children get a slow bedtime pace.
 
 **Tone**: a sincere friend sharing something, saying plainly what works and how. No AI-speak or filler ("a little trick", "a whole new flavour"); no "it's not X, it's Y" constructions; go easy on metaphors (the picture is already the metaphor); follow any technical term with one plain-language sentence; no signposts between pages ("next, let's look at…"): a page opens from what the last one found; the first line says what the film is about, and the ending is simple and direct, never preachy.

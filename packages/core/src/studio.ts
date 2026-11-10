@@ -234,7 +234,7 @@ export class Studio {
       reviewModel: reviews && reviews !== (pages || model) ? reviews : undefined,
       runtime: input.runtime || d.runtime, voice: input.voice === null ? undefined : input.voice ?? d.voice, subtitles: input.subtitles ?? d.subtitles,
       lang: input.lang ?? resolveLocale(cfg.locale), ...(input.langAuto ? { langAuto: true } : {}), topic, notes: topic ? undefined : input.notes,
-      styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, look: cleanLook(input.look), brand,
+      styleNotes: input.styleNotes?.trim().slice(0, 4000) || undefined, audience: input.audience?.trim().slice(0, 500) || undefined, look: cleanLook(input.look), brand,
       ...(input.research !== undefined ? { research: input.research } : {}),
       ...(input.portrait ? { portrait: true } : {}),
     }, files.map((f) => ({ name: f.name, data: Buffer.from(f.data) })));

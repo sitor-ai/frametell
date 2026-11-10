@@ -62,6 +62,8 @@ export interface ProjectMeta {
   notes?: string;
   /** notes for the style this film is drawn in (a style the user shaped), read after its style card */
   styleNotes?: string;
+  /** who will watch the film and where it will be posted (the sign-up questionnaire's answer, or the user's own) */
+  audience?: string;
   /** this film's own colours and fonts over its style's (script.js META.look) */
   look?: Look;
   /** the brand the film is made for, as it was when the film was made; its files are in assets/brand/ */
@@ -101,6 +103,8 @@ export interface NewProjectInput {
   notes?: string;
   /** notes for the style this film is drawn in (a style the user shaped), read after its style card */
   styleNotes?: string;
+  /** who will watch the film and where it will be posted (the sign-up questionnaire's answer, or the user's own) */
+  audience?: string;
   /** this film's own colours and fonts over its style's (script.js META.look) */
   look?: Look;
   /** see ProjectMeta.research */

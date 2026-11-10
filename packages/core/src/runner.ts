@@ -529,7 +529,7 @@ class Runner {
         dir, runtime, pages, reviewer, research: plan && research ? { ...research, ...plan } satisfies DirectorOptions['research'] : undefined,
         style: meta.style, look: meta.look, prices, tts, voice, concurrency: cfg.defaults.concurrency, images: imagesFor(cfg), decide: decideFor(cfg),
         ...(this.wait.waitMs ? { firstPageWaitMs: this.wait.waitMs } : {}), ...(this.wait.storyboardMs ? { storyboardWaitMs: this.wait.storyboardMs } : {}), firstPageSaid: this.logEndsAtWait(), ...(this.wait.pageChecks ? { pageChecks: this.wait.pageChecks } : {}),
-        brief: { durationSec: meta.durationSec, topic: meta.topic, notes: meta.notes, styleNotes: meta.styleNotes, brand: meta.brand, portrait: meta.portrait, lang: meta.lang ?? 'zh', ...(meta.langAuto ? { langAuto: true } : {}), replyLang: this.replyIn(meta), voice: provider, preferences: cfg.preferences },
+        brief: { durationSec: meta.durationSec, topic: meta.topic, audience: meta.audience, notes: meta.notes, styleNotes: meta.styleNotes, brand: meta.brand, portrait: meta.portrait, lang: meta.lang ?? 'zh', ...(meta.langAuto ? { langAuto: true } : {}), replyLang: this.replyIn(meta), voice: provider, preferences: cfg.preferences },
         emit: this.emit, signal: this.abort.signal, renderer: this.renderer, review: this.review, exportDir: this.renderer ? undefined : cfg.exportDir,
       });
     } catch (e) {
