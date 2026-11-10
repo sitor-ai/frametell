@@ -152,6 +152,8 @@ export interface Voice { provider: TtsProvider['id']; id: string; name: string; 
  * the films that use them.
  */
 export const VOLCENGINE_VOICES: Voice[] = [
+  // first: a Chinese film's default narrator is the first voice made for Chinese (a bright young man's)
+  { provider: 'volcengine', id: 'zh_male_yangguangqingnian_uranus_bigtts', name: '阳光青年', gender: 'male', lang: 'zh' },
   { provider: 'volcengine', id: 'zh_male_yuanboxiaoshu_uranus_bigtts', name: '渊博小叔', gender: 'male', lang: 'zh' },
   { provider: 'volcengine', id: 'zh_female_vv_uranus_bigtts', name: 'Vivi', gender: 'female', lang: 'zh' },
   { provider: 'volcengine', id: 'zh_male_m191_uranus_bigtts', name: '云舟', gender: 'male', lang: 'zh' },
@@ -169,7 +171,6 @@ export const VOLCENGINE_VOICES: Voice[] = [
   { provider: 'volcengine', id: 'zh_male_shenyeboke_uranus_bigtts', name: '深夜播客', gender: 'male', lang: 'zh' },
   { provider: 'volcengine', id: 'zh_female_wenroushunv_uranus_bigtts', name: '温柔淑女', gender: 'female', lang: 'zh' },
   { provider: 'volcengine', id: 'zh_male_xuanyijieshuo_uranus_bigtts', name: '悬疑解说', gender: 'male', lang: 'zh' },
-  { provider: 'volcengine', id: 'zh_male_yangguangqingnian_uranus_bigtts', name: '阳光青年', gender: 'male', lang: 'zh' },
 ];
 
 /**

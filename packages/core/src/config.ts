@@ -61,7 +61,7 @@ export interface Config {
 
 const DEFAULTS: Config = {
   keys: {}, custom: [], baseUrls: {}, models: {}, tts: {}, search: {},
-  defaults: { runtime: 'pi', style: 'warm-story', durationSec: 60, subtitles: true, concurrency: 10, voice: { provider: 'volcengine', id: 'zh_male_yuanboxiaoshu_uranus_bigtts', name: '渊博小叔' } },
+  defaults: { runtime: 'pi', style: 'warm-story', durationSec: 60, subtitles: true, concurrency: 10, voice: { provider: 'volcengine', id: 'zh_male_yangguangqingnian_uranus_bigtts', name: '阳光青年' } },
 };
 
 /** what a load is for: the run of one project, so a host can hand that run settings of its own (a key that only it

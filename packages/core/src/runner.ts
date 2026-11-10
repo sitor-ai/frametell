@@ -403,8 +403,8 @@ class Runner {
     const want = /^zh(-|$)/.test(lang) ? 'volcengine' : 'elevenlabs';
     if (!meta.voice || meta.voice.provider === want || !(want === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine)) return;
     const gender = [...VOLCENGINE_VOICES, ...ELEVENLABS_DEFAULT_VOICES].find((v) => v.id === meta.voice!.id)?.gender;
-    // a narrator of that gender: George or Sarah at ElevenLabs, 渊博小叔 or Vivi at Volcengine
-    const ids = want === 'elevenlabs' ? { male: 'JBFqnCBsd6RMkjVDRZzb', female: 'EXAVITQu4vr4xnSDxMaL' } : { male: 'zh_male_yuanboxiaoshu_uranus_bigtts', female: 'zh_female_vv_uranus_bigtts' };
+    // a narrator of that gender: George or Sarah at ElevenLabs, 阳光青年 or Vivi at Volcengine
+    const ids = want === 'elevenlabs' ? { male: 'JBFqnCBsd6RMkjVDRZzb', female: 'EXAVITQu4vr4xnSDxMaL' } : { male: 'zh_male_yangguangqingnian_uranus_bigtts', female: 'zh_female_vv_uranus_bigtts' };
     const list = want === 'elevenlabs' ? ELEVENLABS_DEFAULT_VOICES : VOLCENGINE_VOICES;
     const pick = list.find((v) => v.id === ids[gender === 'female' ? 'female' : 'male']) ?? list[0];
     if (!pick) return;

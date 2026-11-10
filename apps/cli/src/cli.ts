@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // frametell run <material…> [--style warm-story] [--duration 60] [--model anthropic/claude-opus-5-5] [--lang zh|en]
-//                     [--voice zh_male_yuanboxiaoshu_uranus_bigtts] [--title …] [--out dir]
+//                     [--voice zh_male_yangguangqingnian_uranus_bigtts] [--title …] [--out dir]
 // Headless end-to-end run: storyboard (auto-approved) → script → narration → pages → review → render.
 // Keys come from the environment: ANTHROPIC_API_KEY (recommended), OPENAI_API_KEY, GEMINI_API_KEY,
 // OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, VOLCENGINE_ARK_API_KEY …; narration: VOLCENGINE_TTS_API_KEY or ELEVENLABS_API_KEY.
@@ -41,7 +41,7 @@ async function run(argv: string[]) {
   const volc = process.env.VOLCENGINE_TTS_API_KEY ? volcengineTts(process.env.VOLCENGINE_TTS_API_KEY) : undefined;
   const eleven = process.env.ELEVENLABS_API_KEY ? elevenLabsTts(process.env.ELEVENLABS_API_KEY) : undefined;
   const tts = lang === 'en' ? eleven ?? volc : volc ?? eleven;
-  const voice = tts ? { speaker: o.voice || (tts.id === 'volcengine' ? 'zh_male_yuanboxiaoshu_uranus_bigtts' : 'JBFqnCBsd6RMkjVDRZzb'), rate: 0, instruction: '像跟朋友分享一个实用的发现，语气轻松、真诚、自然，有轻重缓急' } : undefined;
+  const voice = tts ? { speaker: o.voice || (tts.id === 'volcengine' ? 'zh_male_yangguangqingnian_uranus_bigtts' : 'JBFqnCBsd6RMkjVDRZzb'), rate: 0, instruction: '像跟朋友分享一个实用的发现，语气轻松、真诚、自然，有轻重缓急' } : undefined;
 
   const style = o.style || 'warm-story';
   const title = o.title || path.basename(pos[0]).replace(/\.[^.]+$/, '');
