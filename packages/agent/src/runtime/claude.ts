@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { query, type SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import { imagesIn } from '../projectfs.js';
+import { picturesShown } from '../shown.js';
 import { addUsage, emptyUsage, rewriteRefusal, toolInput, toolSummary, proxyEnv, type AgentRuntime, type AgentSession, type SessionOptions, type StageInput, type TurnResult } from './types.js';
 
 export interface ClaudeRuntimeOptions {
@@ -42,7 +42,7 @@ export function claudeRuntime(o: ClaudeRuntimeOptions): AgentRuntime {
         get ref() { return sessionId; },
         async send(input: StageInput): Promise<TurnResult> {
           const content: SDKUserMessage['message']['content'] = [{ type: 'text', text: input.text }];
-          for (const { file, data } of imagesIn(s.cwd, input.images)) content.push({ type: 'image', source: { type: 'base64', media_type: mimeOf(file) as 'image/png', data: data.toString('base64') } });
+          for (const { file, data } of picturesShown(s.cwd, input.images)) content.push({ type: 'image', source: { type: 'base64', media_type: mimeOf(file) as 'image/png', data: data.toString('base64') } });
           async function* prompt(): AsyncGenerator<SDKUserMessage> {
             yield { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null, session_id: sessionId || '' } as SDKUserMessage;
           }

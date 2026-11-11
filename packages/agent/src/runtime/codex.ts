@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { Codex, type ThreadEvent } from '@openai/codex-sdk';
-import { imagesIn } from '../projectfs.js';
+import { picturesShown } from '../shown.js';
 import { addUsage, emptyUsage, proxyEnv, type AgentRuntime, type AgentSession, type SessionOptions, type StageInput, type TurnResult } from './types.js';
 
 export interface CodexRuntimeOptions {
@@ -45,7 +45,7 @@ export function codexRuntime(o: CodexRuntimeOptions): AgentRuntime {
           let tmp: string | undefined;
           try {
             // Codex reads a picture by its name: it gets a private copy of the checked bytes, never the project's name
-            const pics = imagesIn(s.cwd, input.images);
+            const pics = picturesShown(s.cwd, input.images);
             tmp = pics.length ? fs.mkdtempSync(path.join(os.tmpdir(), 'frametell-pics-')) : undefined;
             const local = pics.map(({ file, data }, i) => { const p = path.join(tmp!, `${i}${path.extname(file)}`); fs.writeFileSync(p, data); return { type: 'local_image' as const, path: p }; });
             const { events } = await thread.runStreamed([{ type: 'text', text }, ...local], { signal: abort.signal });

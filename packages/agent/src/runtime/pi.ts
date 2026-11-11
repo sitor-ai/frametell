@@ -5,7 +5,7 @@ import path from 'node:path';
 import { Agent, type AgentMessage } from '@earendil-works/pi-agent-core';
 import type { Api, Model, MutableModels } from '@earendil-works/pi-ai';
 import { fileTools } from '../tools/files.js';
-import { imagesIn } from '../projectfs.js';
+import { keepPictures, picturesShown } from '../shown.js';
 import { answerTools } from '../tools/answers.js';
 import { addUsage, emptyUsage, toolInput, toolSummary, type Answer, type AgentRuntime, type AgentSession, type SessionOptions, type StageInput, type Thinking, type TurnResult } from './types.js';
 
@@ -55,7 +55,9 @@ export function piRuntime(models: MutableModels, model: Model<Api>, opts: { thin
       const agent = new Agent({
         initialState: { systemPrompt: o.system, model: named(model), thinkingLevel: opts.thinking ?? 'medium', tools, messages: transcript },
         streamFn: models.streamSimple.bind(models),
-        ...(o.keepToolChars ? { transformContext: async (m: AgentMessage[]) => trimToolResults(m, o.keepToolChars!) } : {}),
+        // what each request carries: older tool results cleared past keepToolChars, and the oldest pictures left out past
+        // the picture budget (a picture a tool read mid-exchange counts too; send() keeps the transcript itself under it)
+        transformContext: async (m: AgentMessage[]) => keepPictures(o.keepToolChars ? trimToolResults(m, o.keepToolChars) : m),
         sessionId: o.name,
         toolExecution: 'sequential',
       });
@@ -115,7 +117,11 @@ export function piRuntime(models: MutableModels, model: Model<Api>, opts: { thin
           const l = levelled(input.thinking);
           agent.state.model = named(l.model);
           agent.state.thinkingLevel = l.thinking;
-          const images = imagesIn(o.cwd, input.images).map(({ file, data }) => ({ type: 'image' as const, data: data.toString('base64'), mimeType: mimeOf(file) }));
+          const images = picturesShown(o.cwd, input.images).map(({ file, data }) => ({ type: 'image' as const, data: data.toString('base64'), mimeType: mimeOf(file) }));
+          // the conversation's pictures kept under budget in the transcript itself, with this message's counted: left out
+          // here, the cut moves seldom (a 413 from the gateway, 2026-11-11: a lane's stickers piled up past 24 MB)
+          const kept = keepPictures(agent.state.messages, undefined, { bytes: images.reduce((s, x) => s + x.data.length, 0), count: images.length });
+          if (kept !== agent.state.messages) agent.state.messages = kept;
           let error: string | undefined;
           try { await agent.prompt(input.text, images); } catch (e) { error = (e as Error).message; stop = stop === 'done' ? 'error' : stop; }
           finally { o.signal?.removeEventListener('abort', onAbort); }
