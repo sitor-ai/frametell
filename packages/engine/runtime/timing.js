@@ -98,7 +98,8 @@
       const turn = TURNS.includes(pg.turn) && idx > 0 ? pg.turn : 'fade';
       return { ...pg, index: idx, start, speechEnd, end, cues, card, turn };
     });
-    return { pages: out, duration: t, gap };
+    // META.music: the film's background music, one bed under the whole film (see sfxTimes)
+    return { pages: out, duration: t, gap, ...(opts.music && opts.music.f ? { music: opts.music } : {}) };
   }
 
   /**
@@ -116,10 +117,15 @@
       if (a.page) { const q = byId[a.page]; return a.at === 'end' || a.at == null ? q.end : when(q, a.at); }
       return null;
     };
-    return L.pages.flatMap((pg) => (pg.sfx || []).map((s) => ({
+    const out = L.pages.flatMap((pg) => (pg.sfx || []).map((s) => ({
       f: s.f, t0: when(pg, s.at ?? 0), t1: when(pg, s.until), vol: s.vol ?? 0, fin: s.fin ?? 0, fout: s.fout ?? 0,
       loop: !!s.loop, duck: s.duck ?? 0, rate: s.rate ?? 1, from: s.from ?? 0,
     })));
+    // META.music = { f, vol?, duck? }: a bed from the first frame to the last, looped when the film outlasts it, faded in
+    // and out, lowered by `duck` dB while someone speaks (default 5: ~14 dB under the voice then, ~9 in its pauses)
+    const m = L.music;
+    if (m && m.f && L.duration > 0) out.push({ f: m.f, t0: 0, t1: L.duration, vol: m.vol ?? 0, fin: 1, fout: Math.min(3, L.duration / 4), loop: true, duck: m.duck ?? 5, rate: 1, from: 0 });
+    return out;
   }
 
   root.TIMING = { CPS, BREATH, LEAD, GAP, FADE, END, FADE_OUT, CARD, TURNS, VOICE, units, cueDur, subText, wordTime, layout, sfxTimes };

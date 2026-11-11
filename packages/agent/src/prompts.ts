@@ -95,7 +95,7 @@ export function canvasSection(portrait: boolean | undefined, who: 'planner' | 'a
 export type Lang = string;
 /** `langAuto`: the film's language is not chosen: the planner takes the language of the user's request (their topic,
  *  notes, material), `lang` only when that can't be told */
-export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; langAuto?: boolean; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief; portrait?: boolean }
+export interface Brief { topic?: string; audience?: string; durationSec: number; notes?: string; lang?: Lang; langAuto?: boolean; replyLang?: Lang; voice?: 'volcengine' | 'elevenlabs'; preferences?: string; styleNotes?: string; brand?: BrandBrief; portrait?: boolean; /** the person asked for background music (made after the narration) */ music?: boolean }
 
 /** a language tag as a film may carry it: 'es', 'pt-BR', 'zh-Hant'; anything else (a name, a sentence) is not one */
 export function langTag(v: unknown): Lang | undefined {
@@ -188,10 +188,14 @@ export function storyboardPrompt(brief: Brief, style: string, materials: string[
     `Style: ${style} (write "${style}" as the style in storyboard.json).`,
     kitPlanNote(!!designedFonts(style)),
     pictures,
+    brief.music ? musicPlanNote : '',
     `Material: ${materials.map((m) => 'materials/' + m).join(', ') || '(none; write from the topic)'}`,
     'Stop and report once storyboard.json is written.' + withVoice('storyboard', brief) + langNote('storyboard', brief.lang, brief.replyLang, brief.langAuto),
   ].filter(Boolean).join('\n');
 }
+
+/** a film with background music: the storyboard says what music, for the music model (music.ts) */
+export const musicPlanNote = 'This film has background music under the narration, made by a music model after the narration. Add `"music"` to storyboard.json: one line in English for that model, 15–40 words: the genre, two or three instruments, the tempo (in BPM) and the mood, fitted to the topic, the audience and where the film will be watched, and to anything the request says about music (its words win: "not tense" means no suspense, no heavy drums). It sits under a voice, so: instrumental, steady, no big drops or sudden stops. Example: `"music": "Light lo-fi hip hop at 85 BPM, warm Rhodes piano, soft brushed drums and a round bass, calm and curious, steady, instrumental"`.';
 
 /** every storyboard: the things that recur, listed so they are drawn once as this film's components (the pages are drawn
  *  side by side, each by its own session: without one, the same kettle came out red on one page and blue on the next) */

@@ -107,12 +107,14 @@
           }
         } else if (live(c) && (!playing || off < 0 || off > c.d + 0.5)) stop(c);
       }
-      // sound effects / music beds (page.sfx): volume and fades approximated, no ducking (the render mixes them exactly)
+      // sound effects / music beds (page.sfx, META.music): volume, fades and ducking approximated (the render mixes them
+      // exactly): a bed is lowered by its `duck` while a line is being spoken
+      const speaking = sfx.some((s) => s.duck) && clips.some((c) => t >= c.at && t < c.at + c.d);
       for (const s of sfx) {
         const end = s.t1 ?? Infinity, inside = playing && t >= s.t0 && t < end;
         if (!inside) { if (s.el && !s.el.paused) s.el.pause(); continue; }
         if (!s.el) { s.el = new Audio(s.f); s.el.loop = s.loop; s.el.preload = 'auto'; s.el.playbackRate = s.rate; }
-        let g = Math.pow(10, s.vol / 20);
+        let g = Math.pow(10, (s.vol - (speaking ? s.duck : 0)) / 20);
         if (s.fin > 0) g *= Math.min(1, (t - s.t0) / s.fin);
         if (s.fout > 0 && end < Infinity) g *= Math.min(1, (end - t) / s.fout);
         s.el.volume = Math.max(0, Math.min(1, g));

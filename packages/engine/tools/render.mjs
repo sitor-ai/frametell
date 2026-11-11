@@ -95,7 +95,7 @@ const subtitle = (g) => run(FFMPEG, ['-y', '-loglevel', 'error', '-i', g.out, '-
 // starts, the sound effects, the mixing code): an export after a picture-only change, or one whose sound was made while
 // its frames were drawn elsewhere (--audio-only), only muxes it in.
 const voiced = L.pages.flatMap((p) => p.cues).filter((c) => c.audio);
-const hasSfx = L.pages.some((p) => p.sfx && p.sfx.length);
+const hasSfx = TIMING.sfxTimes(L).length > 0;   // sound effects (page.sfx) or the film's music (META.music)
 async function soundtrack() {
   if (!voiced.length && !hasSfx) return null;
   const sha = (b) => createHash('sha1').update(b).digest('hex');
@@ -157,7 +157,7 @@ if (!has('skip-video')) {
   const shared = digest(
     ...[...files(path.join(kitDir, 'runtime')), ...files(path.join(kitDir, 'lib')), ...files(path.join(kitDir, 'styles', META.style || 'warm-story'), false)].map((f) => read(f).toString('base64')),
     ...files(path.join(EP, 'extras')).map((f) => read(f).toString('base64')), read(path.join(EP, 'index.html')).toString(),
-    { ...META, publish: undefined, voice: undefined }, L.pages.map((p) => [p.id, p.section, p.title]), FPS, PORTRAIT, has('hw'), ...(WATERMARK ? ['watermark'] : []), ...(JPEG !== 92 ? [`jpeg-${JPEG}`] : []),
+    { ...META, publish: undefined, voice: undefined, music: undefined }, L.pages.map((p) => [p.id, p.section, p.title]), FPS, PORTRAIT, has('hw'), ...(WATERMARK ? ['watermark'] : []), ...(JPEG !== 92 ? [`jpeg-${JPEG}`] : []),
     // how frames are captured: bumped when that changes, so segments drawn the old way are drawn again (2: the window
     // at the stage's size, where it was short and the bottom rows came out black)
     'capture-2',

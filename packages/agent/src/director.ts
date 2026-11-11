@@ -1,6 +1,7 @@
 // The director: runs a project through its stages. The model writes; the orchestrator checks. Storyboard lint, page
 // lint and contact sheets are produced here and handed to the agent, so the quality bar doesn't depend on the model
 // remembering to look. Every change is committed; state is persisted so an interrupted run resumes where it stopped.
+import { makeMusic, MUSIC_DUCK, MUSIC_FILE, type MusicEndpoint } from './music.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { narrate, type TtsProvider } from '@frametell/voice';
@@ -89,6 +90,8 @@ export interface DirectorOptions {
   /** the run's log ends at the first page's wait (a run picked up again there): it is not said a second time. Absent:
    *  a run picked up while the first page waits says so again, as the log has moved on (a pause, a new voice) */
   firstPageSaid?: boolean;
+  /** background music (music.ts), made after the narration, where the person asked for it. Absent: none */
+  music?: MusicEndpoint;
 }
 
 interface PageState { status: PageStatus; rounds: number; issues: PageIssue[]; ref?: string; /** runs this page has failed in */ failures?: number }
@@ -121,6 +124,8 @@ interface State {
   /** the lanes drawing the pages now: each one's session name, its transcript (project-relative) and the pages it has
    *  to draw, so a run that stops (a pause, credits, a lost box) goes on in the same conversations, not new ones */
   lanes?: SavedLane[];
+  /** the background music was made (music/bed.mp3, in META.music) or could not be; absent: not tried */
+  music?: 'done' | 'failed';
 }
 interface SavedLane { name: string; file: string; pages: string[] }
 
@@ -760,7 +765,7 @@ export class Director {
     const gl = this.webgl();
     // a film that ends on its brand's sign-off holds longer after its last line, so the logo is seen in silence
     const signOff = (() => { try { return signsOff(this.o.brief.brand, this.project.storyboard().pages); } catch { return false; } })();
-    this.setMeta({ style: this.o.style, lang: this.filmLang(), portrait: this.o.brief.portrait || undefined, voice: this.o.voice, gap: 0.8, pace: { maxHold: 1.0, gap: 0.8, ...(signOff ? { tail: SIGN_OFF_HOLD } : {}) }, extras: list, look: this.o.look ?? this.designed()?.look, mark: cornerMark(this.o.brief.brand, signOff) ?? false, ...gl });
+    this.setMeta({ ...(this.state.music === 'done' ? { music: { f: MUSIC_FILE, vol: 0, duck: MUSIC_DUCK } } : {}), style: this.o.style, lang: this.filmLang(), portrait: this.o.brief.portrait || undefined, voice: this.o.voice, gap: 0.8, pace: { maxHold: 1.0, gap: 0.8, ...(signOff ? { tail: SIGN_OFF_HOLD } : {}) }, extras: list, look: this.o.look ?? this.designed()?.look, mark: cornerMark(this.o.brief.brand, signOff) ?? false, ...gl });
   }
 
   /** a style drawn in three.js: the vendors its films load (three, and any the page agents added) */
@@ -1199,6 +1204,26 @@ export class Director {
     await this.commit(this.say('配音', 'Voice'));
     this.state.stage = 'pages'; this.save();
     this.emit({ type: 'stage', stage: 'narrate', status: 'done', detail: `${r.duration.toFixed(1)}s${r.warnings.length ? '；' + r.warnings.join('；') : ''}` });
+  }
+
+  /**
+   * The film's background music, where the person asked for it: one bed the length of the narrated film (music.ts),
+   * named in META.music. Made once; a film that comes out longer later loops it. It never stops the film: music that
+   * can't be had is said, and the film goes on without it.
+   */
+  private async music() {
+    if (!this.o.music || this.state.music) return;
+    const sec = (await this.project.timeline()).duration;
+    try {
+      await makeMusic(this.o.dir, { endpoint: this.o.music, prompt: this.project.storyboard().music, sec, signal: this.o.signal });
+      this.state.music = 'done'; this.save();
+      this.serverMeta();
+      await this.commit(this.say('配乐', 'Music'));
+    } catch (e) {
+      if (this.o.signal?.aborted) throw e;
+      this.state.music = 'failed'; this.save();
+      this.emit({ type: 'note', text: this.say(`这次没能生成配乐（${(e as Error).message.slice(0, 120)}），视频照常制作，没有背景音乐。`, `The background music couldn't be made (${(e as Error).message.slice(0, 120)}); the film goes on without it.`) });
+    }
   }
 
   /** the narration on disk was spoken by another voice than the film's (or the film had none until now) */
@@ -2068,7 +2093,8 @@ ${this.project.exists(`pages/${id}.js`) ? this.project.read(`pages/${id}.js`) : 
     if (this.state.stage === 'script') await this.script();
     // this film's own components are written while it is narrated (they need the storyboard, not the timing)
     // and so are its pictures, from the sample the user confirmed
-    if (this.state.stage === 'narrate') await both(this.narrate(), this.kit(), this.pictures());
+    if (this.state.stage === 'narrate') await both(this.narrate().then(() => this.music()), this.kit(), this.pictures());
+    if (this.state.stage === 'pages' && this.o.music && !this.state.music) await this.music();   // a run that stopped before its music was made
     if (this.state.stage === 'pages' && !this.state.kit) await this.kit();   // a run that stopped before its kit was done
     if (this.state.stage === 'pages' && !this.state.pictures) await this.pictures();
     // the voice was changed after the narration was made (while paused): narrate again before going on

@@ -194,6 +194,11 @@ async function buildRuntime(meta: ProjectMeta, cfg: Config, research?: boolean):
   return { runtime: piRuntime(catalog.models, model), prices, pages, reviewer, research: forResearch };
 }
 
+/** where the film's background music is made (ElevenLabs Music, with the ElevenLabs key), when it asked for some */
+function musicFor(meta: ProjectMeta, cfg: Config) {
+  return meta.music && cfg.tts.elevenlabs ? { key: cfg.tts.elevenlabs, baseUrl: cfg.ttsBaseUrls?.elevenlabs } : undefined;
+}
+
 /** the film's narrator as the director takes it; no tts when the film has no voice, or its service has no key */
 function voiceFor(meta: ProjectMeta, cfg: Config) {
   const key = meta.voice?.provider === 'elevenlabs' ? cfg.tts.elevenlabs : cfg.tts.volcengine;
@@ -525,11 +530,13 @@ class Runner {
         return { runtime: none, prices: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, currency: 'USD' } as Prices, pages: undefined, reviewer: undefined, research: undefined };
       });
       const { tts, voice, provider } = voiceFor(meta, cfg);
+      const music = musicFor(meta, cfg);
       director = new Director({
         dir, runtime, pages, reviewer, research: plan && research ? { ...research, ...plan } satisfies DirectorOptions['research'] : undefined,
         style: meta.style, look: meta.look, prices, tts, voice, concurrency: cfg.defaults.concurrency, images: imagesFor(cfg), decide: decideFor(cfg),
         ...(this.wait.waitMs ? { firstPageWaitMs: this.wait.waitMs } : {}), ...(this.wait.storyboardMs ? { storyboardWaitMs: this.wait.storyboardMs } : {}), firstPageSaid: this.logEndsAtWait(), ...(this.wait.pageChecks ? { pageChecks: this.wait.pageChecks } : {}),
-        brief: { durationSec: meta.durationSec, topic: meta.topic, audience: meta.audience, notes: meta.notes, styleNotes: meta.styleNotes, brand: meta.brand, portrait: meta.portrait, lang: meta.lang ?? 'zh', ...(meta.langAuto ? { langAuto: true } : {}), replyLang: this.replyIn(meta), voice: provider, preferences: cfg.preferences },
+        brief: { durationSec: meta.durationSec, topic: meta.topic, audience: meta.audience, notes: meta.notes, styleNotes: meta.styleNotes, brand: meta.brand, portrait: meta.portrait, lang: meta.lang ?? 'zh', ...(meta.langAuto ? { langAuto: true } : {}), replyLang: this.replyIn(meta), voice: provider, preferences: cfg.preferences, ...(music ? { music: true } : {}) },
+        ...(music ? { music } : {}),
         emit: this.emit, signal: this.abort.signal, renderer: this.renderer, review: this.review, exportDir: this.renderer ? undefined : cfg.exportDir,
       });
     } catch (e) {
