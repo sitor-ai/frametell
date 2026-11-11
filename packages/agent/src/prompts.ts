@@ -222,7 +222,7 @@ ${outline}
 ## This page's storyboard
 - Section: ${p?.section ?? ''}
 - What it says: ${p?.say ?? ''}
-- Key page: ${p?.core ? 'yes' : 'no'}${rhythmLines(p, sb.pages[0]?.id === id)}
+- Key page: ${p?.core ? 'yes' : 'no'}${rhythmLines(p, sb.pages[0]?.id === id, sb.pages[sb.pages.findIndex((x) => x.id === id) - 1])}
 - Beats:
 ${(p?.beats || []).map((b, i) => `  ${i + 1}. [${b.at}] ${b.object} — ${b.action}${b.camera ? ` (camera: ${b.camera})` : ''}${b.text ? `, on-screen text "${b.text}"` : ''}`).join('\n')}
 
@@ -287,7 +287,7 @@ export function reviewerPrompt(sb: Storyboard, id: string, t: PageTiming, round:
   const must = issues.filter((i) => i.level === 'error'), advice = issues.filter((i) => i.level === 'warn');
   return `${round > 1 ? `Round ${round}: the artist has changed the page since you last saw it.\n\n` : ''}## The page (${id} of ${sb.pages.length}, in the film "${sb.title}")
 - Section: ${p?.section ?? ''}
-- What it says: ${p?.say ?? ''}${rhythmLines(p, sb.pages[0]?.id === id)}
+- What it says: ${p?.say ?? ''}${rhythmLines(p, sb.pages[0]?.id === id, sb.pages[sb.pages.findIndex((x) => x.id === id) - 1])}
 - Beats:
 ${(p?.beats || []).map((b, i) => `  ${i + 1}. [${b.at}] ${b.object} — ${b.action}${b.text ? `, on-screen text "${b.text}"` : ''}`).join('\n')}
 - The page lasts ${(t.end - t.start).toFixed(1)}s. Narration:

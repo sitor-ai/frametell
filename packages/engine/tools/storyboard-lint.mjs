@@ -100,7 +100,7 @@ function readSource(paths) {
 // ── the film's rhythm: each page's energy, move, turn and chapter card (PLANNER.md "The film's rhythm") ──────────────
 export const ENERGIES = ['low', 'mid', 'high'];
 export const MOVES = ['hero', 'deal', 'build', 'count', 'compare', 'tilt', 'zoom', 'fill', 'trace', 'callback'];
-export const TURNS = ['fade', 'travel', 'dive', 'cut'];
+export const TURNS = ['fade', 'carry', 'travel', 'dive', 'cut'];
 /** Checked only where the storyboard gives them: a film planned before they existed passes as it did. */
 function rhythm(pages, add, en, units) {
   const n = pages.length;
@@ -122,6 +122,14 @@ function rhythm(pages, add, en, units) {
   const uses = {};
   for (const p of pages) if (MOVES.includes(p.move)) uses[p.move] = (uses[p.move] || 0) + 1;
   for (const [m, k] of Object.entries(uses)) if (k > 2) add('yellow', {}, `the move "${m}" leads ${k} pages (at most 2 a film)`);
+  // one scene that goes on, not slides: a storyboard that plans its pages' last frames (ends) carries its lead across
+  // most page boundaries; a change of scene (fade, cut, travel, dive) is at most one turn in three
+  if (pages.some((p) => typeof p.ends === 'string' && p.ends.trim()) && n > 1) {
+    const changes = pages.slice(1).filter((p) => (p.turn ?? 'fade') !== 'carry');
+    const most = Math.max(1, Math.round((n - 1) / 3));
+    if (changes.length > most) add('red', {}, `${changes.length} of ${n - 1} page turns change the scene (${changes.map((p) => `${p.id} ${p.turn ?? 'fade'}`).join(', ')}): at most ${most}. A film of scene changes reads as slides flipped one after another; where the lead goes on, the page carries on from the last one's ends (turn: carry) and its first beat is that lead doing the next thing`);
+    pages.forEach((p, i) => { if (i < n - 1 && !(typeof p.ends === 'string' && p.ends.trim())) add('red', { page: p.id }, 'no ends: say the page\'s last frame (where the lead is, what it is doing, what else stays), which the next page opens on'); });
+  }
   const chapters = pages.filter((p) => typeof p.chapter === 'string' && p.chapter.trim()).length;
   if (chapters && n < 6) add('yellow', {}, `chapter cards in a film of ${n} pages: they are for films of 6 pages or more`);
   else if (chapters > Math.floor(n / 3)) add('yellow', {}, `${chapters} chapter cards in ${n} pages (at most one for every three pages)`);

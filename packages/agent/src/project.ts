@@ -28,7 +28,7 @@ export type PageCheck = { issues: LintIssue[]; sheet: string; crash?: undefined 
 
 export interface Beat { at: string; object: string; action: string; camera?: string; text?: string }
 /** `energy`, `move`, `turn`, `chapter`: the page's place in the film's rhythm (rhythm.ts), absent on films planned before */
-export interface StoryPage { id: string; section: string; say: string; core?: boolean; beats: Beat[]; energy?: string; move?: string; turn?: string; chapter?: string }
+export interface StoryPage { id: string; section: string; say: string; core?: boolean; beats: Beat[]; energy?: string; move?: string; turn?: string; chapter?: string; /** the page's last frame: where its lead is and what it is doing (the next page carries on from it) */ ends?: string }
 /** `look`: a designed style's film only, the look the director designed for it (look.ts designedLook) */
 export interface Storyboard { title: string; summary: string; durationSec?: number; style: string; cast: string; /** a language tag ('zh', 'en', 'es'…) */ lang?: string; look?: unknown; pages: StoryPage[] }
 

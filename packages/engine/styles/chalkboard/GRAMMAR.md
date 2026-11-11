@@ -15,6 +15,14 @@ A good teacher at the board derives one thing step by step. The picture is quiet
 - **Board-work layout.** Givens on the left, the derivation in the middle, the conclusion boxed on the right or at the bottom; formulas (`P.tex`), number lines, axes and diagrams can be drawn straight onto the board. Body text at least 36px; each element at most 8 characters in Chinese (about 4 words in English), formulas excepted.
 - **Box the conclusion.** The last step of a derivation gets a chalk box or a double underline: it is the full stop of the board work.
 
+## A full board, drawn with care
+
+Many films on this board are not derivations (health, history, a tool, an idea), and those are where it looks thin: an empty outline of a bowl, small labels, half the board dark. A good teacher's board is full and the drawing is worth looking at.
+- **The page's subject is big.** The thing the page is about (the stomach, the bowl, the circuit, the temple) is 420–700 px tall, drawn first and placed where the eye lands; the labels and steps are arranged around it. Labels 40–56 px, the key word or number 64 px or more. Never a small icon in a sea of board.
+- **A real thing is a chalk illustration, not an outline.** When the subject is a real thing (an organ, a food, an animal, a person, a building, a machine, a place), make it a generated picture (`object` or `character`) in this style's chalk, when the film may use pictures: an outline drawn in code reads as clip-art. Diagrams, arrows, graphs, formulas, tables and the derivation itself stay in code.
+- **Colour the subject.** What code draws for the subject gets its pastel chalk tint (`blueF`, `yellowF`, `greenF`, `redF`) inside a coloured outline, not a bare white line; a part that matters (the stomach lining, the resistance wire) is the one bright accent.
+- **Fill the board by the end.** When the page's last line ends, the work reaches from under the title down to about y 880 and across the board (x 120–1800): no empty third, no dark half. Fewer, bigger things beat many small ones.
+
 ## Motion and camera
 
 - **Written, not pasted.** Text is written character by character (`cps` 8–12, a little slower than whiteboard); lines and boxes are traced (`dur` 0.6–1.0 s).
@@ -34,4 +42,5 @@ A good teacher at the board derives one thing step by step. The picture is quiet
 - Neon, gradients, blue-purple tones, tech grids.
 - Photos, 3D, large flat-colour objects from flat illustration.
 - Fading in a whole paragraph at once; filling a screen with small text.
+- A page whose subject is a small bare outline (an empty bowl, a stomach of one white line) with most of the board dark.
 - Whiteboard marker brights and thick black lines (that is the whiteboard style).

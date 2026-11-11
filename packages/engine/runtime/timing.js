@@ -9,7 +9,7 @@
   const END = 2.5;       // the last page holds this long after its last line, so the film ends on a settled picture
   const FADE_OUT = 0.8;  // the film fades to its ground over its final seconds, never a hard cut
   const CARD = 1.8;      // a chapter card (pg.chapter): the page opens on its big title alone, then the narration starts
-  const TURNS = ['fade', 'travel', 'dive', 'cut'];   // how a page comes in (pg.turn); fade unless the page says otherwise
+  const TURNS = ['fade', 'carry', 'travel', 'dive', 'cut'];   // how a page comes in (pg.turn); fade unless the page says otherwise
 
   /** Rough spoken length: a CJK character, kana or Hangul syllable = 1 unit, a word in any other script ~ its syllables,
    *  digits = 1 each. */

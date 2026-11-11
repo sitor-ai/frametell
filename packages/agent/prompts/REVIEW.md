@@ -16,6 +16,7 @@ Fail it only for what a viewer would see as wrong:
 - something cannot be read: text cut off, running off the frame, covered by another element, in the subtitle band (the bottom sixth of the frame), or too small to read;
 - drawings colliding so that one is hard to make out, or a drawing cut off by the frame edge where it was clearly not meant to be;
 - an empty frame (a box drawn before its text), a blank screen as the page turns in, or a page that has cleared itself before it ends;
+- on a page that carries on from the page before (it says so under its storyboard), its lead missing at the start, drawn in again from nothing, or standing somewhere else than the page before ended it;
 - a mostly empty page, or a slide-deck look (a title, cards and arrows) where the storyboard asks for a picture;
 - the whole picture already on screen in the first stills, so the later beats have nothing left to bring in;
 - text the viewer is plainly meant to read that is too small or too faint to read (small print that only gives a thing its look, muted and not meant to be read, is fine);

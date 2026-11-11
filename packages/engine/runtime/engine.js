@@ -229,7 +229,9 @@
   }
 
   // ── page turns: pg.turn (how a page comes in) ────────────
-  // fade (default): a cross-fade with a small slide · travel: the camera travels sideways to the next page, as along one
+  // fade (default): a cross-fade with a small slide · carry: the scene carries on, its lead where the page before left it:
+  // a still dissolve (no slide, no blur), the old page leaving a little after the new one is in, so what stands in the
+  // same place on both never dims · travel: the camera travels sideways to the next page, as along one
   // long wall (both stay solid, side by side) · dive: through the page into the next, the old
   // one grows past the camera as the new one settles · cut: a straight cut, from the stillness the old page ends on.
   const TRAVEL = [0.2, 0.55], DIVE = [0.25, 0.45];   // seconds before and after the boundary the move takes
@@ -306,7 +308,7 @@
       const outK = kout === 'end' ? (FO > 0 ? smooth(end - FO, end, t) : 0) : prog(kout, end);
       // solid through a travel; a dive fades the old page out as it grows past the camera and the new one in as it lands
       const opIn = kin === 'travel' ? (inK > 0 ? 1 : 0) : kin === 'dive' ? ease.out(inK) : inK;
-      const opOut = kout === 'travel' ? (outK < 1 ? 0 : 1) : kout === 'dive' ? easeIn(outK) : outK;
+      const opOut = kout === 'travel' ? (outK < 1 ? 0 : 1) : kout === 'dive' || kout === 'carry' ? easeIn(outK) : outK;
       const vis = opIn * (1 - opOut);
       p.vis = vis;
       if (vis <= 0.001) { if (p.root.style.display !== 'none') p.root.style.display = 'none'; continue; }
