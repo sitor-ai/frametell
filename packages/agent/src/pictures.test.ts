@@ -489,6 +489,11 @@ test('a style drawn in pictures: its designs at the storyboard, its scenes once 
   assert.match(vignette, /A vignette on bare paper\./);
   assert.doesNotMatch(vignette, /full-frame/);
   assert.deepEqual([sheet.shape, scene.shape, pictureSize(scene)], ['film', 'film', '1536x864'], 'a scene drawn in is the frame\'s own 16:9');
+  // a portrait film's scene is asked at 2:3 (the image service answers 2:3 to 9:16) and kept off its side edges
+  const [, tall] = picturePlan(ok, { ...LED, portrait: true });
+  assert.deepEqual([tall.shape, pictureSize(tall)], ['reel', '1024x1536']);
+  assert.match(picturePrompt(LED, tall, [], 'cast'), /9:16 frame, cut from its width/);
+  assert.doesNotMatch(picturePrompt(LED, scene, [], 'cast'), /9:16/);
 });
 
 test('in a style with a cast sheet every scene is drawn from the sheet', async () => {

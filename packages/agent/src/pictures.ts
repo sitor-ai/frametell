@@ -19,8 +19,10 @@ export type PictureKind = 'scene' | 'object' | 'character' | 'texture';
 export type PictureShape = 'wide' | 'tall' | 'square' | 'film' | 'reel';
 const KINDS: PictureKind[] = ['scene', 'object', 'character', 'texture'];
 // film: the frame's own 16:9, every scene of a style drawn in pictures (a 3:2 scene shown full frame loses its top and bottom)
-// film: a scene over a 16:9 film's whole frame; reel: over a portrait (9:16) film's
-const SHAPES: Record<PictureShape, string> = { wide: '1536x1024', tall: '1024x1536', square: '1024x1024', film: '1536x864', reel: '864x1536' };
+// film: a scene over a 16:9 film's whole frame; reel: over a portrait (9:16) film's, asked at 2:3 (1024x1536) and cut
+// to 9:16 around its focus: the image service answers 2:3 to every 864x1536 request (2026-11-12, gpt-image-2), and each
+// was drawn and charged twice for a shape it never came at. Its prompt keeps what matters off the left and right edges
+const SHAPES: Record<PictureShape, string> = { wide: '1536x1024', tall: '1024x1536', square: '1024x1024', film: '1536x864', reel: '1024x1536' };
 /** a cut-out stands on the page by itself: drawn on a transparent ground */
 export const cutOut = (k: PictureKind) => k === 'object' || k === 'character';
 
@@ -256,6 +258,7 @@ export function picturePrompt(style: PictureStyle, p: PicturePlan, notes: string
     `${style.prefix.replace(/[.\s]+$/, '')}.`,
     p.base ? BASE_LINE[p.base] + DESIGN_ONLY : style.cast && p.id === CAST ? CAST_LINE : p.kind === 'scene' && style.scene ? style.scene : KIND_LINE[p.kind],
     `Subject: ${p.what.replace(/[.\s]+$/, '')}.`,
+    p.shape === 'reel' ? 'This picture is shown in a tall 9:16 frame, cut from its width: keep every face, hand and word that matters within the middle four fifths of its width, nothing important at its left or right edge.' : '',
     refs === 'look' ? 'The reference image shows the look of this film: match its style, palette, shading and level of detail exactly, but draw the subject above, not what the reference shows.' : '',
     refs === 'cast' ? "The reference image is this film's cast sheet: everyone in it whom the subject above names is drawn exactly as there (face, hair, glasses, build, clothes and their colours; a creature's shape and markings), in the pose and expression the subject says; match its look, line and palette. Draw the scene the subject describes, not the sheet's line-up or its plain ground, and copy no lettering from the sheet: the only words in this picture are the ones the subject quotes." : '',
     refs === 'uses' && uses.length ? `The reference images are this film's own designs, in this order: ${uses.map((b, i) => `${i + 1}. ${designOf(b)}`).join('; ')}. Everyone and everything of them that the subject above shows is drawn exactly as designed there (a person's face, hair, beard, build, clothes and their colours; a place's buildings, layout and colours; an object's shape and markings), in the pose, expression and light the subject says; match their look, line and palette. Draw the scene the subject describes, not the references' layout or plain grounds, and copy no lettering from them: the only words in this picture are the ones the subject quotes.` : '',
