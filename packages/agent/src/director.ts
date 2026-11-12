@@ -1100,7 +1100,9 @@ export class Director {
     // without the others that failed with it
     const had = readPictures(this.o.dir).items.some((x) => x.id === id && this.project.exists(picturePath(x)));
     let moved = await this.drawAgain(p, plan, note);
-    if (moved === undefined) return;
+    // not had: the film is as it was, and says so where it waits, as a picture drawn does (the Cloud ends the picture's
+    // run there, not at a picture's own event: one 重画 can draw many)
+    if (moved === undefined) { await this.redrawSettled(); return; }
     // a design drawn again: the scenes drawn from it are drawn again too; a picture that was missing: the others still
     // missing are drawn with it (one 重画 mends a film whose pictures all failed, not one tile of it)
     if (p.base || !had) moved += await this.pictures();
@@ -1108,10 +1110,14 @@ export class Director {
     // written without its scene has no file of it to point at the new one
     if (style.led && this.state.stage === 'done') moved += await this.ledPagesAgain();
     await this.commit(this.say(`重画配图 ${id}`, `Picture ${id} drawn again`));
-    if (this.state.stage === 'done') {
-      if (moved) { this.state.exported = false; this.save(); }
-      this.emit({ type: 'ready', duration: (await this.project.timeline()).duration });
-    } else if (this.state.firstPage === 'waiting') this.emit({ type: 'first_page', page: (await this.project.timeline()).pages[0].id });
+    if (this.state.stage === 'done' && moved) { this.state.exported = false; this.save(); }
+    await this.redrawSettled();
+  }
+
+  /** a picture's redraw over: the film says it waits where it did (finished, or its first page) */
+  private async redrawSettled() {
+    if (this.state.stage === 'done') this.emit({ type: 'ready', duration: (await this.project.timeline()).duration });
+    else if (this.state.firstPage === 'waiting') this.emit({ type: 'first_page', page: (await this.project.timeline()).pages[0].id });
   }
 
   /** one picture drawn again (`note`: what to change in it) and the pages that place it pointed at the new file. → how

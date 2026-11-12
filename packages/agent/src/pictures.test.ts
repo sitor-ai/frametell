@@ -222,6 +222,19 @@ test('a finished film drawn in pictures whose pictures all failed: one picture d
   assert.equal(fs.readFileSync(path.join(f.dir, 'pages/p02.js'), 'utf8'), p02);
 });
 
+test('a picture drawn again that can\'t be had still ends where the film waits (ready), as one drawn does', async () => {
+  const opts: { fail?: RegExp } = {};
+  const f = film(opts);
+  await f.d.pictures();
+  f.d.state.stage = 'done';
+  opts.fail = /humpback/;
+  const n = f.events.length;
+  await f.d.redrawPicture('whale', 'bigger');
+  const after = f.events.slice(n);
+  assert.ok(after.some((e) => e.type === 'picture' && e.status === 'failed'));
+  assert.equal(after.at(-1)?.type, 'ready');
+});
+
 test('a finished film\'s picture drawn again: from the picture as it is, and its pages point at the new file', async () => {
   const f = film();
   await f.d.pictures();
