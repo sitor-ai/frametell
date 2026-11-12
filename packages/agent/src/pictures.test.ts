@@ -188,6 +188,40 @@ test('a page\'s agent is shown its pictures with its brief, not only told about 
   assert.match(note, /never drawn again in code/);
 });
 
+test('a finished film drawn in pictures whose pictures all failed: one picture drawn again draws the others and writes its pages again', async () => {
+  const opts: { fail?: RegExp; style?: PictureStyle; plan?: object[] } = {
+    fail: /./, style: { kinds: ['scene', 'character'], max: 30, quality: 'medium', prefix: 'Ink', avoid: '', led: true, cast: true },
+    plan: [
+      { id: 'cast', kind: 'scene', what: 'Sam, a salesman with curly hair', pages: [] },
+      { id: 'p01-a', kind: 'scene', what: 'Sam at his desk, wide shot', pages: ['p01'], cue: 0, focus: [0.4, 0.3] },
+      { id: 'p02-a', kind: 'scene', what: 'Sam on the phone, close', pages: ['p02'], cue: 0, focus: [0.5, 0.5] },
+    ],
+  };
+  const f = film(opts);
+  const tl = { duration: 12, pages: [{ id: 'p01', start: 0, end: 6, cues: [{ at: 0 }, { at: 3 }] }, { id: 'p02', start: 6, end: 12, cues: [{ at: 6 }, { at: 9 }] }] };
+  const d = f.d as unknown as { project: object; ledPage: (...a: unknown[]) => Promise<void> };
+  Object.assign(d.project, { timeline: async () => tl, snap: async () => { throw new Error('no browser here'); } });
+  // the image service refuses every picture (a size it doesn't take): the pages are written without a scene
+  await f.d.pictures();
+  assert.equal(readPictures(f.dir).items.length, 0);
+  for (const t of tl.pages) await d.ledPage(f.sb, t, tl);
+  assert.doesNotMatch(fs.readFileSync(path.join(f.dir, 'pages/p02.js'), 'utf8'), /assets\/gen/);
+  // the service takes them again; the person draws one tile again
+  opts.fail = undefined;
+  f.d.state.stage = 'done';
+  const before = f.calls.length;
+  await f.d.redrawPicture('p01-a');
+  assert.deepEqual(readPictures(f.dir).items.map((p) => p.id).sort(), ['cast', 'p01-a', 'p02-a'], 'the others missing are drawn with it');
+  assert.equal(f.calls.length - before, 3);
+  for (const id of ['p01', 'p02']) assert.match(fs.readFileSync(path.join(f.dir, `pages/${id}.js`), 'utf8'), new RegExp(`P\\.scene\\('assets/gen/${id}-a-[0-9a-f]{10}\\.png'`));
+  assert.equal(f.d.state.exported, false);
+  // drawn again once more (all there now): only that one is drawn, and only its page changes
+  const p02 = fs.readFileSync(path.join(f.dir, 'pages/p02.js'), 'utf8'), n = f.calls.length;
+  await f.d.redrawPicture('p01-a', 'darker');
+  assert.equal(f.calls.length - n, 1);
+  assert.equal(fs.readFileSync(path.join(f.dir, 'pages/p02.js'), 'utf8'), p02);
+});
+
 test('a finished film\'s picture drawn again: from the picture as it is, and its pages point at the new file', async () => {
   const f = film();
   await f.d.pictures();

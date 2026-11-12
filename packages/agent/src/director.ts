@@ -1096,10 +1096,17 @@ export class Director {
     const style = this.pictureStyle(), plan = this.planned();
     const p = plan.find((x) => x.id === id);
     if (!style || !p) { this.emit({ type: 'note', text: this.say('这张配图已经不在分镜里了', 'That picture is no longer in the storyboard') }); return; }
+    // a picture that was never had (the image service refused it): its pages were written without it, and so, likely,
+    // without the others that failed with it
+    const had = readPictures(this.o.dir).items.some((x) => x.id === id && this.project.exists(picturePath(x)));
     let moved = await this.drawAgain(p, plan, note);
     if (moved === undefined) return;
-    // a design drawn again: the scenes drawn from it are drawn again too
-    if (p.base) moved += await this.pictures();
+    // a design drawn again: the scenes drawn from it are drawn again too; a picture that was missing: the others still
+    // missing are drawn with it (one 重画 mends a film whose pictures all failed, not one tile of it)
+    if (p.base || !had) moved += await this.pictures();
+    // a finished film drawn in pictures: its pages are written again by rule from the pictures it has now, as a page
+    // written without its scene has no file of it to point at the new one
+    if (style.led && this.state.stage === 'done') moved += await this.ledPagesAgain();
     await this.commit(this.say(`重画配图 ${id}`, `Picture ${id} drawn again`));
     if (this.state.stage === 'done') {
       if (moved) { this.state.exported = false; this.save(); }
@@ -1603,14 +1610,33 @@ export class Director {
     return to;
   }
 
-  /** a page of a style drawn in pictures, written from its scenes' cues and focus (pictures.ts ledPage) */
-  private async ledPage(sb: Storyboard, t: PageTiming, tl: { pages: PageTiming[] }) {
+  /** what a page of a style drawn in pictures is, from the pictures there are now (pictures.ts ledPage) */
+  private ledSource(sb: Storyboard, t: PageTiming, tl: { pages: PageTiming[] }): string {
     const plan = picturePlan(sb.look, this.pictureStyle(), this.own()), drawn = readPictures(this.o.dir).items;
     const scenes = picturesOn(plan, drawn, t.id).filter((p) => p.kind === 'scene');
     // a page with no scene of its own holds the last one before it
     const earlier = tl.pages.slice(0, tl.pages.findIndex((p) => p.id === t.id)).reverse();
     const before = earlier.map((p) => picturesOn(plan, drawn, p.id).filter((x) => x.kind === 'scene').pop()).find(Boolean);
-    this.project.write(`pages/${t.id}.js`, ledPage(t.id, scenes, t.cues.map((c) => c.at), t.end - t.start, before));
+    return ledPage(t.id, scenes, t.cues.map((c) => c.at), t.end - t.start, before);
+  }
+
+  /** the pages of a finished film drawn in pictures written again from the pictures there are now, those that change:
+   *  a page written while its scene could not be had shows it once it is drawn. → how many changed */
+  private async ledPagesAgain(): Promise<number> {
+    const sb = this.project.storyboard(), tl = await this.project.timeline();
+    let moved = 0;
+    for (const t of tl.pages) {
+      const f = `pages/${t.id}.js`, was = this.project.exists(f) ? this.project.read(f) : undefined;
+      if (this.ledSource(sb, t, tl) === was) continue;
+      await this.ledPage(sb, t, tl);
+      moved++;
+    }
+    return moved;
+  }
+
+  /** a page of a style drawn in pictures, written from its scenes' cues and focus (pictures.ts ledPage) */
+  private async ledPage(sb: Storyboard, t: PageTiming, tl: { pages: PageTiming[] }) {
+    this.project.write(`pages/${t.id}.js`, this.ledSource(sb, t, tl));
     // its film-strip thumbnail, as a drawn page gets one after its check: the last scene, drawn in whole
     let thumb: string | undefined;
     try { thumb = await this.project.snap(`${t.id}-thumb`, [Math.max(t.start + 0.5, t.end - 0.4)], [t.id], 480, false); } catch (e) { if (stopped(e)) throw e; }
