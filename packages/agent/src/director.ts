@@ -15,6 +15,7 @@ import { designedFonts, designedIssues, designedLook, type Look } from './look.j
 import { BRAND_DIR, SIGN_OFF_HOLD, cornerMark, signsOff } from './brand.js';
 import { assetPath, assetsOn, userAssets } from './assets.js';
 import { inkScript } from './ink.js';
+import { sceneJpeg } from './shown.js';
 import { choose, type Decider } from './decide.js';
 import { CAST, PICTURES_DIR, PICTURES_MANIFEST, cutOut, inkPath, cutOutTrouble, lookPrefix, pictureFile, pictureIssues, pictureKey, ledPage, picturePageNote, picturePath, picturePlan, picturePlanNote, picturePrompt, pictureReviewNote, pictureSize, pictureStyle, picturesOn, readPictures, sniffPicture, type ImageProvider, type Picture, type PicturePlan, type Pictures, type RefMode } from './pictures.js';
 import { ENGINE_DIR } from '@frametell/engine/tools/project.mjs';
@@ -714,7 +715,7 @@ export class Director {
     await this.send(s, picturePlanNote(style, this.own(), lines, designs) + replyNote(this.replyLang(), this.filmLang()), undefined, PLAN_THINKING);
     for (let ask = 0; ; ask++) {
       let issues: string[];
-      try { issues = pictureIssues(this.project.storyboard().look, ids, style, this.own(), cues); } catch (e) { issues = [`storyboard.json can't be read: ${(e as Error).message}`]; }
+      try { issues = pictureIssues(this.project.storyboard().look, ids, style, this.own(), cues, this.filmLang()); } catch (e) { issues = [`storyboard.json can't be read: ${(e as Error).message}`]; }
       if (!issues.length) break;
       if (ask === 2) this.fail('script', this.say('画面没有排好：', 'The scenes were not planned: ') + issues.join('; '));
       await this.send(s, `The scenes in look.pictures still need fixing:\n- ${issues.join('\n- ')}\nFix them in storyboard.json and stop.`, undefined, PLAN_THINKING);
@@ -741,7 +742,7 @@ export class Director {
     let ids: string[] = [];
     try { ids = this.project.storyboard().pages.map((p) => p.id); } catch {}
     const pictures = this.pictureStyle();
-    return [...(fonts ? designedIssues(look, fonts) : []), ...kitIssues(look, ids, this.o.style), ...(pictures ? pictureIssues(look, ids, pictures, this.own()) : [])].map((msg) => ({ level: 'red' as const, msg }));
+    return [...(fonts ? designedIssues(look, fonts) : []), ...kitIssues(look, ids, this.o.style), ...(pictures ? pictureIssues(look, ids, pictures, this.own(), undefined, this.filmLang()) : [])].map((msg) => ({ level: 'red' as const, msg }));
   }
 
   /** a designed style's film: the look the director wrote in storyboard.json (its card and what it comes to) */
@@ -978,10 +979,47 @@ export class Director {
     }
     const got = data && sniffPicture(data);
     if (!data || !got) throw new Error(data ? 'the image service answered with something that is not a picture' : (last as Error)?.message ?? 'no picture');
-    const file = pictureFile(p.id, data, got.type);
+    // an opaque picture a page shows is kept as a JPEG (~8× lighter: the player loads every scene before its first
+    // frame), its ink map worked out from the PNG first. A design stays as it came: no page shows it, and the scenes
+    // drawn from it are keyed by its file (pictureKey)
+    const slim = !cutOut(p.kind) && !p.base && got.type === 'png' ? this.slimmed(data) : undefined;
+    const file = pictureFile(p.id, slim?.data ?? data, slim ? 'jpg' : got.type);
     fs.mkdirSync(this.project.file(PICTURES_DIR), { recursive: true });
-    writeIn(this.o.dir, `${PICTURES_DIR}/${file}`, data, { record: true });
-    return { id: p.id, file, prompt, w: got.w, h: got.h, alpha: got.alpha, at: new Date().toISOString(), key, ...(note ? { note } : {}) };
+    writeIn(this.o.dir, `${PICTURES_DIR}/${file}`, slim?.data ?? data, { record: true });
+    if (slim?.ink) writeIn(this.o.dir, inkPath({ file }), slim.ink(file), { record: true });
+    return { id: p.id, file, prompt, w: got.w, h: got.h, alpha: slim ? false : got.alpha, at: new Date().toISOString(), key, ...(note ? { note } : {}) };
+  }
+
+  /** an opaque PNG as a JPEG, with its ink map (from the PNG) for a style that draws its pictures in; undefined when it
+   *  can't be made smaller */
+  private slimmed(png: Uint8Array): { data: Buffer; ink?: (file: string) => string } | undefined {
+    const data = sceneJpeg(this.o.dir, png);
+    if (!data) return undefined;
+    const ps = this.pictureStyle();
+    const ink = ps?.led || ps?.ink ? (file: string) => inkScript(file, png) ?? '' : undefined;
+    return { data, ink };
+  }
+
+  /** a film's opaque pictures drawn before scenes were kept as JPEGs, made JPEGs now, and its pages pointed at them.
+   *  → how many pages moved */
+  private slimPictures(): number {
+    const plan = this.planned();
+    let moved = 0;
+    for (const old of readPictures(this.o.dir).items) {
+      const q = plan.find((x) => x.id === old.id);
+      if (!q || cutOut(q.kind) || q.base || !old.file.endsWith('.png')) continue;
+      try {
+        const png = new Uint8Array(readIn(this.o.dir, picturePath(old), { record: true }));
+        const slim = this.slimmed(png);
+        if (!slim) continue;
+        const pic: Picture = { ...old, file: pictureFile(old.id, slim.data, 'jpg'), alpha: false };
+        writeIn(this.o.dir, picturePath(pic), slim.data, { record: true });
+        if (slim.ink) writeIn(this.o.dir, inkPath(pic), slim.ink(pic.file), { record: true });
+        this.keepPicture(pic);
+        moved += this.repoint(old, pic);
+      } catch (e) { console.warn(`[pictures] ${old.id}: not made a JPEG: ${(e as Error).message}`); }
+    }
+    return moved;
   }
   /** a picture put in the film's list in place of the one it replaces (whose file goes); `notes`: the look's adjustments
    *  as they are now. → the picture it replaced */
@@ -994,7 +1032,7 @@ export class Director {
     if (old && old.file !== pic.file) for (const f of [picturePath(old), inkPath(old)]) { try { fs.rmSync(this.project.file(f)); } catch { /* gone */ } }
     // a style that draws its pictures in on the page reads where each one's ink is (ink.ts)
     const ps = this.pictureStyle();
-    if (ps?.led || ps?.ink) {
+    if ((ps?.led || ps?.ink) && !this.project.exists(inkPath(pic))) {
       try { const js = inkScript(pic.file, new Uint8Array(readIn(this.o.dir, picturePath(pic), { record: true }))); if (js) writeIn(this.o.dir, inkPath(pic), js, { record: true }); } catch (e) { console.warn(`[pictures] ${pic.id}: no ink map: ${(e as Error).message}`); }
     }
     freeze(this.o.dir, picturePath(pic));
@@ -1099,10 +1137,16 @@ export class Director {
     // a picture that was never had (the image service refused it): its pages were written without it, and so, likely,
     // without the others that failed with it
     const had = readPictures(this.o.dir).items.some((x) => x.id === id && this.project.exists(picturePath(x)));
+    const slimmed = this.slimPictures();
     let moved = await this.drawAgain(p, plan, note);
+    if (moved !== undefined) moved += slimmed;
     // not had: the film is as it was, and says so where it waits, as a picture drawn does (the Cloud ends the picture's
     // run there, not at a picture's own event: one 重画 can draw many)
-    if (moved === undefined) { await this.redrawSettled(); return; }
+    if (moved === undefined) {
+      if (slimmed) { await this.commit(this.say('配图存为 JPEG', 'Pictures kept as JPEGs')); if (this.state.stage === 'done') { this.state.exported = false; this.save(); } }
+      await this.redrawSettled();
+      return;
+    }
     // a design drawn again: the scenes drawn from it are drawn again too; a picture that was missing: the others still
     // missing are drawn with it (one 重画 mends a film whose pictures all failed, not one tile of it)
     if (p.base || !had) moved += await this.pictures();

@@ -8,6 +8,8 @@ import { writeIn } from './projectfs.js';
 import { ledPage, lookPrefix, openaiImages, picturePageNote, picturePlanNote, pictureSize, picturePlan, pictureIssues, picturePrompt, pictureStyle, picturesOn, readPictures, sniffPicture, type ImageProvider, type PictureStyle } from './pictures.js';
 import type { AgentRuntime } from './runtime/types.js';
 import type { StudioEvent } from './events.js';
+import { spawnSync } from 'node:child_process';
+import { FFMPEG } from '@frametell/engine/tools/bins.mjs';
 
 const STYLE: PictureStyle = { kinds: ['object', 'character', 'scene'], max: 4, quality: 'medium', prefix: 'Flat vector, two-tone fills, no outlines', avoid: 'No text.' };
 const ids = ['p01', 'p02', 'p03'];
@@ -233,6 +235,57 @@ test('a picture drawn again that can\'t be had still ends where the film waits (
   const after = f.events.slice(n);
   assert.ok(after.some((e) => e.type === 'picture' && e.status === 'failed'));
   assert.equal(after.at(-1)?.type, 'ready');
+});
+
+/** a real picture of the size asked (ffmpeg's test pattern), as the image service's PNGs are */
+const realPng = (size: string) => new Uint8Array(spawnSync(FFMPEG, ['-loglevel', 'error', '-f', 'lavfi', '-i', `testsrc2=s=${size}`, '-frames:v', '1', '-f', 'image2', '-c:v', 'png', 'pipe:1'], { maxBuffer: 64 << 20 }).stdout);
+
+test('a scene a page shows is kept as a JPEG with its ink map from the PNG; an existing film\'s PNG scenes are made JPEGs when a picture is drawn again', async () => {
+  const LEDINK: PictureStyle = { kinds: ['scene', 'character'], max: 30, quality: 'medium', prefix: 'Ink', avoid: '', led: true };
+  const f = film({ style: LEDINK, plan: [
+    { id: 'p01-a', kind: 'scene', what: 'Sam at his desk, wide shot', pages: ['p01'], cue: 0, focus: [0.4, 0.3] },
+    { id: 'p02-a', kind: 'scene', what: 'Sam on the phone, close', pages: ['p02'], cue: 0, focus: [0.5, 0.5] },
+  ] });
+  const d = f.d as unknown as { o: { images: ImageProvider }; slimmed?: unknown; project: object };
+  const sizes: number[] = [];
+  d.o.images = { model: 'test-image', async draw({ size }) { const b = realPng(size); sizes.push(b.length); return b; } };
+  // drawn before scenes were kept as JPEGs: as PNGs
+  const slimmed = Object.getPrototypeOf(f.d).slimmed;
+  Object.assign(f.d, { slimmed: () => undefined });
+  await f.d.pictures();
+  const before = readPictures(f.dir).items.find((p) => p.id === 'p02-a')!;
+  assert.match(before.file, /\.png$/);
+  fs.writeFileSync(path.join(f.dir, 'pages/p02.js'), `ENGINE.visual('p02', (P) => { P.scene('assets/gen/${before.file}', { at: 0.05 }); });\n`);
+  delete (f.d as unknown as { slimmed?: unknown }).slimmed;
+  assert.equal(Object.getPrototypeOf(f.d).slimmed, slimmed);
+  // a picture drawn again: it comes as a JPEG, and the other scene is made one, its page pointed at it
+  f.d.state.stage = 'done';
+  const tl = { duration: 12, pages: [{ id: 'p01', start: 0, end: 6, cues: [{ at: 0 }] }, { id: 'p02', start: 6, end: 12, cues: [{ at: 6 }] }] };
+  Object.assign(d.project, { timeline: async () => tl, snap: async () => { throw new Error('no browser here'); } });
+  await f.d.redrawPicture('p01-a', 'darker');
+  const items = readPictures(f.dir).items;
+  for (const id of ['p01-a', 'p02-a']) {
+    const pic = items.find((p) => p.id === id)!;
+    assert.match(pic.file, /\.jpg$/, id);
+    assert.equal(pic.alpha, false);
+    const bytes = fs.readFileSync(path.join(f.dir, 'assets/gen', pic.file));
+    assert.ok(bytes.length < Math.min(...sizes), `${id}: ${bytes.length} bytes against a PNG of ${Math.min(...sizes)}`);
+    const ink = fs.readFileSync(path.join(f.dir, 'assets/gen', pic.file + '.ink.js'), 'utf8');
+    assert.ok(ink.includes(JSON.stringify(pic.file)), 'the ink map names the JPEG');
+  }
+  assert.ok(!fs.existsSync(path.join(f.dir, 'assets/gen', before.file)), 'the PNG is gone');
+  assert.ok(!fs.existsSync(path.join(f.dir, 'assets/gen', before.file + '.ink.js')));
+  assert.match(fs.readFileSync(path.join(f.dir, 'pages/p02.js'), 'utf8'), /assets\/gen\/p02-a-[0-9a-f]{10}\.jpg/);
+});
+
+test('a storyboard\'s picture that letters words not in the film\'s language is sent back; a single name stays', () => {
+  const LED: PictureStyle = { kinds: ['scene'], max: 30, quality: 'medium', prefix: 'Ink', avoid: '', led: true, words: true };
+  const look = (what: string) => ({ pictures: [{ id: 'p01-a', kind: 'scene', what, pages: ['p01'] }] });
+  const zh = pictureIssues(look('A banner across the top reading "Never Kneel", the painter beneath it'), ['p01'], LED, [], undefined, 'zh').join('\n');
+  assert.match(zh, /p01-a letters "Never Kneel" into the picture, not in the film's language \(zh\)/);
+  assert.deepEqual(pictureIssues(look('A banner across the top reading "绝不下跪", and a phone showing "iPhone"'), ['p01'], LED, [], undefined, 'zh'), []);
+  assert.match(pictureIssues(look('A sign on the door reading "营业中"'), ['p01'], LED, [], undefined, 'en').join('\n'), /"营业中"/);
+  assert.deepEqual(pictureIssues(look('A banner across the top reading "Never Kneel"'), ['p01'], LED), [], 'no language known: nothing said');
 });
 
 test('a finished film\'s picture drawn again: from the picture as it is, and its pages point at the new file', async () => {

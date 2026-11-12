@@ -64,3 +64,14 @@ export function keepPictures<M>(messages: M[], budget = PICTURE_BUDGET, extra = 
   }
   return out;
 }
+
+/** an opaque picture (a scene) kept as a high-quality JPEG at its own size: a 864×1536 or 1536×864 PNG from the image
+ *  service is ~3.4 MB, and a film's player loads every scene before its first frame (2026-11-12: a 21-scene film was
+ *  71 MB, ~50 s before the full film showed). ~0.46 MB as a JPEG at q 3 (SSIM 0.97 against the PNG, no difference to see). undefined when ffmpeg fails or it is no smaller;
+ *  decoded confined to `root`, from a pipe, as shownPicture */
+export function sceneJpeg(root: string, data: Uint8Array): Buffer | undefined {
+  const [cmd, argv] = confinedCmd(root, FFMPEG, ['-loglevel', 'error', '-f', 'image2pipe', '-i', 'pipe:0', '-vf', 'format=yuvj420p',
+    '-frames:v', '1', '-f', 'image2', '-c:v', 'mjpeg', '-q:v', '3', 'pipe:1']);
+  const r = spawnSync(cmd, argv, { cwd: root, input: data, env: nodeEnv(), maxBuffer: 32 << 20, timeout: 30_000 });
+  return r.status === 0 && r.stdout?.length && r.stdout.length < data.length ? r.stdout : undefined;
+}

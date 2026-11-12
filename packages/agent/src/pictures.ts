@@ -138,7 +138,22 @@ export function picturePlan(look: unknown, style?: PictureStyle, own: string[] =
  *  `own`: the person's files in the film (assets/brand/…, assets/user/…), which `from` may name */
 /** `cues`: a style drawn in pictures, once its narration is written: how many lines each page has, and its scenes are
  *  checked against them (before, at the storyboard, only its designs count) */
-export function pictureIssues(look: unknown, pageIds: string[], style: PictureStyle, own: string[] = [], cues?: Record<string, number>): string[] {
+/** the words quoted in a picture's \`what\` (to be lettered into it) that are not in the film's language \`lang\`: English
+ *  words quoted in a Chinese, Japanese or Korean film, or Chinese, Japanese or Korean ones in a film in a Latin script.
+ *  A single word (a name, a brand, an acronym: "iPhone", "GDP") is left as it is */
+export function wrongLanguageWords(what: string, lang?: string): string[] {
+  if (!lang) return [];
+  const cjkFilm = /^(zh|ja|ko)/i.test(lang), CJK = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/, LATIN = /[A-Za-z]/;
+  const out: string[] = [];
+  for (const m of what.matchAll(/"([^"]{1,80})"|\u201c([^\u201d]{1,80})\u201d|\u300c([^\u300d]{1,80})\u300d/g)) {
+    const q = (m[1] ?? m[2] ?? m[3]).trim();
+    if (!q) continue;
+    if (cjkFilm ? LATIN.test(q) && !CJK.test(q) && /\s/.test(q) : CJK.test(q)) out.push(q);
+  }
+  return out;
+}
+
+export function pictureIssues(look: unknown, pageIds: string[], style: PictureStyle, own: string[] = [], cues?: Record<string, number>, lang?: string): string[] {
   const list = listOf(look);
   if (list === undefined) return [];
   if (!Array.isArray(list)) return ['`look.pictures` must be a list of { id, kind, what, shape, pages }'];
@@ -157,6 +172,8 @@ export function pictureIssues(look: unknown, pageIds: string[], style: PictureSt
     const what = typeof o.what === 'string' ? o.what.trim() : '';
     if (what.length < 10) out.push(`\`look.pictures\`: ${id} needs \`what\`: what the picture shows, in a sentence`);
     else if (what.length > 400) out.push(`\`look.pictures\`: ${id}'s \`what\` is ${what.length} characters: say it in at most 400`);
+    const foreign = wrongLanguageWords(what, lang);
+    if (foreign.length) out.push(`\`look.pictures\`: ${id} letters ${foreign.map((q) => `"${q}"`).join(', ')} into the picture, not in the film's language (${lang}): the words in a picture are the viewer's, quoted in the film's language (a single name, brand or acronym may stay as it is)`);
     const pages = Array.isArray(o.pages) ? o.pages : [];
     const unknown = pages.filter((p) => typeof p !== 'string' || !ids.has(p));
     const sheet = isBase(style, o, i);
@@ -370,7 +387,7 @@ ${sceneRhythm(style, lines, designs)} Name each by its page and order (\`p02-a\`
 - \`cue\`: the number of the line above where it starts; it is drawn in over its first moments and then held, whole, for the lines it covers. \`focus\`: [x, y] as shares of the frame, where its drawing starts: on what the line names first, the heading when the scene opens on its words (\`[0.3, 0.1]\` for a heading at the top left), else the face of the person it is about. Nobody writes the pages: each is drawn from these fields alone.
 ${style.cast ? `- \`uses\`: the ids of the designs the scene shows (each person in the look they have at that moment, its place, its prop), at most ${BASE_USES}, the most important first: it is drawn from them. A scene that shows none has no \`uses\`.
 ` : ''}- \`what\` is one illustrated moment, written in English whatever the film's language (the image model reads English best): who is in it (by their designs' names${style.cast ? '; someone with no design described in full' : ''}), where, what they do and their expression, the props, and one clear focal subject; a wide, a medium or a close shot, varied from scene to scene. Never the style, colours or a camera move: those are added for you.
-${style.words ? `- Words in a picture are keywords, a heading, a label or a slogan: quote them in \`what\` in double quotes, in the film's language (the only non-English words in \`what\`), and say where they sit and how they look (a heading lettered across the top, a sticky note reading "One problem", a stamp "NOT YET" on the binder). Never the narration's sentences and never the scene's description: the narration is heard, a picture that spells it out looks cheap.` : '- Lettering inside a scene only for a short sign the moment needs, three words at most, quoted exactly in `what`.'}${own}`;
+${style.words ? `- Words in a picture are keywords, a heading, a label or a slogan: quote them in \`what\` in double quotes, in the film's language (the only non-English words in \`what\`), and say where they sit and how they look (a heading lettered across the top, a sticky note reading "One problem", a stamp "NOT YET" on the binder). Never the narration's sentences and never the scene's description: the narration is heard, a picture that spells it out looks cheap.` : '- Lettering inside a scene only for a short sign the moment needs, three words at most, quoted exactly in `what` in the film\'s language.'}${own}`;
 }
 
 /** For the page agent: the generated pictures on this page, each with its call. '' when none. */
