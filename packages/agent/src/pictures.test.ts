@@ -224,6 +224,40 @@ test('a finished film drawn in pictures whose pictures all failed: one picture d
   assert.equal(fs.readFileSync(path.join(f.dir, 'pages/p02.js'), 'utf8'), p02);
 });
 
+test('a finished film whose pages are drawn by agents: a picture that never came, drawn again, draws the others missing and has their pages drawn again to place them', async () => {
+  const opts: { fail?: RegExp } = { fail: /./ };
+  const f = film(opts);
+  const tl = { duration: 15, pages: ids.map((id, i) => ({ id, start: i * 5, end: i * 5 + 5, cues: [] })) };
+  Object.assign((f.d as unknown as { project: object }).project, { timeline: async () => tl });
+  // the image service down while the film is made: no picture, the pages drew those parts in code
+  await f.d.pictures();
+  assert.equal(readPictures(f.dir).items.length, 0);
+  f.d.state.stage = 'done';
+  // pages and the whole-film check are the agents' (not run here): what they are asked is kept
+  const asked: { pages?: string[]; revision?: Record<string, string> }[] = [];
+  let reviewed = 0;
+  const dd = f.d as unknown as { pages: (only?: string[]) => Promise<void>; review: () => Promise<void>; serverMeta: () => void; state: { revision?: Record<string, string> } };
+  Object.assign(dd, {
+    pages: async (only?: string[]) => { asked.push({ pages: only, revision: { ...dd.state.revision } }); },
+    review: async () => { reviewed++; f.events.push({ type: 'ready', duration: 15 } as StudioEvent); },
+    serverMeta: () => undefined,
+  });
+  opts.fail = undefined;
+  await f.d.redrawPicture('whale');
+  assert.deepEqual(readPictures(f.dir).items.map((p) => p.id).sort(), ['bird', 'bird-fly', 'whale'], 'the others missing are drawn with it');
+  assert.equal(asked.length, 1, 'their pages drawn again in one go');
+  assert.deepEqual(asked[0].pages, ['p01', 'p02', 'p03']);
+  assert.match(asked[0].revision!.p02, /bird, whale could not be drawn.*place them/);
+  assert.match(asked[0].revision!.p03, /bird-fly could not be drawn.*place it/);
+  assert.equal(reviewed, 1);
+  assert.equal(dd.state.revision, undefined);
+  assert.equal(f.d.state.exported, false);
+  assert.ok(f.events.some((e) => e.type === 'note' && /第 1、2、3 页/.test((e as { text: string }).text)));
+  // drawn again once more (all there now): no page is drawn again, the pages already place it
+  await f.d.redrawPicture('whale', 'bigger');
+  assert.equal(asked.length, 1);
+});
+
 test('a picture drawn again that can\'t be had still ends where the film waits (ready), as one drawn does', async () => {
   const opts: { fail?: RegExp } = {};
   const f = film(opts);
@@ -519,6 +553,37 @@ test('a picture refused for too many at once is asked for again after the wait i
     const got = await openaiImages('k').draw({ prompt: 'a cat', size: '1536x1024', quality: 'medium', transparent: false });
     assert.equal(Buffer.from(got).toString(), 'png');
     assert.equal(calls, 3);
+  } finally { globalThis.fetch = real; }
+});
+
+test('a picture the service failed for a moment (a 5xx, or no answer) is asked for again, not failed; a 400 is not', async () => {
+  const real = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls++;
+    if (calls === 1) return new Response('{"error":{"code":"do_request_failed"}}', { status: 500, headers: { 'retry-after': '0.01' } });
+    if (calls === 2) throw new TypeError('fetch failed');
+    if (calls === 3) return new Response('<html>bad gateway</html>', { status: 502, headers: { 'retry-after': '0.01' } });
+    return Response.json({ data: [{ b64_json: Buffer.from('png').toString('base64') }] });
+  }) as typeof fetch;
+  try {
+    // the network error waits 4 s (no retry-after to read): the test's clock is the real one, so it is shortened
+    const st = globalThis.setTimeout;
+    globalThis.setTimeout = ((f: () => void, _ms?: number) => st(f, 1)) as typeof setTimeout;
+    try {
+      const got = await openaiImages('k').draw({ prompt: 'a cat', size: '1536x1024', quality: 'medium', transparent: false });
+      assert.equal(Buffer.from(got).toString(), 'png');
+      assert.equal(calls, 4);
+      calls = 0;
+      globalThis.fetch = (async () => { calls++; return new Response('{"error":"bad size"}', { status: 400 }); }) as typeof fetch;
+      await assert.rejects(openaiImages('k').draw({ prompt: 'a cat', size: '1536x1024', quality: 'medium', transparent: false }), /image service 400/);
+      assert.equal(calls, 1);
+      // down the whole time: given up after six tries, with the service's own words
+      calls = 0;
+      globalThis.fetch = (async () => { calls++; return new Response('{"error":"upstream"}', { status: 500 }); }) as typeof fetch;
+      await assert.rejects(openaiImages('k').draw({ prompt: 'a cat', size: '1536x1024', quality: 'medium', transparent: false }), /image service 500: \{"error":"upstream"\}/);
+      assert.equal(calls, 6);
+    } finally { globalThis.setTimeout = st; }
   } finally { globalThis.fetch = real; }
 });
 

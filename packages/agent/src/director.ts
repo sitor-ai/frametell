@@ -1136,7 +1136,8 @@ export class Director {
     if (!style || !p) { this.emit({ type: 'note', text: this.say('这张配图已经不在分镜里了', 'That picture is no longer in the storyboard') }); return; }
     // a picture that was never had (the image service refused it): its pages were written without it, and so, likely,
     // without the others that failed with it
-    const had = readPictures(this.o.dir).items.some((x) => x.id === id && this.project.exists(picturePath(x)));
+    const before = new Set(readPictures(this.o.dir).items.filter((x) => this.project.exists(picturePath(x))).map((x) => x.id));
+    const had = before.has(id);
     const slimmed = this.slimPictures();
     let moved = await this.drawAgain(p, plan, note);
     if (moved !== undefined) moved += slimmed;
@@ -1154,8 +1155,43 @@ export class Director {
     // written without its scene has no file of it to point at the new one
     if (style.led && this.state.stage === 'done') moved += await this.ledPagesAgain();
     await this.commit(this.say(`重画配图 ${id}`, `Picture ${id} drawn again`));
+    // a finished film whose pages are drawn by agents: a page written without its picture drew that part in code and
+    // places no file to point at the new one. Its pages are drawn again, told to place the pictures that came now (seen
+    // 2026-11-19: 14 pictures of a Doodle film failed in an image service outage; all drawn again, the film showed none)
+    if (!style.led && !had && this.state.stage === 'done') {
+      const fresh = readPictures(this.o.dir).items.filter((x) => !before.has(x.id)).map((x) => x.id);
+      if (await this.placePictures(fresh, plan)) return;
+    }
     if (this.state.stage === 'done' && moved) { this.state.exported = false; this.save(); }
     await this.redrawSettled();
+  }
+
+  /**
+   * The pages that were to place `ids` (pictures that came only after the pages were drawn) drawn again, each told to
+   * place them; then the whole-film check, which says the film is ready. → false when no page was to place them
+   */
+  private async placePictures(ids: string[], plan: PicturePlan[]): Promise<boolean> {
+    const order = (await this.project.timeline()).pages.map((t) => t.id);
+    const on = new Map<string, string[]>();
+    for (const q of plan) if (ids.includes(q.id)) for (const pg of q.pages) if (order.includes(pg)) on.set(pg, [...(on.get(pg) ?? []), q.id]);
+    const pages = order.filter((pg) => on.has(pg));
+    if (!pages.length) return false;
+    const nums = pages.map((pg) => order.indexOf(pg) + 1);
+    this.emit({ type: 'note', text: this.say(`配图画好了，把它们放进第 ${nums.join('、')} 页`, `The pictures are drawn; placing them on page${nums.length > 1 ? 's' : ''} ${nums.join(', ')}`) });
+    this.serverMeta();
+    this.state.revision = Object.fromEntries(pages.map((pg) => {
+      const these = on.get(pg)!, many = these.length > 1;
+      return [pg, `The generated picture${many ? 's' : ''} ${these.join(', ')} could not be drawn when this page was made, so the page drew that part in code. ${many ? 'They are' : 'It is'} drawn now: place ${many ? 'them' : 'it'} as the storyboard asks, in place of what stood in for ${many ? 'them' : 'it'}. Keep the rest of the page as it is.`];
+    }));
+    this.state.exported = false;
+    for (const pg of pages) this.state.pages[pg] = { status: 'queued', rounds: 0, issues: [] };
+    this.state.stage = 'pages'; this.save();
+    this.changed.clear();
+    await this.pages(pages);
+    this.state.revision = undefined; this.save();
+    this.changed.clear(); this.unchanged.clear();
+    await this.review();
+    return true;
   }
 
   /** a picture's redraw over: the film says it waits where it did (finished, or its first page) */

@@ -435,15 +435,24 @@ export function openaiImages(key: string, o: { baseUrl?: string; model?: string 
         refs.forEach((r, i) => { const t = sniffPicture(r)?.type ?? 'png'; form.append('image[]', new Blob([r], { type: `image/${t === 'jpg' ? 'jpeg' : t}` }), `ref-${i}.${t}`); });
         return fetch(`${base}/v1/images/edits`, { method: 'POST', headers: { authorization: `Bearer ${key}` }, body: form, signal: sig });
       };
-      // too many at once (the gateway's cap for a film, or the service's rate limit): asked again after a wait, as
-      // long as the picture's 2 minutes last, never failed at once
-      let res = await ask();
-      for (let i = 0; res.status === 429 && i < 4; i++) {
-        await res.body?.cancel();
-        const wait = Math.min(30, Number(res.headers.get('retry-after')) || 5 * 2 ** i) * 1000;
-        await new Promise((ok, no) => { const t = setTimeout(ok, wait); sig.addEventListener('abort', () => { clearTimeout(t); no(sig.reason); }, { once: true }); });
-        res = await ask();
+      // too many at once (the gateway's cap for a film, or the service's rate limit), or the service down for a moment
+      // (a 5xx, or no answer at all: a relay's upstream failing for minutes failed every picture of a film within a
+      // second): asked again after a wait, as long as the picture's 2 minutes last, never failed at once
+      const wait = (s: number) => new Promise((ok, no) => {
+        if (sig.aborted) return no(sig.reason);
+        const t = setTimeout(ok, s * 1000);
+        sig.addEventListener('abort', () => { clearTimeout(t); no(sig.reason); }, { once: true });
+      });
+      const passing = (s: number) => s === 429 || s === 500 || s === 502 || s === 503 || s === 504;
+      let res: Response | undefined, lost: unknown;
+      for (let i = 0; ; i++) {
+        try { res = await ask(); lost = undefined; } catch (e) { if (sig.aborted) throw e; res = undefined; lost = e; }
+        if (i >= 5 || (res && !passing(res.status))) break;
+        const after = Number(res?.headers.get('retry-after'));
+        await res?.body?.cancel();
+        await wait(Math.min(20, after > 0 ? after : 4 * 2 ** i));
       }
+      if (!res) throw lost;
       const body = await res.text();
       if (!res.ok) throw new Error(`image service ${res.status}: ${body.slice(0, 300)}`);
       let j: { data?: { b64_json?: string; url?: string }[] };
