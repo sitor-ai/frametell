@@ -1,9 +1,0 @@
-{
-  "id": "diorama",
-  "tier": "free",
-  "name": { "zh": "3D 微缩城市", "en": "3D Miniature City" },
-  "tagline": { "zh": "移轴镜头下的微缩模型：街区一年年从地面长出来，水位随着数字漫过城市，小车一直在跑", "en": "A tilt-shift scale model where city blocks grow year by year, water rises on the spoken number and the tiny traffic never stops" },
-  "fit": { "zh": ["城市与规划", "地理与水", "交通与物流"], "en": ["Cities & planning", "Geography & water", "Traffic & logistics"] },
-  "swatch": ["#9EC3E0", "#8CC75A", "#F4EEE4", "#FF7A2F"],
-  "accent": ["orange", "blue"]
-}

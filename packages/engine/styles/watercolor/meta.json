@@ -1,9 +1,0 @@
-{
-  "id": "watercolor",
-  "tier": "free",
-  "name": { "zh": "水彩", "en": "Watercolor" },
-  "tagline": { "zh": "铅笔起稿，颜色踩着口播晕开、干出深色水痕，留足纸白", "en": "Pencil first, then colour blooms on the beat and dries with soft dark edges" },
-  "fit": { "zh": ["自然与地理", "旅行与文化", "历史故事"], "en": ["Nature & geography", "Travel & culture", "History stories"] },
-  "swatch": ["#FBF8F1", "#3C7DBA", "#5B9A5A", "#F0BF45"],
-  "accent": ["blue", "green"]
-}

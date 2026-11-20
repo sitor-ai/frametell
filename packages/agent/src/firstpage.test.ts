@@ -35,10 +35,10 @@ function artist(asked: Record<string, string[]>, routes: unknown[] = [], planner
 function film(o: { pages?: number; firstPage?: boolean; routes?: unknown[]; planner?: (text: string, cwd: string) => void; said?: boolean } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-firstpage-'));
   fs.mkdirSync(path.join(dir, 'pages'));
-  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: 'free',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
+  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: '_test',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
   const asked: Record<string, string[]> = {}, events: StudioEvent[] = [];
   const art = artist(asked, o.routes, o.planner);
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: art, reviewer: { runtime: art }, emit: (e) => events.push(e), ...(o.firstPage === false ? { firstPage: false } : {}), ...(o.said !== undefined ? { firstPageSaid: o.said } : {}) });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: art, reviewer: { runtime: art }, emit: (e) => events.push(e), ...(o.firstPage === false ? { firstPage: false } : {}), ...(o.said !== undefined ? { firstPageSaid: o.said } : {}) });
   const n = o.pages ?? 3;
   const sb = { title: 'T', summary: 'S', pages: Array.from({ length: n }, (_, i) => ({ id: `p0${i + 1}`, section: 's', say: '…', beats: [] })) };
   const timing = { duration: n * 5, pages: sb.pages.map((p, i) => ({ id: p.id, start: i * 5, end: i * 5 + 5, speechEnd: i * 5 + 4, cues: [] })) };
@@ -159,9 +159,9 @@ test('a change at the first page is made in the narration and the plan first, an
 test('\'hard\' page checks: no reviewer, one round of fixes, and only for what a viewer sees broken', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-hard-'));
   fs.mkdirSync(path.join(dir, 'pages'));
-  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: 'free',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
+  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: '_test',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
   const asked: Record<string, string[]> = {}, opened: string[] = [];
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: artist(asked), reviewer: { runtime: { ...artist(asked), open: async (s) => { opened.push(s.name); return artist(asked).open(s); } } }, pageChecks: 'hard', firstPage: false });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: artist(asked), reviewer: { runtime: { ...artist(asked), open: async (s) => { opened.push(s.name); return artist(asked).open(s); } } }, pageChecks: 'hard', firstPage: false });
   const sb = { title: 'T', summary: 'S', pages: [{ id: 'p01', section: 's', say: '…', beats: [] }] };
   const timing = { duration: 5, pages: [{ id: 'p01', start: 0, end: 5, speechEnd: 4, cues: [] }] };
   // every check finds advice (text-heavy) and a broken thing (text off the frame)
@@ -183,9 +183,9 @@ test('\'hard\' page checks: no reviewer, one round of fixes, and only for what a
 test('a page that still throws after its rounds gets more, for that alone, instead of failing its film (2026-10-27)', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-broken-'));
   fs.mkdirSync(path.join(dir, 'pages'));
-  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: 'free',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
+  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: '_test',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
   const asked: Record<string, string[]> = {};
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: artist(asked), reviewer: { runtime: artist(asked) }, pageChecks: 'hard', firstPage: false });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: artist(asked), reviewer: { runtime: artist(asked) }, pageChecks: 'hard', firstPage: false });
   const sb = { title: 'T', summary: 'S', pages: [{ id: 'p01', section: 's', say: '…', beats: [] }] };
   const timing = { duration: 5, pages: [{ id: 'p01', start: 0, end: 5, speechEnd: 4, cues: [] }] };
   // the first three checks find the page throwing inside the engine (and text off the frame), the fourth finds it drawn

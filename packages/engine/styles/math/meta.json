@@ -1,9 +1,0 @@
-{
-  "id": "math",
-  "tier": "free",
-  "name": { "zh": "数学动画", "en": "Math animation" },
-  "tagline": { "zh": "黑底上精确的线条与公式：每个变量一种颜色，公式的项滑进下一行，圆一圈圈展开成三角形", "en": "Precise lines and typeset formulas on black: one colour per variable, terms that slide into the next line, a circle that unrolls into a triangle" },
-  "fit": { "zh": ["数学直觉", "物理推导", "算法原理"], "en": ["Math intuition", "Physics derivations", "How algorithms work"] },
-  "swatch": ["#0E0F12", "#ECEEF2", "#58B9E6", "#F4D66B"],
-  "accent": ["blue", "yellow"]
-}

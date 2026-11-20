@@ -1,9 +1,0 @@
-{
-  "id": "mascot",
-  "tier": "free",
-  "name": { "zh": "萌系讲解员", "en": "Mascot Explainer" },
-  "tagline": { "zh": "奶油纸上的软萌贴纸画，一只小动物陪你算账：数字一弹出它就指过去，硬币叮叮掉进钱袋，「划算」的章啪地盖下", "en": "Cute sticker cartoons on cream paper and a little animal host who does the maths with you: coins drop into the pouch, the total counts up, and the verdict stamp slams down" },
-  "fit": { "zh": ["理财省钱", "政策与社保", "值不值得买"], "en": ["Money & saving", "Rules & benefits", "Is it worth it"] },
-  "swatch": ["#FFF8EC", "#FF9A3C", "#3DB57D", "#4A9BE0"],
-  "accent": ["orange", "blue"]
-}

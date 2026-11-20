@@ -267,7 +267,7 @@ test('a change that adds pictures has them drawn before its pages', async () => 
 });
 
 test('a designed style\'s pictures are drawn in the look the director designed for the film', () => {
-  const free = pictureStyle('free')!;
+  const free = pictureStyle('_test')!;
   assert.equal(free.fromLook, true);
   assert.equal(free.prefix, '');
   assert.ok(free.kinds.includes('character'));
@@ -277,7 +277,7 @@ test('a designed style\'s pictures are drawn in the look the director designed f
   // the director's: the card of the film's look, once it is designed
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-free-'));
   const none: AgentRuntime = { id: 'pi', model: { provider: 'x', id: 'y' }, open: async () => { throw new Error('no model here'); } };
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 60 }, runtime: none, images: service([]) });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 60 }, runtime: none, images: service([]) });
   const style = () => (d as unknown as { pictureStyle(): { prefix: string } | undefined }).pictureStyle();
   Object.assign(d.project, { storyboard: () => ({ title: 'T', summary: 'S', pages: [] }) });
   assert.equal(style()!.prefix, '', 'nothing designed yet: the storyboard is being planned');

@@ -1,7 +1,0 @@
-{
-  "kinds": ["object", "character", "scene"],
-  "max": 6,
-  "quality": "medium",
-  "prefix": "Flat vector illustration in the style of a big science-channel explainer animation: a wondrous, glowing, cinematic look. Every shape is a solid flat fill in exactly two tones: the base colour, a darker crescent on the side away from the light, and a thin bright rim light along the edge toward a single light source at the top left. Simple, clean geometric shapes: circles, rounded rectangles, smooth blobs, built up into the subject the way a motion designer builds it from flat layers. No outlines or strokes of any kind, no gradients beyond the two tones and the rim, no shading ramps, no 3D rendering, no glossy plastic highlights, no clay or toy look, no texture, no grain, no noise, no brush marks. Deep saturated colours of a midnight-blue world (deep indigo and navy grounds), with a few saturated accents only: cyan, warm orange-yellow and coral pink, mint green for living things. A soft glow only around things that emit light (stars, suns, eyes, beams, signals); nothing else glows. Characters are cute and rounded, with big white eyes and dark round pupils, built from flat shapes like everything else",
-  "avoid": "No text, letters, numbers, labels, logos, signatures or watermarks. No outlines, no sketch lines, no paper texture, no photorealism, no 3D render."
-}

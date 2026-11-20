@@ -1,5 +1,0 @@
-{ "id": "tutorial", "tier": "free",
-  "name": { "zh": "产品教程", "en": "Product Tutorial" },
-  "tagline": { "zh": "真实截图上的一步一步：光标点到哪，聚光灯就亮到哪，镜头推近每个结果", "en": "Step by step on real screenshots: the pointer clicks, a spotlight lands, the camera pushes in on each result" },
-  "fit": { "zh": ["产品教程"], "en": ["Product tutorials"] },
-  "swatch": ["#0C0A09", "#181513", "#E0B88A", "#F5F5F4"] }

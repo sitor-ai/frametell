@@ -91,7 +91,7 @@ test('a kit keeps only the components that passed, each with its doc comment', (
 test('the kit\'s check is a project of its own: the film\'s look, the kit, and one page with a cue per component', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-'));
   const items = kitPlan({ kit: [{ name: 'globe', what: 'g', pages: ids.slice(0, 3) }, { name: 'flag', what: 'f', pages: ids.slice(0, 3) }] });
-  const stage = kitStage(dir, { style: 'free', lang: 'zh', look: { palette: { ink: '#111111' } }, items, kit: KIT, check: "ENGINE.visual('check', (P) => { P.globe(400, 400, 100, { at: P.c(0) }); });" });
+  const stage = kitStage(dir, { style: '_test', lang: 'zh', look: { palette: { ink: '#111111' } }, items, kit: KIT, check: "ENGINE.visual('check', (P) => { P.globe(400, 400, 100, { at: P.c(0) }); });" });
   assert.equal(stage, path.join(dir, '.studio/kit'));
   assert.equal(fs.readFileSync(path.join(stage, 'extras/film-kit.js'), 'utf8'), KIT);
   assert.match(fs.readFileSync(path.join(stage, 'pages/kit.js'), 'utf8'), /^ENGINE\.visual\('kit'/);
@@ -109,13 +109,13 @@ test('the check sheet looks at each component once it is drawn, at most six mome
   assert.equal(kitTimes(Array.from({ length: 8 }, (_, i) => ({ abs: i * 3 })), 24).length, 6);
 });
 
-test("the style's own components are reserved too: a film's `presenter` would replace midcentury's on every page", () => {
-  assert.ok(styleNames('midcentury').has('presenter'));
+test("the style's own components are reserved too: a film's `presenter` would replace the style's own on every page", () => {
+  assert.ok(styleNames('_test-kit').has('presenter'));
   assert.equal(styleNames('no-such-style').size, 0);
   const look = { kit: [{ name: 'presenter', what: 'the host', pages: ['p01', 'p02'] }, { name: 'teacher', what: 'the host, our colours', pages: ['p01', 'p02'] }] };
-  assert.deepEqual(kitPlan(look, 'midcentury').map((x) => x.name), ['teacher']);
+  assert.deepEqual(kitPlan(look, '_test-kit').map((x) => x.name), ['teacher']);
   assert.deepEqual(kitPlan(look).map((x) => x.name), ['presenter', 'teacher']);   // another style has none of that name
-  assert.match(kitIssues(look, ids, 'midcentury').join('\n'), /presenter is already the style's own P\.presenter/);
+  assert.match(kitIssues(look, ids, '_test-kit').join('\n'), /presenter is already the style's own P\.presenter/);
 });
 
 test('an error of the kit\'s check is found in the component it was raised in, its frames as that file\'s lines', () => {

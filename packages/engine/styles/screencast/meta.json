@@ -1,9 +1,0 @@
-{
-  "id": "screencast",
-  "tier": "free",
-  "name": { "zh": "屏幕演示", "en": "Screencast" },
-  "tagline": { "zh": "像一段精修的产品演示：光标顺滑滑向按钮、点下去，镜头随之推近，菜单弹出、开关翻转，再拉远看清结果", "en": "A polished product demo: the cursor glides to a control and clicks, the camera eases in as the app answers, then pulls back to show the result" },
-  "fit": { "zh": ["软件教程", "产品功能演示", "AI 工具与办公技巧"], "en": ["Software how-tos", "Product walkthroughs", "AI tools & office skills"] },
-  "swatch": ["#E4E8F0", "#FFFFFF", "#151823", "#4F55F1"],
-  "accent": ["blue", "green"]
-}

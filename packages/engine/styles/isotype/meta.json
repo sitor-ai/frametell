@@ -1,9 +1,0 @@
-{
-  "id": "isotype",
-  "tier": "free",
-  "name": { "zh": "象形统计图", "en": "Isotype" },
-  "tagline": { "zh": "一个小人代表一百万人：一排排扁平图标一个个数出来，再走到另一边，让数字变成看得见的人群", "en": "One figure stands for a million people: rows of flat pictograms count themselves in, then walk across to show the shift" },
-  "fit": { "zh": ["人口与社会", "经济对比", "调查与比例"], "en": ["Population & society", "Economic comparisons", "Surveys & shares"] },
-  "swatch": ["#F1EADA", "#1F1D1A", "#B23C29", "#2F5B86"],
-  "accent": ["red", "blue"]
-}

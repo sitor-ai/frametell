@@ -1,9 +1,0 @@
-{
-  "id": "chat",
-  "tier": "free",
-  "name": { "zh": "聊天界面", "en": "Chat Screen" },
-  "tagline": { "zh": "故事在手机屏幕上发生：消息随口播一条条弹出，“对方正在输入…”悬着不落，转折处一条消息被撤回", "en": "The story plays out on a phone: messages pop in with the voice, the typing dots hang, and at the turn a message is unsent" },
-  "fit": { "zh": ["防骗反诈", "职场沟通", "人际与社会心理"], "en": ["Scams & fraud", "Workplace messages", "Relationships & social life"] },
-  "swatch": ["#DCEFE6", "#95E3A6", "#FFFFFF", "#E5484D"],
-  "accent": ["green", "blue"]
-}

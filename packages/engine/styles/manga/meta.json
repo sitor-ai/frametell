@@ -1,9 +1,0 @@
-{
-  "id": "manga",
-  "tier": "free",
-  "name": { "zh": "日式黑白漫画", "en": "Manga" },
-  "tagline": { "zh": "G 笔墨线、网点纸、集中线：一格格分镜切进来，顿悟那一刻整页“咚”地砸满画面", "en": "G-pen ink, screentone and speed lines: panels cut in one by one, and the moment it clicks slams to full frame with a giant DON" },
-  "fit": { "zh": ["心理与成长", "职场与校园", "激励与习惯"], "en": ["Psychology & growth", "School & work life", "Motivation & habits"] },
-  "swatch": ["#FAFAF8", "#111111", "#9A9A9A", "#D7262E"],
-  "accent": ["red"]
-}

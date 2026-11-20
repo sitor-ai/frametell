@@ -15,3 +15,45 @@ apps/desktop/release/
 
 # design-review scratch files carry local paths
 .impeccable/critique/
+
+# Cloud-only style packs (frametell-cloud packages/styles/install.mjs puts them here). Never commit them.
+/packages/engine/styles/blueprint
+/packages/engine/styles/broadsheet
+/packages/engine/styles/chat
+/packages/engine/styles/clay
+/packages/engine/styles/collage
+/packages/engine/styles/cosmos
+/packages/engine/styles/crayon
+/packages/engine/styles/diorama
+/packages/engine/styles/engraving
+/packages/engine/styles/exploded
+/packages/engine/styles/free
+/packages/engine/styles/globe
+/packages/engine/styles/ink-wash
+/packages/engine/styles/inked
+/packages/engine/styles/instrument
+/packages/engine/styles/isometric
+/packages/engine/styles/isotype
+/packages/engine/styles/manga
+/packages/engine/styles/mascot
+/packages/engine/styles/math
+/packages/engine/styles/metro
+/packages/engine/styles/midcentury
+/packages/engine/styles/molecule
+/packages/engine/styles/neon
+/packages/engine/styles/old-map
+/packages/engine/styles/one-line
+/packages/engine/styles/papercut
+/packages/engine/styles/pixel
+/packages/engine/styles/pop
+/packages/engine/styles/rubberhose
+/packages/engine/styles/screencast
+/packages/engine/styles/shadow-puppet
+/packages/engine/styles/swiss
+/packages/engine/styles/tutorial
+/packages/engine/styles/ukiyoe
+/packages/engine/styles/vector
+/packages/engine/styles/watercolor
+/packages/engine/styles/doodle
+/packages/engine/styles/story
+/packages/engine/styles/sales-training

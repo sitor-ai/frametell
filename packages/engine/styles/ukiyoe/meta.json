@@ -1,9 +1,0 @@
-{
-  "id": "ukiyoe",
-  "tier": "free",
-  "name": { "zh": "浮世绘", "en": "Woodblock" },
-  "tagline": { "zh": "一块块颜色压上和纸：远山、霞带、巨浪，一枚朱印收尾", "en": "Colour pressed on block by block: the far mountain, mist bands, the great wave, a vermilion seal" },
-  "fit": { "zh": ["历史文化", "自然地理", "民间故事"], "en": ["History & culture", "Nature", "Folk stories"] },
-  "swatch": ["#EFE4CC", "#1F4E79", "#2B3655", "#C8442B"],
-  "accent": ["blue", "red"]
-}

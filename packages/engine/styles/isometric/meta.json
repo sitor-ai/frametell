@@ -1,9 +1,0 @@
-{
-  "id": "isometric",
-  "tier": "free",
-  "name": { "zh": "等距插画", "en": "Isometric" },
-  "tagline": { "zh": "30° 等距小世界：方块从地面升起，货物沿着传送带在站点间流动", "en": "A tiny 30° world where blocks rise from the ground and goods flow between stations" },
-  "fit": { "zh": ["商业模式", "供应链与流程", "系统怎么运转"], "en": ["Business models", "Supply chains & processes", "How systems work"] },
-  "swatch": ["#EEF0F8", "#FFFFFF", "#9D8CF5", "#FF6B3D"],
-  "accent": ["orange", "purple"]
-}

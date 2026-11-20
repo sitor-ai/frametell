@@ -1,0 +1,7 @@
+{
+  "kinds": ["object", "character", "scene", "texture"],
+  "max": 6,
+  "quality": "medium",
+  "fromLook": true,
+  "avoid": "No text, letters, numbers, labels or logos."
+}

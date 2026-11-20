@@ -11,7 +11,7 @@ import type { AgentRuntime } from './runtime/types.js';
 import type { StudioEvent } from './events.js';
 
 const PAGE = (id: string) => `ENGINE.visual('${id}', (P) => {\n  P.text('${id}', { x: 960, y: 540 });\n});\n`;
-const SCRIPT = "(function (root) {\n  const META = {\n    style: 'free',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n";
+const SCRIPT = "(function (root) {\n  const META = {\n    style: '_test',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n";
 
 type Send = (o: { name: string; text: string; cwd: string; signal?: AbortSignal }) => Promise<{ stopReason?: string } | void> | { stopReason?: string } | void;
 /** a runtime like Pi as far as transcripts go: a session's ref is its file (the one it resumed, else its name's), and
@@ -50,7 +50,7 @@ type Inside = { state: { stage: string; planner?: string; lanes?: unknown; pages
 function planner(dir: string, act: Send, signal?: AbortSignal) {
   const opened: string[] = [], asked: Record<string, string[]> = {}, events: StudioEvent[] = [];
   const rt = runtime(opened, asked, act);
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: rt, emit: (e) => events.push(e), signal });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 60, lang: 'zh', replyLang: 'zh' }, runtime: rt, emit: (e) => events.push(e), signal });
   const commits: string[] = [];
   Object.assign(d.project, { storyboardIssues: () => [], commit: async (m: string) => { commits.push(m); return null; } });
   Object.assign(d, { lookIssues: () => [], lengthIssues: () => [] });
@@ -123,7 +123,7 @@ test('a storyboard begun with no conversation to carry on is finished in a new o
 function drawing(dir: string, act: Send, signal?: AbortSignal) {
   const opened: string[] = [], asked: Record<string, string[]> = {}, events: StudioEvent[] = [];
   const rt = runtime(opened, asked, act);
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 180, lang: 'zh', replyLang: 'zh' }, runtime: rt, pageChecks: 'hard', emit: (e) => events.push(e), signal });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 180, lang: 'zh', replyLang: 'zh' }, runtime: rt, pageChecks: 'hard', emit: (e) => events.push(e), signal });
   const sb = storyboardOf(12);
   const timing = { duration: 60, pages: sb.pages.map((p, i) => ({ id: p.id, start: i * 5, end: i * 5 + 5, speechEnd: i * 5 + 4, cues: [] })) };
   Object.assign(d.project, { check: async () => ({ issues: [], sheet: 'sheet.jpg' }), lint: async () => [], snap: async () => 'sheet.jpg', commit: async () => null, storyboard: () => sb, timeline: async () => timing });

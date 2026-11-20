@@ -1,7 +1,0 @@
-{
-  "kinds": ["object", "character", "scene", "texture"],
-  "max": 6,
-  "quality": "medium",
-  "fromLook": true,
-  "avoid": "No text, letters, numbers, labels, logos, signatures or watermarks. Nothing outside the look the style card describes: no photorealism or 3D render unless the card asks for it."
-}

@@ -1,9 +1,0 @@
-{
-  "id": "one-line",
-  "tier": "free",
-  "name": { "zh": "一笔画", "en": "One line" },
-  "tagline": { "zh": "一支笔从不离开纸面：一只手松开，线就解开，重新画成一只飞走的鸟", "en": "A pen that never leaves the paper: a hand lets go, and the same line redraws itself as a bird" },
-  "fit": { "zh": ["人生哲思", "心理与情绪", "关系与习惯"], "en": ["Life & philosophy", "Mind & feelings", "Love & habits"] },
-  "swatch": ["#F5F0E7", "#1C1A17", "#D9694E", "#93B4CF"],
-  "accent": ["red", "blue"]
-}

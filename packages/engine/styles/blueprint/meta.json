@@ -1,9 +1,0 @@
-{
-  "id": "blueprint",
-  "tier": "free",
-  "name": { "zh": "蓝图工程图", "en": "Blueprint" },
-  "tagline": { "zh": "蓝底白线一笔笔画出来，标尺寸、拆零件、红笔圈重点", "en": "White lines drafted on cyanotype blue: dimensions, exploded parts, a red pencil on the point" },
-  "fit": { "zh": ["原理拆解", "工程与产品", "流程机制"], "en": ["How it works", "Engineering & products", "Processes"] },
-  "swatch": ["#0F3B78", "#F2F7FF", "#FFD866", "#FF6B5B"],
-  "accent": ["red", "yellow"]
-}

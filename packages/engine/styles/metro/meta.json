@@ -1,9 +1,0 @@
-{
-  "id": "metro",
-  "tier": "free",
-  "name": { "zh": "地铁线路图", "en": "Transit Map" },
-  "tagline": { "zh": "列车边跑边画出彩色线路，每到一站就在口播的那个词上亮起站名，两线交汇处换乘环一跳", "en": "A train draws each coloured line as it runs; every station lights up on its spoken word, and interchanges pulse where lines meet" },
-  "fit": { "zh": ["学习与职业路线", "流程与路径", "分岔与汇流的历史"], "en": ["Roadmaps & careers", "Processes & pathways", "Histories that branch & merge"] },
-  "swatch": ["#F7F6F1", "#E1251B", "#0A6FC2", "#00965E"],
-  "accent": ["red", "blue"]
-}

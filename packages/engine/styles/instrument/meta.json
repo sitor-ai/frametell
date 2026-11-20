@@ -1,9 +1,0 @@
-{
-  "id": "instrument",
-  "tier": "free",
-  "name": { "zh": "机械图解", "en": "Mechanism" },
-  "tagline": { "zh": "真实的机器剖开给你看：发动机、变速箱、刹车，零件一件件装好，活塞和齿轮转起来，读数跟着机构一起走", "en": "Real machines, cut open: engines, gearboxes, brakes. Parts settle into place, pistons and gears run, and the readout moves with the mechanism" },
-  "fit": { "zh": ["汽车与机械", "机器怎么工作", "工程原理"], "en": ["Cars & machinery", "How machines work", "Engineering"] },
-  "swatch": ["#FBFBFA", "#26262A", "#D3D3CE", "#FF4F00"],
-  "credit": "Figure techniques adapted from Anatomy (MIT, © 2026 Ryan)"
-}

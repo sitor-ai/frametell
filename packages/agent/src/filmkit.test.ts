@@ -67,10 +67,10 @@ function reviewer(prompts: string[], o: { failFlag?: boolean } = {}): AgentRunti
 function film(o: { pages?: number; kit?: unknown; designed?: boolean; writesKit?: boolean; failFlag?: boolean } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-filmkit-'));
   fs.mkdirSync(path.join(dir, 'pages'));
-  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: 'free',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
+  fs.writeFileSync(path.join(dir, 'script.js'), "(function (root) {\n  const META = {\n    style: '_test',\n    extras: [],\n  };\n  root.SCRIPT = { META, PAGES: [] };\n})(globalThis);\n");
   const systems: Record<string, string> = {}, prompts: string[] = [], events: StudioEvent[] = [];
   const art = artist(systems, { writesKit: o.writesKit });
-  const d = new Director({ dir, style: 'free', brief: { durationSec: 180, lang: 'zh', replyLang: 'zh' }, runtime: art, pages: { runtime: art }, reviewer: { runtime: reviewer(prompts, { failFlag: o.failFlag }) }, emit: (e) => events.push(e) });
+  const d = new Director({ dir, style: '_test', brief: { durationSec: 180, lang: 'zh', replyLang: 'zh' }, runtime: art, pages: { runtime: art }, reviewer: { runtime: reviewer(prompts, { failFlag: o.failFlag }) }, emit: (e) => events.push(e) });
   const n = o.pages ?? 8;
   const sb = { title: 'T', summary: 'S', look: { card: 'card', kit: o.kit ?? KIT_PLAN }, pages: Array.from({ length: n }, (_, i) => ({ id: `p0${i + 1}`, section: 's', say: '…', beats: [] })) };
   const timing = { duration: n * 5, pages: sb.pages.map((p, i) => ({ id: p.id, start: i * 5, end: i * 5 + 5, speechEnd: i * 5 + 4, cues: [] })) };

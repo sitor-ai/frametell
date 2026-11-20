@@ -1,9 +1,0 @@
-{
-  "id": "neon",
-  "tier": "free",
-  "name": { "zh": "霓虹赛博", "en": "Neon Noir" },
-  "tagline": { "zh": "夜色里的霓虹灯管随口播闪烁点亮，数字故障跳出，网格地平线一路延伸", "en": "Neon tubes flicker on with the voice, numbers glitch into place, a grid floor runs to the horizon" },
-  "fit": { "zh": ["AI 与未来科技", "创业与趋势", "互联网文化"], "en": ["AI & future tech", "Startups & trends", "Internet culture"] },
-  "swatch": ["#07060D", "#FF2E88", "#22E5FF", "#9B5CFF"],
-  "accent": ["red", "blue"]
-}

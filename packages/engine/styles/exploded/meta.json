@@ -1,9 +1,0 @@
-{
-  "id": "exploded",
-  "tier": "free",
-  "name": { "zh": "3D 结构拆解", "en": "3D Exploded View" },
-  "tagline": { "zh": "发布会级的 3D 产品渲染：转一圈，沿轴拆成一层层零件、逐个标名，最后咔哒合回去", "en": "A launch-event 3D product render: it turns once, comes apart into labelled layers along one axis, then clicks back together" },
-  "fit": { "zh": ["拆开看内部", "产品与硬件", "工作原理"], "en": ["What's inside", "Products & hardware", "How it works"] },
-  "swatch": ["#E4E6EA", "#16181C", "#B8BCC3", "#FF5A1F"],
-  "accent": ["orange", "blue"]
-}

@@ -1,0 +1,4 @@
+{
+  "serif": { "name": "a serif", "hand": "serif" },
+  "sans": { "name": "a sans", "hand": "sans-serif" }
+}

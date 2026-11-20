@@ -1,9 +1,0 @@
-{
-  "id": "clay",
-  "tier": "free",
-  "name": { "zh": "黏土动画", "en": "Clay Studio" },
-  "tagline": { "zh": "捏出来的小黏土人和道具，在粉彩摄影棚里一帧一帧动起来，软软的、有指纹、带着影子", "en": "Plasticine buddies and props move frame by frame on a pastel studio set: soft, thumb-pressed, with real shadows" },
-  "fit": { "zh": ["轻松科普", "生活心理", "儿童课堂"], "en": ["Light explainers", "Everyday psychology", "Kids' science"] },
-  "swatch": ["#F5D7C6", "#F39A3E", "#4D9AD9", "#F7C843"],
-  "accent": ["orange", "blue"]
-}
