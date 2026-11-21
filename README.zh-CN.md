@@ -107,6 +107,20 @@ node apps/cli/dist/cli.js run 讲稿.pdf --style warm-story --duration 60
 
 Bug 和功能建议也可以直接提 [Issue](../../issues)。
 
+## 赞助
+
+<p align="center">
+  <a href="https://mozhenzhen.com/go/frametell"><img src="docs/brand/sponsors/frametell-mzz-zh.png" alt="模真真 — 买 AI 别花冤枉钱" width="100%"></a>
+</p>
+
+🐼 合作推荐：买 AI 别花冤枉钱！怕买贵？怕假模型？怕被坑？花钱前先查【模真真】
+
+- 🏷️ 怕花冤枉钱买贵了？【比价】2000+ 模型 · 35 万+ 渠道，官方订阅、按量 API 与套餐换算同台对比，哪家便宜直接排好。
+- 🛡️ 怕买到掺假、降智模型？【验真】5000+ 中转站 · 10 万份报告，看真实用户口碑、查模型真假，查清套壳和降智。
+- 🧭 怕买号被坑？【买号/充值导航】1200+ 号商 · 2 万+ 商品（成品号/代充/团队席位），买前看清价格、发货速度与售后质保。
+- 🎁 想找免费额度？【羊毛】每天更新免费额度和羊毛活动，整理公益站合集，免费额度随时领。
+- ⭐ 全部免费 · 模真真自己不卖任何 AI 服务，排名只看数据。去查一查：[mozhenzhen.com/go/frametell](https://mozhenzhen.com/go/frametell)
+
 ## 许可
 
 帧言以 [GNU Affero 通用公共许可证 v3.0](LICENSE)（AGPL-3.0）开源。你可以自由使用、修改和运行它，包括商用；但如果你把修改后的版本通过网络提供给别人使用，就要以同样的许可证向他们公开修改后的源码。如果需要不带这些义务的商业授权，请发邮件到 [contact@sitor.ai](mailto:contact@sitor.ai)。
