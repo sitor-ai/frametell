@@ -109,6 +109,20 @@ Questions, ideas and films you've made are all welcome. Come say hi on [Discord]
 
 For bugs and feature requests, open an [issue](../../issues).
 
+## Sponsors
+
+<p align="center">
+  <a href="https://mozhenzhen.com/go/frametell"><img src="docs/brand/sponsors/frametell-mzz-en.png" alt="Mozhenzhen — Stop overpaying for AI" width="100%"></a>
+</p>
+
+🐼 Partner Pick: Stop overpaying for AI! Overpriced APIs? Fake models? Getting ripped off? Check Mozhenzhen before you buy:
+
+- 🏷️ Tired of overpaying for tokens? [Price Check] 2,000+ models · 350K+ listings. Compare official subscriptions, API relays, and pay-as-you-go rates side-by-side.
+- 🛡️ Worried about fake or nerfed models? [Verification] 5,000+ API relays · 100K verification reports. Check real developer reviews and audit model authenticity.
+- 🧭 Looking for reliable accounts or top-ups? [Account & Top-Up Directory] 1,200+ sellers · 20K+ products (accounts, top-ups, team seats) with upfront pricing, delivery speed, and warranty terms.
+- 🎁 Looking for free API credits? [Free Perks] Daily updated free tiers, promos, and community relay hubs you can claim anytime.
+- ⭐ Always Free · Mozhenzhen doesn't sell AI services, rankings are purely data-driven. Check now: [mozhenzhen.com/go/frametell](https://mozhenzhen.com/go/frametell)
+
 ## License
 
 Frametell is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). You may use, modify and
