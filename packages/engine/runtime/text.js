@@ -36,25 +36,40 @@
     return out;
   }
 
-  const CLOSE = /[，。、；：！？）》」』”’,.;:!?)\]…—%]/, OPEN = /[（《「『“‘(\[]/;
+  const CLOSE = /[，。、；：！？）》」』”’,.;:!?)\]…—%،؛؟۔]/, OPEN = /[（《「『“‘(\[]/;
+  // scripts whose letters are shaped with their neighbours (Arabic joins, Indic conjuncts, Thai marks…): a letter alone
+  // in its own box is drawn in its isolated form (and an Arabic word falls apart, in the wrong order), so a text with
+  // any of them keeps its letters inline (.tx.flow): one run of text, still revealed letter by letter
+  const SHAPED = /[\p{sc=Arabic}\p{sc=Syriac}\p{sc=Thaana}\p{sc=Nko}\p{sc=Mongolian}\p{sc=Hebrew}\p{sc=Devanagari}\p{sc=Bengali}\p{sc=Gurmukhi}\p{sc=Gujarati}\p{sc=Oriya}\p{sc=Tamil}\p{sc=Telugu}\p{sc=Kannada}\p{sc=Malayalam}\p{sc=Sinhala}\p{sc=Thai}\p{sc=Lao}\p{sc=Tibetan}\p{sc=Myanmar}\p{sc=Khmer}]/u;
+  const RTL = /[\p{sc=Arabic}\p{sc=Syriac}\p{sc=Thaana}\p{sc=Nko}\p{sc=Hebrew}]/u;
+  // a letter of a script written in words separated by spaces (a line breaks between its words, never inside one)
+  const WORDY = /[\p{sc=Arabic}\p{sc=Syriac}\p{sc=Thaana}\p{sc=Nko}\p{sc=Hebrew}\p{sc=Devanagari}\p{sc=Bengali}\p{sc=Gurmukhi}\p{sc=Gujarati}\p{sc=Oriya}\p{sc=Tamil}\p{sc=Telugu}\p{sc=Kannada}\p{sc=Malayalam}\p{sc=Sinhala}\p{sc=Greek}\p{sc=Cyrillic}\p{sc=Latin}\p{M}\p{Nd}]/u;
+  // user-perceived characters: an emoji sequence or a letter with its marks is one, not split in two
+  const graphemes = typeof Intl !== 'undefined' && Intl.Segmenter
+    ? ((seg) => (t) => Array.from(seg.segment(t), (x) => x.segment))(new Intl.Segmenter(undefined, { granularity: 'grapheme' }))
+    : (t) => [...t];
   function spansFor(el, segs) {
     const spans = [];
+    const all = segs.map((sg) => sg.text).join('');
+    const flow = SHAPED.test(all);
+    if (flow) el.classList.add('flow');
+    if (RTL.test(all)) { el.dir = 'auto'; el._rtl = true; }
     for (const sg of segs) {
       let wrap = el;
       if (sg.color || sg.mono || sg.bold) {
         wrap = h('span', (sg.mono ? 'mono ' : '') + (sg.bold ? 'b' : ''), null, el);
         if (sg.color) wrap.style.color = col(sg.color);
       }
-      // lines break only between units: a latin word with the spaces after it, a CJK character with the closing marks
-      // after it (，。」…), an opening mark (「（“) with what follows — so English never splits inside a word, no line
+      // lines break only between units: a word (latin, arabic…) with the spaces after it, a CJK character with the
+      // closing marks after it (，。」…), an opening mark (「（“) with what follows — so a word never splits, no line
       // starts with a space or a comma, and none ends on an opening quote
       let unit = null, open = false, word = false;
-      for (const c of sg.text) {
+      for (const c of graphemes(sg.text)) {
         if (c === '\n') { h('br', '', null, wrap); unit = null; continue; }
-        const latin = /[A-Za-z0-9'’.%$€£¥_-]/.test(c);
+        const latin = /[A-Za-z0-9'’.%$€£¥_-]/.test(c) || WORDY.test(c);
         const join = c === ' ' || CLOSE.test(c) || open || (latin && word);
         if (!unit || !join) unit = h('span', 'w', null, wrap);
-        spans.push(h('span', 'ch', c === ' ' ? '&nbsp;' : c.replace('<', '&lt;'), unit));
+        spans.push(h('span', 'ch', c === ' ' ? (flow ? ' ' : '&nbsp;') : c.replace(/&/g, '&amp;').replace(/</g, '&lt;'), unit));
         open = OPEN.test(c);
         word = latin;
       }
@@ -63,9 +78,9 @@
   }
 
   /** Client-space point at the right edge of a span (pencil tip for text). */
-  function spanTip(sp, k) {
+  function spanTip(sp, k, rtl) {
     const r = sp.getBoundingClientRect();
-    return { x: r.left + r.width * k, y: r.bottom - r.height * 0.18, client: true };
+    return { x: rtl ? r.right - r.width * k : r.left + r.width * k, y: r.bottom - r.height * 0.18, client: true };
   }
 
   /**
@@ -118,7 +133,7 @@
           if (!state.cur && kk < 1 && kk > 0) { state.cur = sp; state.k = kk; }
         }
       },
-      tip: () => (state.cur ? spanTip(state.cur, state.k) : null),
+      tip: () => (state.cur ? spanTip(state.cur, state.k, el._rtl) : null),
     });
     const hnd = this.handle(a, el);
     hnd.spans = spans;
