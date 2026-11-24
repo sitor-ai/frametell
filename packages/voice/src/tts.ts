@@ -25,12 +25,45 @@ export interface TtsProvider {
   synth(text: string, opts: SynthOptions): Promise<SynthResult>;
 }
 
-async function retry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
-  let last: unknown;
-  for (let i = 0; i < tries; i++) {
-    try { return await fn(); } catch (e) { last = e; if ((e as Error).name === 'AbortError' || e instanceof Mismatch) break; await new Promise((r) => setTimeout(r, 1500 * (i + 1))); }
+/** The service, or a gateway in front of it, is down for a moment: it answered 429 or 5xx (often an HTML error page). */
+class Busy extends Error {}
+const busy = (status: number) => status === 429 || status >= 500;
+/** the request never reached the service (DNS, a reset connection): fetch throws a TypeError */
+const unreachable = (e: unknown) => e instanceof TypeError;
+
+/**
+ * The waits between tries (ms). Any failure is asked again three times over ~9 s; a busy or unreachable service is
+ * waited out for ~1.5 min, since a 502 burst at the provider (a film stopped at its voiceover on "Volcengine TTS 502
+ * </html>", 2026-11-24) outlasts 9 s. Exported for tests.
+ */
+export const retryWaits = { quick: [1500, 3000, 4500], busy: [2000, 5000, 10_000, 20_000, 30_000, 30_000] };
+
+/** waits ms, or ends at once when the film is stopped */
+function pause(ms: number, stop?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (stop?.aborted) return reject(stop.reason);
+    const t = setTimeout(() => { stop?.removeEventListener('abort', end); resolve(); }, ms);
+    const end = () => { clearTimeout(t); reject(stop!.reason); };
+    stop?.addEventListener('abort', end, { once: true });
+  });
+}
+
+async function retry<T>(fn: () => Promise<T>, stop?: AbortSignal): Promise<T> {
+  for (let i = 0; ; i++) {
+    try { return await fn(); } catch (e) {
+      if ((e as Error).name === 'AbortError' || e instanceof Mismatch) throw e;
+      const waits = e instanceof Busy || unreachable(e) ? retryWaits.busy : retryWaits.quick;
+      if (i >= waits.length) throw e;
+      await pause(waits[i], stop);
+    }
   }
-  throw last;
+}
+
+/** an answer that is an HTML page (a gateway's or load balancer's error page), named by its title, not its last line */
+function htmlPage(raw: string): string | undefined {
+  if (!/^\s*</.test(raw)) return undefined;
+  const title = /<title>([^<]*)<\/title>/i.exec(raw)?.[1]?.trim();
+  return title ? `(${title})` : '(an HTML error page)';
 }
 
 /**
@@ -82,27 +115,28 @@ export function volcengineTts(apiKey: string, endpoint: TtsEndpoint = {}): TtsPr
       signal: deadline(o.signal),
     });
     const raw = await res.text(), chunks: Buffer[] = [], words: WordTime[] = [];
-    let err: string | null = null;
-    for (const line of raw.split('\n')) {
+    let err: string | null = htmlPage(raw) ?? null;
+    if (!err) for (const line of raw.split('\n')) {
       if (!line.trim()) continue;
       let f;
       try { f = JSON.parse(line); } catch { err = line.slice(0, 200); continue; }
       if (f.data) chunks.push(Buffer.from(f.data, 'base64'));
       if (f.sentence?.words) words.push(...f.sentence.words);
       if (f.code && f.code !== 20000000) err = `code=${f.code} ${f.message ?? ''}`;
+      if (typeof f.error === 'string') err = f.error;   // the gateway's own refusal ({ error })
     }
     if (err && /mismatch/i.test(err)) throw new Mismatch(err);
-    if (res.status !== 200 || err || !chunks.length || !words.length) throw new Error(`Volcengine TTS ${res.status} ${err ?? 'returned no audio'}`);
+    if (res.status !== 200 || err || !chunks.length || !words.length) throw new (busy(res.status) ? Busy : Error)(`Volcengine TTS ${res.status} ${err ?? 'returned no audio'}`);
     return { audio: Buffer.concat(chunks), words };
   };
   return {
     id: 'volcengine',
     async synth(text, o) {
       const known = resolved.get(o.voice);
-      if (known) return retry(() => once(text, o, known));
+      if (known) return retry(() => once(text, o, known), o.signal);
       let last: unknown;
       for (const r of volcengineResources(o.voice)) {
-        try { const out = await retry(() => once(text, o, r)); resolved.set(o.voice, r); return out; }
+        try { const out = await retry(() => once(text, o, r), o.signal); resolved.set(o.voice, r); return out; }
         catch (e) { last = e; if (!(e instanceof Mismatch)) throw e; }
       }
       throw new VoiceNotFound(o.voice, (last as Error).message);
@@ -134,13 +168,13 @@ export function elevenLabsTts(apiKey: string, model = 'eleven_v4_turbo', endpoin
       let res = await ask(o.lang);
       // a language the model doesn't take by its code: it tells the language from the text itself
       if (o.lang && (res.status === 400 || res.status === 422)) res = await ask();
-      if (!res.ok) throw new Error(`ElevenLabs ${res.status} ${(await res.text()).slice(0, 200)}`);
+      if (!res.ok) { const raw = await res.text(); throw new (busy(res.status) ? Busy : Error)(`ElevenLabs ${res.status} ${htmlPage(raw) ?? raw.slice(0, 200)}`); }
       const j = (await res.json()) as { audio_base64: string; alignment?: { characters: string[]; character_start_times_seconds: number[]; character_end_times_seconds: number[] } };
       const a = j.alignment;
       if (!a) throw new Error('ElevenLabs returned no timestamps');
       const words = a.characters.map((ch, i) => ({ word: ch, startTime: a.character_start_times_seconds[i], endTime: a.character_end_times_seconds[i] }));
       return { audio: Buffer.from(j.audio_base64, 'base64'), words };
-    }),
+    }, o.signal),
   };
 }
 

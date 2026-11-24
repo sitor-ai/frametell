@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { elevenLabsTts, volcengineTts } from './tts.js';
+import { elevenLabsTts, retryWaits, volcengineTts } from './tts.js';
 
 // a provider that never answers until the request's signal gives up
 function hangingFetch(answers: number) {
@@ -88,4 +88,57 @@ test("ElevenLabs is told the film's language, and reads it from the text when th
   assert.equal(bodies[1].language_code, 'xx');
   assert.equal(bodies[2].language_code, undefined);
   assert.equal(bodies.length, 3);
+});
+
+/** a Volcengine answer with audio and its words */
+const VOLC_OK = [JSON.stringify({ data: Buffer.from('mp3').toString('base64') }), JSON.stringify({ sentence: { words: [{ word: '你', startTime: 0, endTime: 0.1 }] } }), JSON.stringify({ code: 20000000 })].join('\n');
+const BAD_GATEWAY = '<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n</body>\r\n</html>\r\n';
+
+/** the waits between tries, shortened for the test */
+async function quickWaits(run: () => Promise<void>) {
+  const saved = { ...retryWaits };
+  retryWaits.quick = [1, 1, 1];
+  retryWaits.busy = [1, 1, 1, 1, 1, 1];
+  try { await run(); } finally { Object.assign(retryWaits, saved); }
+}
+
+test('a 502 burst longer than the quick retries is waited out, and the take still comes back', async () => {
+  let n = 0;
+  const fetch = () => Promise.resolve(++n <= 5 ? new Response(BAD_GATEWAY, { status: 502, headers: { 'content-type': 'text/html' } }) : new Response(VOLC_OK, { status: 200 }));
+  await quickWaits(() => withFakes(fetch, async () => {
+    const out = await volcengineTts('k').synth('你', { voice: 'zh_female_vv_uranus_bigtts', signal: new AbortController().signal });
+    assert.equal(out.words.length, 1);
+  }));
+  assert.equal(n, 6);
+});
+
+test('a 502 that never ends fails with the page named by its title, not "</html>"', async () => {
+  let n = 0;
+  const fetch = () => { n++; return Promise.resolve(new Response(BAD_GATEWAY, { status: 502 })); };
+  await quickWaits(() => withFakes(fetch, async () => {
+    await assert.rejects(volcengineTts('k').synth('你', { voice: 'zh_male_m191_uranus_bigtts', signal: new AbortController().signal }), { message: 'Volcengine TTS 502 (502 Bad Gateway)' });
+  }));
+  assert.equal(n, 1 + retryWaits.busy.length);
+});
+
+test('a refusal that is not the service being down is asked again only the quick few times', async () => {
+  let n = 0;
+  const fetch = () => { n++; return Promise.resolve(new Response('{"detail":"invalid key"}', { status: 401 })); };
+  await quickWaits(() => withFakes(fetch, async () => {
+    await assert.rejects(elevenLabsTts('k').synth('hi', { voice: 'v', signal: new AbortController().signal }), /ElevenLabs 401/);
+  }));
+  assert.equal(n, 1 + retryWaits.quick.length);
+});
+
+test('stopping a film while it waits out a busy service ends the wait at once', async () => {
+  let n = 0;
+  const fetch = () => { n++; return Promise.resolve(new Response(BAD_GATEWAY, { status: 503 })); };
+  const stop = new AbortController();
+  const started = Date.now();
+  setTimeout(() => stop.abort(), 20);
+  await withFakes(fetch, async () => {
+    await assert.rejects(elevenLabsTts('k').synth('hi', { voice: 'v', signal: stop.signal }), { name: 'AbortError' });
+  });
+  assert.equal(n, 1);
+  assert.ok(Date.now() - started < 1000);
 });
