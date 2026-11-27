@@ -12,6 +12,12 @@ export default {
     zh: '中文',
     en: 'English',
   },
+  general: {
+    concurrency: '画页并发',
+    concurrencyDesc: '同时画几页。用外部 AI Agent(Claude Code 等)时建议按顺序，一张画完再画下一张，更稳也更省。',
+    sequential: '1 张（按顺序）',
+    parallel: (v: { n: number }) => `${v.n} 张同时`,
+  },
   exportDir: {
     title: '导出位置',
     desc: '每次导出 mp4，带字幕和无字幕两版都会另存一份到这里，同名的旧版会被替换。不填就只留在项目里。',
